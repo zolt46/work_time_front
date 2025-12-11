@@ -1,0 +1,56 @@
+/* File: /ui/css/layout.css */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+.sidebar {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 20px 14px;
+}
+.sidebar a {
+  display: block;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.sidebar a:hover { background: rgba(255,255,255,0.08); }
+.content {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+.grid { display: grid; gap: 12px; }
+.grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  border: 1px solid var(--border);
+}
+.schedule-grid .cell {
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 8px;
+  min-height: 50px;
+}
+.schedule-grid .header { background: #edf2f7; font-weight: 600; }
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}

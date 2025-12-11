@@ -1,0 +1,58 @@
+/* File: /ui/css/base.css */
+:root {
+  --bg: #f7f9fc;
+  --primary: #2b6cb0;
+  --accent: #38b2ac;
+  --text: #1a202c;
+  --muted: #718096;
+  --card: #ffffff;
+  --border: #e2e8f0;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+a { color: var(--primary); text-decoration: none; }
+button, input, select {
+  font: inherit;
+}
+.btn {
+  background: var(--primary);
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn.secondary { background: var(--accent); }
+.btn.muted { background: var(--muted); }
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th, .table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+}
+.badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+.badge.pending { background: #f6ad55; color: #7b341e; }
+.badge.approved { background: #9ae6b4; color: #22543d; }
+.badge.rejected { background: #feb2b2; color: #742a2a; }

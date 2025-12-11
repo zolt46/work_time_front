@@ -1,0 +1,47 @@
+<!-- File: /ui/html/admin_shifts.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shift Management</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+</head>
+<body>
+  <header class="header"><div class="logo">Shifts</div><div><a href="dashboard.html">Dashboard</a></div></header>
+  <div class="content">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-title">Create Shift</div>
+        <form id="shift-form">
+          <input id="shift-name" placeholder="Shift name" required />
+          <select id="shift-weekday">
+            <option value="0">Mon</option><option value="1">Tue</option><option value="2">Wed</option><option value="3">Thu</option><option value="4">Fri</option><option value="5">Sat</option><option value="6">Sun</option>
+          </select>
+          <input id="shift-start" type="time" required />
+          <input id="shift-end" type="time" required />
+          <input id="shift-location" placeholder="Location" />
+          <button class="btn" type="submit">Create</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">Assign Shift</div>
+        <form id="assign-form">
+          <input id="assign-user" placeholder="User ID" required />
+          <input id="assign-shift" placeholder="Shift ID" required />
+          <input id="assign-from" type="date" required />
+          <input id="assign-to" type="date" />
+          <button class="btn" type="submit">Assign</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { loadUser } from '../js/auth.js';
+    import { createShift, assignShift } from '../js/admin.js';
+    await loadUser();
+    document.getElementById('shift-form').addEventListener('submit', createShift);
+    document.getElementById('assign-form').addEventListener('submit', assignShift);
+  </script>
+</body>
+</html>

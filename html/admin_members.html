@@ -1,0 +1,48 @@
+<!-- File: /ui/html/admin_members.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Member Management</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Members</div>
+    <div><a href="dashboard.html">Dashboard</a></div>
+  </header>
+  <div class="content">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-title">Add Member / Operator</div>
+        <form id="member-form">
+          <input id="member-name" placeholder="Name" required />
+          <input id="member-identifier" placeholder="Identifier (student id)" />
+          <input id="member-login" placeholder="Login ID" required />
+          <input id="member-password" placeholder="Temp password" required />
+          <select id="member-role">
+            <option value="MEMBER">Member</option>
+            <option value="OPERATOR">Operator</option>
+          </select>
+          <button class="btn" type="submit">Create</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">All Users</div>
+        <table class="table" id="member-table">
+          <thead><tr><th>Name</th><th>ID</th><th>Role</th><th>Active</th></tr></thead>
+          <tbody id="member-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { loadUser } from '../js/auth.js';
+    import { loadMembers, createMember } from '../js/admin.js';
+    await loadUser();
+    await loadMembers();
+    document.getElementById('member-form').addEventListener('submit', createMember);
+  </script>
+</body>
+</html>

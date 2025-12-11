@@ -1,0 +1,9 @@
+/* File: /ui/css/components.css */
+.card-title { font-weight: 700; margin-bottom: 8px; }
+.muted { color: var(--muted); }
+.flex { display: flex; gap: 12px; align-items: center; }
+.table-actions { display: flex; gap: 8px; }
+.alert { padding: 12px; border-radius: 8px; background: #edf2f7; border: 1px solid var(--border); }
+.status-bar { display: flex; gap: 12px; flex-wrap: wrap; }
+.badge.role { background: #bee3f8; color: #1a365d; }
+.loader { padding: 20px; text-align: center; color: var(--muted); }

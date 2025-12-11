@@ -1,0 +1,56 @@
+<!-- File: /ui/html/member_profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Profile</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="logo">My Profile</div>
+    <div><a href="dashboard.html">Dashboard</a></div>
+  </header>
+  <div class="content">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-title">Profile</div>
+        <div>Name: <span id="profile-name"></span></div>
+        <div>Role: <span id="profile-role"></span></div>
+        <div>Identifier: <span id="profile-identifier"></span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Change Password</div>
+        <form id="password-form">
+          <input id="old-password" type="password" placeholder="Current password" required />
+          <input id="new-password" type="password" placeholder="New password" required />
+          <button class="btn" type="submit">Update</button>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">My Assigned Shifts</div>
+      <ul id="my-schedule"></ul>
+    </div>
+  </div>
+  <script type="module">
+    import { loadUser } from '../js/auth.js';
+    import { loadMySchedule } from '../js/schedule.js';
+    import { apiRequest } from '../js/api.js';
+    const user = await loadUser();
+    document.getElementById('profile-name').textContent = user.name;
+    document.getElementById('profile-role').textContent = user.role;
+    document.getElementById('profile-identifier').textContent = user.identifier || '-';
+    await loadMySchedule();
+    document.getElementById('password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = { old_password: document.getElementById('old-password').value, new_password: document.getElementById('new-password').value };
+      try {
+        await apiRequest('/auth/password', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        alert('Password updated');
+      } catch (err) { alert(err.message); }
+    });
+  </script>
+</body>
+</html>
