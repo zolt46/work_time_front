@@ -34,7 +34,7 @@ function headerCell(text) {
   return div;
 }
 
-function createTimelineColumns(hours, startHour) {
+function createTimelineColumns(hours) {
   const hourCount = hours.length;
   const times = document.createElement('div');
   times.className = 'timetable-times';
@@ -49,32 +49,56 @@ function createTimelineColumns(hours, startHour) {
     const col = document.createElement('div');
     col.className = 'timetable-column';
     col.style.setProperty('--hour-rows', hourCount);
+    hours.forEach((h) => {
+      const cell = document.createElement('div');
+      cell.className = 'timetable-cell';
+      cell.dataset.hour = String(h);
+      col.appendChild(cell);
+    });
     return col;
   });
   return { times, dayCols };
 }
 
-function placeAssignments(dayCols, assignments, startHour, hourHeight = 44) {
-  const colors = ['#cce5ff', '#d7f0ff', '#d8ffe2', '#fff1d0', '#fbe4ff', '#ffe4e6', '#e7f2ff'];
+function placeAssignments(dayCols, hours, assignments) {
+  const colorPool = ['#1d4ed8', '#0f766e', '#b45309', '#be185d', '#7c3aed', '#2563eb'];
+  const userColor = new Map();
+
+  const overlapsHour = (start, end, hour) => {
+    const hourStart = hour * 60;
+    const hourEnd = hourStart + 60;
+    return end > hourStart && start < hourEnd;
+  };
+
   assignments.forEach((assign, idx) => {
     const dayIndex = assign.shift.weekday;
-    const target = dayCols[dayIndex];
-    if (!target) return;
+    const col = dayCols[dayIndex];
+    if (!col) return;
     const startMinutes = toMinutes(assign.shift.start_time);
     const endMinutes = toMinutes(assign.shift.end_time);
-    const top = (startMinutes - startHour * 60) / 60 * hourHeight;
-    const height = Math.max(28, (endMinutes - startMinutes) / 60 * hourHeight);
-    const block = document.createElement('div');
-    block.className = 'timetable-event';
-    block.style.top = `${top}px`;
-    block.style.height = `${height}px`;
-    block.style.background = colors[idx % colors.length];
-    block.innerHTML = `
-      <div class="event-title">${assign.shift.name}</div>
-      <div class="event-time">${assign.shift.start_time.slice(0,5)} - ${assign.shift.end_time.slice(0,5)}</div>
-      <div class="event-members">${assign.user ? `<span class="chip">${assign.user.name}</span>` : ''}</div>
-    `;
-    target.appendChild(block);
+    const memberName = assign.user?.name || assign.shift.name || '미정';
+    const color = userColor.get(memberName) || colorPool[userColor.size % colorPool.length];
+    if (!userColor.has(memberName)) userColor.set(memberName, color);
+
+    hours.forEach((hour) => {
+      if (!overlapsHour(startMinutes, endMinutes, hour)) return;
+      const cell = col.querySelector(`.timetable-cell[data-hour="${hour}"]`);
+      if (!cell) return;
+      const pill = document.createElement('span');
+      pill.className = 'timetable-pill';
+      pill.textContent = memberName;
+      pill.style.setProperty('--pill-color', color);
+      cell.appendChild(pill);
+    });
+  });
+
+  dayCols.forEach((col) => {
+    col.querySelectorAll('.timetable-cell').forEach((cell) => {
+      if (!cell.childElementCount) {
+        cell.classList.add('timetable-empty-slot');
+        cell.textContent = '—';
+      }
+    });
   });
 }
 
@@ -101,8 +125,8 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   body.style.setProperty('--hour-rows', hours.length);
   body.style.setProperty('--hour-height', `${hourHeight}px`);
 
-  const { times, dayCols } = createTimelineColumns(hours, startHour);
-  placeAssignments(dayCols, assignments, startHour, hourHeight);
+  const { times, dayCols } = createTimelineColumns(hours);
+  placeAssignments(dayCols, hours, assignments);
 
   body.appendChild(times);
   dayCols.forEach((col) => body.appendChild(col));

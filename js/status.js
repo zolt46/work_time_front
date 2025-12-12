@@ -55,6 +55,7 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
     setStatusState(serverEl, '서버 오류', 'status-bad', detail);
     setStatusState(dbEl, 'DB 오류', 'status-bad', detail);
     if (metaEl) metaEl.textContent = detail;
+    if (options.onRetry) options.onRetry(nextAttempt, maxRetries, detail);
     if (options.autoRetry && (!maxRetries || nextAttempt <= maxRetries)) {
       setTimeout(() => {
         checkSystemStatus(serverEl, dbEl, metaEl, { ...options, __attempt: nextAttempt });

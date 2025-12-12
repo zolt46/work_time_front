@@ -65,7 +65,12 @@ async function loadUser() {
 
 function logout() {
   clearToken();
-  window.location.href = '../index.html';
+  const path = window.location.pathname;
+  const base = path.includes('/html/')
+    ? path.split('/html/')[0]
+    : path.replace(/\/[^/]*$/, '/');
+  const target = `${window.location.origin}${base.endsWith('/') ? base : base + '/'}index.html`;
+  window.location.replace(target);
 }
 
 function startSessionCountdown(el) {

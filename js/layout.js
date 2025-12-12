@@ -61,17 +61,22 @@ export async function initAppLayout(activePage) {
 
 export async function initLoginShell() {
   setupSidebar();
+  const loginProgress = document.getElementById('login-progress');
   await checkSystemStatus(
     document.getElementById('server-status'),
     document.getElementById('db-status'),
     document.getElementById('status-meta'),
     {
       autoRetry: true,
-      maxRetries: 6,
-      retryDelay: 2500,
-      onRecover: () => window.location.reload()
+      maxRetries: 10,
+      retryDelay: 1800,
+      onRecover: () => window.location.reload(),
+      onRetry: (nextAttempt, maxRetries) => {
+        if (loginProgress) {
+          loginProgress.textContent = `서버 준비 중... 자동 재시도 (${nextAttempt}/${maxRetries}회)`;
+        }
+      }
     }
   );
-  const loginProgress = document.getElementById('login-progress');
   if (loginProgress) loginProgress.textContent = '로그인 정보를 입력하세요';
 }
