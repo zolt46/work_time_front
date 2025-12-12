@@ -5,6 +5,11 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
+function clearToken() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('token_exp');
+}
+
 async function apiRequest(path, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
   const token = getToken();
@@ -13,6 +18,7 @@ async function apiRequest(path, options = {}) {
   }
   const resp = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   if (resp.status === 401) {
+    clearToken();
     window.location.href = '../index.html';
     return;
   }
@@ -24,4 +30,4 @@ async function apiRequest(path, options = {}) {
   return await resp.json();
 }
 
-export { API_BASE_URL, apiRequest, getToken };
+export { API_BASE_URL, apiRequest, getToken, clearToken };

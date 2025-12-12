@@ -26,9 +26,11 @@ button, input, select {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 700;
 }
 .btn.secondary { background: var(--accent); }
-.btn.muted { background: var(--muted); }
+.btn.muted { background: var(--muted); color: #f8fafc; }
+.btn:disabled { opacity: 0.7; cursor: not-allowed; }
 input, select, textarea {
   width: 100%;
   padding: 10px;

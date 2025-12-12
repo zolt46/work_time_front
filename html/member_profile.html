@@ -6,42 +6,65 @@
   <title>내 프로필</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
 </head>
 <body>
   <header class="header">
-    <div class="logo">내 프로필</div>
-    <div><a href="dashboard.html">대시보드</a></div>
+    <div class="header-left">
+      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 내 프로필</div>
+    </div>
+    <div class="header-right">
+      <span id="db-status" class="status-chip">DB 연결 확인 중...</span>
+      <span id="session-countdown" class="status-chip session-timer"></span>
+      <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
+      <button class="btn muted" id="logout-btn">로그아웃</button>
+    </div>
   </header>
-  <div class="content">
-    <div class="grid two">
-      <div class="card">
-        <div class="card-title">프로필 정보</div>
-        <div>이름: <span id="profile-name"></span></div>
-        <div>역할: <span id="profile-role"></span></div>
-        <div>식별자: <span id="profile-identifier"></span></div>
+  <div class="page">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-title">탐색</div>
+      <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">일정 개요</a>
+      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
+      <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
+    </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <main class="content">
+      <div class="grid two">
+        <div class="card">
+          <div class="card-title">프로필 정보</div>
+          <div>이름: <span id="profile-name"></span></div>
+          <div>역할: <span id="profile-role"></span></div>
+          <div>식별자: <span id="profile-identifier"></span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">비밀번호 변경</div>
+          <form id="password-form">
+            <input id="old-password" type="password" placeholder="현재 비밀번호" required />
+            <input id="new-password" type="password" placeholder="새 비밀번호" required />
+            <button class="btn" type="submit">변경</button>
+          </form>
+        </div>
       </div>
       <div class="card">
-        <div class="card-title">비밀번호 변경</div>
-        <form id="password-form">
-          <input id="old-password" type="password" placeholder="현재 비밀번호" required />
-          <input id="new-password" type="password" placeholder="새 비밀번호" required />
-          <button class="btn" type="submit">변경</button>
-        </form>
+        <div class="card-title">내 배정 근무</div>
+        <ul id="my-schedule"></ul>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">내 배정 근무</div>
-      <ul id="my-schedule"></ul>
-    </div>
+    </main>
   </div>
   <script type="module">
-    import { loadUser } from '../js/auth.js';
+    import { initAppLayout } from '../js/layout.js';
     import { loadMySchedule } from '../js/schedule.js';
     import { apiRequest } from '../js/api.js';
-    const user = await loadUser();
-    document.getElementById('profile-name').textContent = user.name;
-    document.getElementById('profile-role').textContent = user.role;
-    document.getElementById('profile-identifier').textContent = user.identifier || '-';
+
+    const user = await initAppLayout('profile');
+    if (user) {
+      document.getElementById('profile-name').textContent = user.name;
+      document.getElementById('profile-role').textContent = user.role;
+      document.getElementById('profile-identifier').textContent = user.identifier || '-';
+    }
     await loadMySchedule();
     document.getElementById('password-form').addEventListener('submit', async (e) => {
       e.preventDefault();

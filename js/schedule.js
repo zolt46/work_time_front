@@ -1,8 +1,8 @@
 // File: /ui/js/schedule.js
 import { apiRequest } from './api.js';
 
-function renderGlobalSchedule(assignments) {
-  const container = document.getElementById('schedule-container');
+function renderGlobalSchedule(assignments, targetId = 'schedule-container') {
+  const container = document.getElementById(targetId);
   if (!container) return;
   container.innerHTML = '';
   const grid = document.createElement('div');
@@ -35,9 +35,29 @@ function cell(text, cls) {
   return div;
 }
 
-async function loadGlobalSchedule() {
+async function loadGlobalSchedule(targetId = 'schedule-container') {
   const data = await apiRequest('/schedule/global');
-  renderGlobalSchedule(data.assignments);
+  renderGlobalSchedule(data.assignments, targetId);
+  return data.assignments;
+}
+
+function renderCompactSchedule(assignments, targetId = 'schedule-summary', limit = 5) {
+  const container = document.getElementById(targetId);
+  if (!container) return;
+  container.innerHTML = '';
+  if (!assignments || assignments.length === 0) {
+    container.textContent = '배정된 일정이 없습니다.';
+    return;
+  }
+  const list = document.createElement('ul');
+  list.className = 'compact-list';
+  assignments.slice(0, limit).forEach((item) => {
+    const li = document.createElement('li');
+    const day = ['월','화','수','목','금','토','일'][item.shift.weekday] || '-';
+    li.textContent = `${day} ${item.shift.name} (${item.shift.start_time.slice(0,5)}-${item.shift.end_time.slice(0,5)}) · ${item.user.name}`;
+    list.appendChild(li);
+  });
+  container.appendChild(list);
 }
 
 async function loadMySchedule() {
@@ -52,4 +72,4 @@ async function loadMySchedule() {
   });
 }
 
-export { loadGlobalSchedule, loadMySchedule };
+export { loadGlobalSchedule, loadMySchedule, renderCompactSchedule };

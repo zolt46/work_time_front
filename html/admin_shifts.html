@@ -6,40 +6,70 @@
   <title>근무 관리</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
 </head>
 <body>
-  <header class="header"><div class="logo">근무 관리</div><div><a href="dashboard.html">대시보드</a></div></header>
-  <div class="content">
-    <div class="grid two">
-      <div class="card">
-        <div class="card-title">근무 생성</div>
-        <form id="shift-form">
-          <input id="shift-name" placeholder="근무 이름" required />
-          <select id="shift-weekday">
-            <option value="0">월</option><option value="1">화</option><option value="2">수</option><option value="3">목</option><option value="4">금</option><option value="5">토</option><option value="6">일</option>
-          </select>
-          <input id="shift-start" type="time" required />
-          <input id="shift-end" type="time" required />
-          <input id="shift-location" placeholder="위치" />
-          <button class="btn" type="submit">생성</button>
-        </form>
-      </div>
-      <div class="card">
-        <div class="card-title">근무 배정</div>
-        <form id="assign-form">
-          <input id="assign-user" placeholder="사용자 ID" required />
-          <input id="assign-shift" placeholder="근무 ID" required />
-          <input id="assign-from" type="date" required />
-          <input id="assign-to" type="date" />
-          <button class="btn" type="submit">배정</button>
-        </form>
-      </div>
+  <header class="header">
+    <div class="header-left">
+      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 근무 관리</div>
     </div>
+    <div class="header-right">
+      <span id="db-status" class="status-chip">DB 연결 확인 중...</span>
+      <span id="session-countdown" class="status-chip session-timer"></span>
+      <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
+      <button class="btn muted" id="logout-btn">로그아웃</button>
+    </div>
+  </header>
+  <div class="page">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-title">탐색</div>
+      <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">일정 개요</a>
+      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
+      <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
+    </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <main class="content">
+      <div class="grid two">
+        <div class="card">
+          <div class="card-title">근무 종류 생성</div>
+          <form id="shift-form">
+            <input id="shift-name" placeholder="근무 이름" required />
+            <select id="shift-weekday">
+              <option value="0">월요일</option>
+              <option value="1">화요일</option>
+              <option value="2">수요일</option>
+              <option value="3">목요일</option>
+              <option value="4">금요일</option>
+              <option value="5">토요일</option>
+              <option value="6">일요일</option>
+            </select>
+            <input id="shift-start" type="time" required />
+            <input id="shift-end" type="time" required />
+            <input id="shift-location" placeholder="위치" />
+            <button class="btn" type="submit">근무 생성</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-title">근무 배정</div>
+          <form id="assign-form">
+            <input id="assign-user" placeholder="사용자 ID" required />
+            <input id="assign-shift" placeholder="근무 ID" required />
+            <input id="assign-from" type="date" required />
+            <input id="assign-to" type="date" placeholder="종료일(선택)" />
+            <button class="btn secondary" type="submit">배정하기</button>
+          </form>
+        </div>
+      </div>
+    </main>
   </div>
   <script type="module">
-    import { loadUser } from '../js/auth.js';
+    import { initAppLayout } from '../js/layout.js';
     import { createShift, assignShift } from '../js/admin.js';
-    await loadUser();
+
+    await initAppLayout('shifts');
     document.getElementById('shift-form').addEventListener('submit', createShift);
     document.getElementById('assign-form').addEventListener('submit', assignShift);
   </script>

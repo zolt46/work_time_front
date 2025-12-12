@@ -7,3 +7,20 @@
 .status-bar { display: flex; gap: 12px; flex-wrap: wrap; }
 .badge.role { background: #bee3f8; color: #1a365d; }
 .loader { padding: 20px; text-align: center; color: var(--muted); }
+.status-chip { padding: 6px 10px; border-radius: 999px; background: #f1f5f9; color: #334155; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.status-chip.status-ok { background: #d1fae5; color: #065f46; }
+.status-chip.status-bad { background: #fee2e2; color: #991b1b; }
+.icon-btn { border: none; background: transparent; font-size: 22px; cursor: pointer; color: #1f2937; padding: 6px; border-radius: 6px; }
+.icon-btn:hover { background: #e2e8f0; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.session-timer { font-size: 13px; color: #1f2937; }
+.loading-bar { height: 4px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 10px 0; display: none; }
+.loading-bar.show { display: block; }
+.loading-bar::after { content: ''; display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--primary), var(--accent)); animation: slide 1s infinite; border-radius: 999px; }
+.login-status { display: flex; justify-content: space-between; align-items: center; color: var(--muted); margin-top: 8px; }
+.nav-link { position: relative; }
+.nav-link.active::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
+@keyframes slide { 0% { transform: translateX(-100%);} 100% { transform: translateX(260%);} }
+.compact-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.compact-list li { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }

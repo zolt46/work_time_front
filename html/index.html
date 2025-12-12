@@ -6,24 +6,41 @@
   <title>다산 근무 관리자 - 로그인</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
 </head>
 <body>
-  <div class="page" style="grid-template-columns: 1fr;">
-    <div class="content" style="max-width: 420px; margin: 60px auto;">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo"><img src="../assets/logo.png" width="32" height="32" alt="logo"/>다산 근무 관리자</div>
+    </div>
+    <div class="header-right">
+      <span id="db-status" class="status-chip">DB 연결 확인 중...</span>
+    </div>
+  </header>
+  <div class="page" style="grid-template-columns: 1fr; padding-top: 120px;">
+    <div class="content" style="max-width: 420px; margin: 0 auto;">
       <div class="card">
-        <div class="logo"><img src="../assets/logo.png" width="40" height="40" alt="logo"/>다산 근무 관리자</div>
+        <div class="logo" style="justify-content: center;"><img src="../assets/logo.png" width="40" height="40" alt="logo"/>다산 근무 관리자</div>
         <form id="login-form">
           <label>로그인 ID</label>
           <input id="login_id" required />
           <label>비밀번호</label>
           <input id="password" type="password" required />
+          <div class="loading-bar" id="login-loading"></div>
           <button class="btn" type="submit">로그인</button>
+          <div class="login-status">
+            <span id="login-progress"></span>
+            <span class="muted">서버 상태를 확인 중...</span>
+          </div>
         </form>
       </div>
     </div>
   </div>
   <script type="module">
     import { login } from '../js/auth.js';
+    import { initLoginShell } from '../js/layout.js';
+
+    await initLoginShell();
     document.getElementById('login-form').addEventListener('submit', login);
   </script>
 </body>

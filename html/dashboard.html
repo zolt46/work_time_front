@@ -10,17 +10,27 @@
 </head>
 <body>
   <header class="header">
-    <div class="logo"><img src="../assets/logo.png" width="32" /> 대시보드</div>
-    <div class="flex">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>) <button class="btn muted" id="logout-btn">로그아웃</button></div>
+    <div class="header-left">
+      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 대시보드</div>
+    </div>
+    <div class="header-right">
+      <span id="db-status" class="status-chip">DB 연결 확인 중...</span>
+      <span id="session-countdown" class="status-chip session-timer"></span>
+      <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
+      <button class="btn muted" id="logout-btn">로그아웃</button>
+    </div>
   </header>
   <div class="page">
-    <nav class="sidebar">
-      <a href="dashboard.html">대시보드</a>
-      <a href="schedule_overview.html">일정 개요</a>
-      <a href="member_profile.html">내 프로필</a>
-      <a href="admin_members.html">구성원 관리</a>
-      <a href="admin_shifts.html">근무 관리</a>
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-title">탐색</div>
+      <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">일정 개요</a>
+      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
+      <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
     </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
         <div class="card">
@@ -33,31 +43,39 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-title">바로가기</div>
-        <div class="flex">
-          <a class="btn" href="schedule_overview.html">전체 일정</a>
-          <a class="btn secondary" href="member_profile.html">내 프로필</a>
-          <a class="btn muted" href="admin_members.html">관리자 페이지</a>
-        </div>
+        <div class="card-title">주간 일정 한눈에 보기</div>
+        <div id="schedule-summary" class="loader">일정을 불러오는 중...</div>
       </div>
     </main>
   </div>
   <script type="module">
-    import { loadUser, logout } from '../js/auth.js';
     import { apiRequest } from '../js/api.js';
-    document.getElementById('logout-btn').onclick = logout;
-    const user = await loadUser();
-    if (user) {
-      try {
-        const mine = await apiRequest('/schedule/me');
-        document.getElementById('today-info').textContent = `${mine.length}개의 배정`;
-      } catch { document.getElementById('today-info').textContent = '데이터 없음'; }
+    import { initAppLayout } from '../js/layout.js';
+    import { loadGlobalSchedule, renderCompactSchedule } from '../js/schedule.js';
 
-      try {
-        const pending = await apiRequest('/requests/pending');
-        document.getElementById('pending-count').textContent = `${pending.length}건 승인 대기`;
-      } catch { document.getElementById('pending-count').textContent = '확인 불가'; }
+    await initAppLayout('dashboard');
+
+    try {
+      const mine = await apiRequest('/schedule/me');
+      document.getElementById('today-info').textContent = `${mine.length}개의 배정`;
+    } catch {
+      document.getElementById('today-info').textContent = '데이터 없음';
     }
+
+    try {
+      const pending = await apiRequest('/requests/pending');
+      document.getElementById('pending-count').textContent = `${pending.length}건 승인 대기`;
+    } catch {
+      document.getElementById('pending-count').textContent = '확인 불가';
+    }
+
+    let assignments = [];
+    try {
+      assignments = await loadGlobalSchedule();
+    } catch (e) {
+      document.getElementById('schedule-summary').textContent = '일정을 가져올 수 없습니다';
+    }
+    renderCompactSchedule(assignments, 'schedule-summary', 8);
   </script>
 </body>
 </html>
