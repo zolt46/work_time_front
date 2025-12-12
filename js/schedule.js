@@ -7,10 +7,10 @@ function renderGlobalSchedule(assignments) {
   container.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'schedule-grid';
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const days = ['월','화','수','목','금','토','일'];
   grid.appendChild(cell('','header'));
   days.forEach(d=>grid.appendChild(cell(d,'header')));
-  const timeSlots = ['Morning','Afternoon','Evening'];
+  const timeSlots = ['오전','오후','야간'];
   timeSlots.forEach(slot=>{
     grid.appendChild(cell(slot,'header'));
     for (let i=0;i<7;i++) {
@@ -47,7 +47,7 @@ async function loadMySchedule() {
   listEl.innerHTML = '';
   data.forEach(item => {
     const li = document.createElement('li');
-    li.textContent = `${item.shift_id} | from ${item.valid_from} ${item.valid_to ? 'to '+item.valid_to : ''}`;
+    li.textContent = `${item.shift_id} | ${item.valid_from}${item.valid_to ? ' ~ '+item.valid_to : ''}`;
     listEl.appendChild(li);
   });
 }

@@ -36,7 +36,7 @@ async function createShift(event) {
     location: document.getElementById('shift-location').value
   };
   await apiRequest('/schedule/shifts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  alert('Shift created');
+  alert('근무가 생성되었습니다');
 }
 
 async function assignShift(event) {
@@ -48,7 +48,7 @@ async function assignShift(event) {
     valid_to: document.getElementById('assign-to').value || null
   };
   await apiRequest('/schedule/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  alert('Assigned');
+  alert('배정되었습니다');
 }
 
 export { loadMembers, createMember, createShift, assignShift };

@@ -13,7 +13,7 @@ async function submitRequest(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, target_date, target_shift_id, reason })
     });
-    alert('Request submitted');
+    alert('요청이 접수되었습니다');
   } catch (e) {
     alert(e.message);
   }
@@ -26,7 +26,7 @@ async function loadMyRequests() {
   list.innerHTML = '';
   data.forEach(r => {
     const li = document.createElement('li');
-    li.innerHTML = `<strong>${r.type}</strong> for ${r.target_date} - ${r.status}`;
+    li.innerHTML = `<strong>${r.type}</strong> - ${r.target_date} (${r.status})`;
     list.appendChild(li);
   });
 }
@@ -42,11 +42,11 @@ async function loadPendingRequests() {
     tr.innerHTML = `<td>${r.user_id}</td><td>${r.type}</td><td>${r.target_date}</td><td>${r.status}</td>`;
     const tdAction = document.createElement('td');
     const approve = document.createElement('button');
-    approve.textContent = 'Approve';
+    approve.textContent = '승인';
     approve.className = 'btn secondary';
     approve.onclick = () => act(r.id, 'approve');
     const reject = document.createElement('button');
-    reject.textContent = 'Reject';
+    reject.textContent = '거절';
     reject.className = 'btn muted';
     reject.onclick = () => act(r.id, 'reject');
     tdAction.appendChild(approve);

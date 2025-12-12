@@ -14,7 +14,7 @@ async function login(event) {
       method: 'POST',
       body: form
     });
-    if (!res.ok) throw new Error('Login failed');
+    if (!res.ok) throw new Error('로그인에 실패했습니다');
     const data = await res.json();
     localStorage.setItem('token', data.access_token);
     window.location.href = 'dashboard.html';

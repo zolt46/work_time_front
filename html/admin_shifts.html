@@ -1,37 +1,37 @@
 <!-- File: /ui/html/admin_shifts.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Shift Management</title>
+  <title>근무 관리</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
 </head>
 <body>
-  <header class="header"><div class="logo">Shifts</div><div><a href="dashboard.html">Dashboard</a></div></header>
+  <header class="header"><div class="logo">근무 관리</div><div><a href="dashboard.html">대시보드</a></div></header>
   <div class="content">
     <div class="grid two">
       <div class="card">
-        <div class="card-title">Create Shift</div>
+        <div class="card-title">근무 생성</div>
         <form id="shift-form">
-          <input id="shift-name" placeholder="Shift name" required />
+          <input id="shift-name" placeholder="근무 이름" required />
           <select id="shift-weekday">
-            <option value="0">Mon</option><option value="1">Tue</option><option value="2">Wed</option><option value="3">Thu</option><option value="4">Fri</option><option value="5">Sat</option><option value="6">Sun</option>
+            <option value="0">월</option><option value="1">화</option><option value="2">수</option><option value="3">목</option><option value="4">금</option><option value="5">토</option><option value="6">일</option>
           </select>
           <input id="shift-start" type="time" required />
           <input id="shift-end" type="time" required />
-          <input id="shift-location" placeholder="Location" />
-          <button class="btn" type="submit">Create</button>
+          <input id="shift-location" placeholder="위치" />
+          <button class="btn" type="submit">생성</button>
         </form>
       </div>
       <div class="card">
-        <div class="card-title">Assign Shift</div>
+        <div class="card-title">근무 배정</div>
         <form id="assign-form">
-          <input id="assign-user" placeholder="User ID" required />
-          <input id="assign-shift" placeholder="Shift ID" required />
+          <input id="assign-user" placeholder="사용자 ID" required />
+          <input id="assign-shift" placeholder="근무 ID" required />
           <input id="assign-from" type="date" required />
           <input id="assign-to" type="date" />
-          <button class="btn" type="submit">Assign</button>
+          <button class="btn" type="submit">배정</button>
         </form>
       </div>
     </div>

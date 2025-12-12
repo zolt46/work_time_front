@@ -1,36 +1,36 @@
 <!-- File: /ui/html/member_profile.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>My Profile</title>
+  <title>내 프로필</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
 </head>
 <body>
   <header class="header">
-    <div class="logo">My Profile</div>
-    <div><a href="dashboard.html">Dashboard</a></div>
+    <div class="logo">내 프로필</div>
+    <div><a href="dashboard.html">대시보드</a></div>
   </header>
   <div class="content">
     <div class="grid two">
       <div class="card">
-        <div class="card-title">Profile</div>
-        <div>Name: <span id="profile-name"></span></div>
-        <div>Role: <span id="profile-role"></span></div>
-        <div>Identifier: <span id="profile-identifier"></span></div>
+        <div class="card-title">프로필 정보</div>
+        <div>이름: <span id="profile-name"></span></div>
+        <div>역할: <span id="profile-role"></span></div>
+        <div>식별자: <span id="profile-identifier"></span></div>
       </div>
       <div class="card">
-        <div class="card-title">Change Password</div>
+        <div class="card-title">비밀번호 변경</div>
         <form id="password-form">
-          <input id="old-password" type="password" placeholder="Current password" required />
-          <input id="new-password" type="password" placeholder="New password" required />
-          <button class="btn" type="submit">Update</button>
+          <input id="old-password" type="password" placeholder="현재 비밀번호" required />
+          <input id="new-password" type="password" placeholder="새 비밀번호" required />
+          <button class="btn" type="submit">변경</button>
         </form>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">My Assigned Shifts</div>
+      <div class="card-title">내 배정 근무</div>
       <ul id="my-schedule"></ul>
     </div>
   </div>
@@ -48,7 +48,7 @@
       const payload = { old_password: document.getElementById('old-password').value, new_password: document.getElementById('new-password').value };
       try {
         await apiRequest('/auth/password', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        alert('Password updated');
+        alert('비밀번호가 변경되었습니다');
       } catch (err) { alert(err.message); }
     });
   </script>

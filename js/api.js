@@ -18,7 +18,7 @@ async function apiRequest(path, options = {}) {
   }
   if (!resp.ok) {
     const text = await resp.text();
-    throw new Error(text || 'Request failed');
+    throw new Error(text || '요청에 실패했습니다');
   }
   if (resp.status === 204) return null;
   return await resp.json();
