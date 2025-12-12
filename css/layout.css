@@ -1,9 +1,7 @@
 /* File: /ui/css/layout.css */
 .header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -11,7 +9,7 @@
   background: #fff;
   border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  z-index: 1000;
+  z-index: 1200;
 }
 .logo {
   display: flex;
@@ -20,27 +18,22 @@
   font-weight: 700;
 }
 .page {
-  display: grid;
-  grid-template-columns: 260px 1fr;
   min-height: 100vh;
-  padding-top: 72px;
-  transition: grid-template-columns 0.25s ease;
-}
-.page.sidebar-closed {
-  grid-template-columns: 0 1fr;
 }
 .sidebar {
-  position: sticky;
-  top: 72px;
-  align-self: start;
+  position: fixed;
+  top: 0;
+  left: 0;
   background: #0f172a;
   color: #e2e8f0;
   padding: 20px 14px;
-  height: calc(100vh - 72px);
+  height: 100vh;
+  width: 260px;
   transition: transform 0.25s ease, opacity 0.2s ease;
   transform: translateX(-100%);
   opacity: 0;
   pointer-events: none;
+  z-index: 1300;
 }
 .sidebar.open {
   transform: translateX(0);
@@ -66,7 +59,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  z-index: 900;
+  z-index: 1100;
 }
 .sidebar-overlay.show { opacity: 1; pointer-events: all; }
 .content {
@@ -89,9 +82,7 @@
 }
 .schedule-grid .header { background: #edf2f7; font-weight: 600; }
 @media (max-width: 900px) {
-  .page { grid-template-columns: 1fr; padding-top: 72px; }
-  .sidebar { position: fixed; inset: 72px 0 0 0; max-width: 260px; width: 78vw; z-index: 950; height: calc(100vh - 72px); }
-  .page.sidebar-closed { grid-template-columns: 1fr; }
+  .sidebar { width: 78vw; }
 }
 
 .login-shell {

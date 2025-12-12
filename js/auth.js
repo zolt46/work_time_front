@@ -65,7 +65,7 @@ async function loadUser() {
 
 function logout() {
   clearToken();
-  window.location.href = 'index.html';
+  window.location.href = '../index.html';
 }
 
 function startSessionCountdown(el) {

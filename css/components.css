@@ -26,6 +26,23 @@
 .system-status-badge.inline .status-label { justify-content: flex-start; font-size: 13px; }
 .system-status-badge.inline .system-status { justify-content: flex-start; }
 .system-status-badge.inline .status-meta { text-align: left; }
+.header .system-status-badge.inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+}
+.header .system-status-badge.inline .status-label,
+.header .system-status-badge.inline .status-meta {
+  display: none;
+}
+.header .system-status-badge.inline .system-status {
+  justify-content: flex-start;
+  gap: 6px;
+}
+.header .system-status-badge.inline .status-chip {
+  padding: 6px 8px;
+}
 .system-status-badge .status-label { font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 6px; justify-content: center; }
 .status-meta { font-size: 12px; color: var(--muted); }
 .btn.full { width: 100%; text-align: center; }

@@ -25,10 +25,11 @@ export async function checkDbStatus(el) {
   }
 }
 
-export async function checkSystemStatus(serverEl, dbEl, metaEl) {
+export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
   const started = performance.now();
-  if (serverEl) setStatusState(serverEl, '서버 상태 확인 중...', 'status-pending');
-  if (dbEl) setStatusState(dbEl, 'DB 연결 확인 중...', 'status-pending');
+  const attempt = options.__attempt || 1;
+  if (serverEl) setStatusState(serverEl, '서버 확인 중', 'status-pending');
+  if (dbEl) setStatusState(dbEl, 'DB 확인 중', 'status-pending');
   if (metaEl) metaEl.textContent = '상태 체크 중...';
   try {
     const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
@@ -38,19 +39,27 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl) {
     const checkedAt = new Date();
     const dbOk = data.db_status === 'ok' || data.db === 'ok';
 
-    const detail = `응답 속도 ${latency}ms · ${checkedAt.toLocaleTimeString()} 체크`;
-    setStatusState(serverEl, '서버 연결: 정상', 'status-ok', detail);
-    setStatusState(
-      dbEl,
-      dbOk ? 'DB 연결: 정상' : 'DB 연결: 확인 필요',
-      dbOk ? 'status-ok' : 'status-bad',
-      detail
-    );
-    if (metaEl) metaEl.textContent = `최근 체크: ${checkedAt.toLocaleTimeString()} · 응답 ${latency}ms`;
+    const detail = `응답 ${latency}ms · ${checkedAt.toLocaleTimeString()} 체크`;
+    const tooltip = `서버: 정상 · DB: ${dbOk ? '정상' : '확인 필요'} · ${detail}`;
+    setStatusState(serverEl, '서버', 'status-ok', tooltip);
+    setStatusState(dbEl, dbOk ? 'DB' : 'DB(확인)', dbOk ? 'status-ok' : 'status-bad', tooltip);
+    if (metaEl) metaEl.textContent = `최근 체크 ${checkedAt.toLocaleTimeString()} · ${latency}ms`;
+    if (options.onRecover && attempt > 1) options.onRecover();
+    return { ok: true, latency, checkedAt };
   } catch (e) {
     const reason = e?.message || '연결 오류';
-    setStatusState(serverEl, '서버 연결: 실패', 'status-bad', reason);
-    setStatusState(dbEl, 'DB 연결: 실패', 'status-bad', reason);
-    if (metaEl) metaEl.textContent = `오류: ${reason}`;
+    const nextAttempt = attempt + 1;
+    const maxRetries = options.maxRetries ?? 4;
+    const retryDelay = options.retryDelay ?? 2500;
+    const detail = `오류: ${reason}${maxRetries ? ` · ${attempt}/${maxRetries}회 시도` : ''}`;
+    setStatusState(serverEl, '서버 오류', 'status-bad', detail);
+    setStatusState(dbEl, 'DB 오류', 'status-bad', detail);
+    if (metaEl) metaEl.textContent = detail;
+    if (options.autoRetry && (!maxRetries || nextAttempt <= maxRetries)) {
+      setTimeout(() => {
+        checkSystemStatus(serverEl, dbEl, metaEl, { ...options, __attempt: nextAttempt });
+      }, retryDelay);
+    }
+    return { ok: false, error: reason };
   }
 }
