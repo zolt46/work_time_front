@@ -21,9 +21,19 @@
         <button class="btn full" type="submit">로그인</button>
         <div class="login-status">
           <span id="login-progress" class="muted">로그인 정보를 입력하세요</span>
-          <div class="system-status">
-            <span id="server-status" class="status-chip">서버 상태 확인 중...</span>
-            <span id="db-status" class="status-chip">DB 연결 확인 중...</span>
+          <div class="system-status-badge" id="system-status-card">
+            <div class="status-label">서버 · DB 연결 상태</div>
+            <div class="system-status">
+              <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
+                <span class="status-dot"></span>
+                <span class="status-text">서버 상태 확인 중...</span>
+              </span>
+              <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
+                <span class="status-dot"></span>
+                <span class="status-text">DB 연결 확인 중...</span>
+              </span>
+            </div>
+            <div class="status-meta" id="status-meta">상태 체크 대기 중</div>
           </div>
         </div>
       </form>

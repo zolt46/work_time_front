@@ -1,18 +1,21 @@
 // File: /ui/js/status.js
 import { API_BASE_URL } from './api.js';
 
-function setStatusState(el, text, state) {
+function setStatusState(el, text, state, detail) {
   if (!el) return;
-  el.textContent = text;
-  el.classList.remove('status-ok', 'status-bad');
+  const textEl = el.querySelector('.status-text');
+  if (textEl) textEl.textContent = text;
+  else el.textContent = text;
+  el.classList.remove('status-ok', 'status-bad', 'status-pending');
   if (state) el.classList.add(state);
+  el.title = detail || '';
 }
 
 export async function checkDbStatus(el) {
   if (!el) return;
-  setStatusState(el, 'DB 연결 확인 중...', null);
+  setStatusState(el, 'DB 연결 확인 중...', 'status-pending');
   try {
-    const resp = await fetch(`${API_BASE_URL}/health`);
+    const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
     if (!resp.ok) throw new Error('health_failed');
     const data = await resp.json();
     const ok = data.db_status === 'ok' || data.db === 'ok';
@@ -22,19 +25,25 @@ export async function checkDbStatus(el) {
   }
 }
 
-export async function checkSystemStatus(serverEl, dbEl) {
-  if (serverEl) setStatusState(serverEl, '서버 상태 확인 중...', null);
-  if (dbEl) setStatusState(dbEl, 'DB 연결 확인 중...', null);
+export async function checkSystemStatus(serverEl, dbEl, metaEl) {
+  const started = performance.now();
+  if (serverEl) setStatusState(serverEl, '서버 상태 확인 중...', 'status-pending');
+  if (dbEl) setStatusState(dbEl, 'DB 연결 확인 중...', 'status-pending');
+  if (metaEl) metaEl.textContent = '상태 체크 중...';
   try {
-    const resp = await fetch(`${API_BASE_URL}/health`);
-    if (!resp.ok) throw new Error('health_failed');
+    const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`health_failed_${resp.status}`);
     const data = await resp.json();
+    const latency = Math.max(1, Math.round(performance.now() - started));
     const dbOk = data.db_status === 'ok' || data.db === 'ok';
 
-    setStatusState(serverEl, '서버 연결: 정상', 'status-ok');
+    setStatusState(serverEl, '서버 연결: 정상', 'status-ok', `응답 속도 ${latency}ms`);
     setStatusState(dbEl, dbOk ? 'DB 연결: 정상' : 'DB 연결: 확인 필요', dbOk ? 'status-ok' : 'status-bad');
+    if (metaEl) metaEl.textContent = `최근 체크: ${new Date().toLocaleTimeString()} · 응답 ${latency}ms`;
   } catch (e) {
-    setStatusState(serverEl, '서버 연결: 실패', 'status-bad');
-    setStatusState(dbEl, 'DB 연결: 실패', 'status-bad');
+    const reason = e?.message || '연결 오류';
+    setStatusState(serverEl, '서버 연결: 실패', 'status-bad', reason);
+    setStatusState(dbEl, 'DB 연결: 실패', 'status-bad', reason);
+    if (metaEl) metaEl.textContent = `오류: ${reason}`;
   }
 }

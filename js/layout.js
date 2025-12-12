@@ -52,7 +52,8 @@ export async function initLoginShell() {
   setupSidebar();
   await checkSystemStatus(
     document.getElementById('server-status'),
-    document.getElementById('db-status')
+    document.getElementById('db-status'),
+    document.getElementById('status-meta')
   );
   const loginProgress = document.getElementById('login-progress');
   if (loginProgress) loginProgress.textContent = '로그인 정보를 입력하세요';

@@ -18,11 +18,20 @@
 .loading-bar { height: 4px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 10px 0; display: none; }
 .loading-bar.show { display: block; }
 .loading-bar::after { content: ''; display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--primary), var(--accent)); animation: slide 1s infinite; border-radius: 999px; }
-.login-status { display: flex; flex-direction: column; gap: 8px; align-items: center; color: var(--muted); margin-top: 12px; text-align: center; }
+.login-status { display: flex; flex-direction: column; gap: 8px; align-items: center; color: var(--muted); margin-top: 12px; text-align: center; width: 100%; }
 .system-status { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.system-status-badge { width: 100%; border: 1px solid var(--border); background: #f8fafc; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.system-status-badge .status-label { font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 6px; justify-content: center; }
+.status-meta { font-size: 12px; color: var(--muted); }
 .btn.full { width: 100%; text-align: center; }
 .nav-link { position: relative; }
 .nav-link.active::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
 @keyframes slide { 0% { transform: translateX(-100%);} 100% { transform: translateX(260%);} }
 .compact-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .compact-list li { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #cbd5e1; box-shadow: 0 0 0 1px #e2e8f0; }
+.status-chip { cursor: default; }
+.status-chip .status-text { display: inline-flex; align-items: center; gap: 6px; }
+.status-chip.status-ok .status-dot { background: #22c55e; box-shadow: 0 0 0 1px #16a34a; }
+.status-chip.status-bad .status-dot { background: #ef4444; box-shadow: 0 0 0 1px #b91c1c; }
+.status-chip.status-pending .status-dot { background: #fbbf24; box-shadow: 0 0 0 1px #d97706; }
