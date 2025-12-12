@@ -7,6 +7,7 @@
   --muted: #718096;
   --card: #ffffff;
   --border: #e2e8f0;
+  --header-height: 72px;
 }
 * { box-sizing: border-box; }
 body {

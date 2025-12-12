@@ -10,6 +10,7 @@
   border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   z-index: 1200;
+  min-height: var(--header-height);
 }
 .logo {
   display: flex;
@@ -22,12 +23,12 @@
 }
 .sidebar {
   position: fixed;
-  top: 0;
+  top: var(--header-height);
   left: 0;
   background: #0f172a;
   color: #e2e8f0;
   padding: 20px 14px;
-  height: 100vh;
+  height: calc(100vh - var(--header-height));
   width: 260px;
   transition: transform 0.25s ease, opacity 0.2s ease;
   transform: translateX(-100%);
@@ -54,7 +55,7 @@
 .sidebar a.active { background: rgba(56, 178, 172, 0.2); color: #e6fffa; }
 .sidebar-overlay {
   position: fixed;
-  inset: 0;
+  inset: var(--header-height) 0 0 0;
   background: rgba(15, 23, 42, 0.55);
   opacity: 0;
   pointer-events: none;

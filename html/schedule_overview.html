@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>일정 개요</title>
+  <title>근무 시간표</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,7 +12,7 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 전체 일정</div>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 근무 시간표</div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
@@ -38,7 +38,7 @@
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
-      <a class="nav-link" data-page="overview" href="schedule_overview.html">일정 개요</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
       <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
@@ -46,7 +46,7 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="card">
-        <div class="card-title">주간 그리드</div>
+        <div class="card-title">주간 근무 시간표</div>
         <div id="schedule-container" class="loader">일정을 불러오는 중...</div>
       </div>
     </main>
@@ -56,7 +56,7 @@
     import { initAppLayout } from '../js/layout.js';
 
     await initAppLayout('overview');
-    await loadGlobalSchedule();
+    await loadGlobalSchedule('schedule-container', { hourHeight: 46 });
   </script>
 </body>
 </html>

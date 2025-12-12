@@ -38,7 +38,7 @@
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
-      <a class="nav-link" data-page="overview" href="schedule_overview.html">일정 개요</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
       <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
@@ -56,7 +56,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-title">주간 일정 한눈에 보기</div>
+        <div class="card-title">주간 근무 시간표</div>
         <div id="schedule-summary" class="loader">일정을 불러오는 중...</div>
       </div>
     </main>
@@ -88,7 +88,7 @@
     } catch (e) {
       document.getElementById('schedule-summary').textContent = '일정을 가져올 수 없습니다';
     }
-    renderCompactSchedule(assignments, 'schedule-summary', 8);
+    renderCompactSchedule(assignments, 'schedule-summary');
   </script>
 </body>
 </html>
