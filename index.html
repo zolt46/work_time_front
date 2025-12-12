@@ -30,8 +30,8 @@
     </div>
   </div>
   <script type="module">
-    import { login } from 'js/auth.js';
-    import { initLoginShell } from 'js/layout.js';
+    import { login } from './js/auth.js';
+    import { initLoginShell } from './js/layout.js';
 
     await initLoginShell();
     document.getElementById('login-form').addEventListener('submit', login);
