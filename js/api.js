@@ -19,7 +19,7 @@ async function apiRequest(path, options = {}) {
   const resp = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   if (resp.status === 401) {
     clearToken();
-    window.location.href = '../index.html';
+    window.location.href = 'index.html';
     return;
   }
   if (!resp.ok) {
