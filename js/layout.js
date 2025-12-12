@@ -1,19 +1,26 @@
 // File: /ui/js/layout.js
 import { loadUser, logout, startSessionCountdown } from './auth.js';
-import { checkDbStatus, checkSystemStatus } from './status.js';
+import { checkSystemStatus } from './status.js';
 
 function setupSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   const toggle = document.getElementById('sidebar-toggle');
+  const page = document.querySelector('.page');
+  if (page) page.classList.add('sidebar-closed');
   if (!sidebar || !overlay || !toggle) return;
   const close = () => {
     sidebar.classList.remove('open');
     overlay.classList.remove('show');
+    if (page) page.classList.add('sidebar-closed');
+    toggle.classList.remove('active');
   };
   toggle.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
+    const willOpen = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', willOpen);
+    overlay.classList.toggle('show', willOpen);
+    if (page) page.classList.toggle('sidebar-closed', !willOpen);
+    toggle.classList.toggle('active', willOpen);
   });
   overlay.addEventListener('click', close);
 }
@@ -44,7 +51,11 @@ export async function initAppLayout(activePage) {
   wireCommonActions();
   const user = await loadUser();
   startSessionCountdown(document.getElementById('session-countdown'));
-  await checkDbStatus(document.getElementById('db-status'));
+  await checkSystemStatus(
+    document.getElementById('server-status'),
+    document.getElementById('db-status'),
+    document.getElementById('status-meta')
+  );
   return user;
 }
 
