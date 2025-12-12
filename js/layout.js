@@ -1,6 +1,6 @@
 // File: /ui/js/layout.js
 import { loadUser, logout, startSessionCountdown } from './auth.js';
-import { checkDbStatus } from './status.js';
+import { checkDbStatus, checkSystemStatus } from './status.js';
 
 function setupSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -50,7 +50,10 @@ export async function initAppLayout(activePage) {
 
 export async function initLoginShell() {
   setupSidebar();
-  await checkDbStatus(document.getElementById('db-status'));
+  await checkSystemStatus(
+    document.getElementById('server-status'),
+    document.getElementById('db-status')
+  );
   const loginProgress = document.getElementById('login-progress');
   if (loginProgress) loginProgress.textContent = '로그인 정보를 입력하세요';
 }

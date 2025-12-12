@@ -18,7 +18,9 @@
 .loading-bar { height: 4px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 10px 0; display: none; }
 .loading-bar.show { display: block; }
 .loading-bar::after { content: ''; display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--primary), var(--accent)); animation: slide 1s infinite; border-radius: 999px; }
-.login-status { display: flex; justify-content: space-between; align-items: center; color: var(--muted); margin-top: 8px; }
+.login-status { display: flex; flex-direction: column; gap: 8px; align-items: center; color: var(--muted); margin-top: 12px; text-align: center; }
+.system-status { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn.full { width: 100%; text-align: center; }
 .nav-link { position: relative; }
 .nav-link.active::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
 @keyframes slide { 0% { transform: translateX(-100%);} 100% { transform: translateX(260%);} }

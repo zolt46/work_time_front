@@ -80,3 +80,20 @@
   .sidebar { position: fixed; inset: 72px 0 0 0; transform: translateX(-100%); max-width: 260px; width: 78vw; z-index: 950; }
   .sidebar.open { transform: translateX(0); }
 }
+
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  margin: 0 auto;
+}
+
+.login-logo { justify-content: center; margin-bottom: 12px; }
+
+.login-form { display: flex; flex-direction: column; gap: 4px; }
