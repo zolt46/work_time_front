@@ -35,11 +35,18 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl) {
     if (!resp.ok) throw new Error(`health_failed_${resp.status}`);
     const data = await resp.json();
     const latency = Math.max(1, Math.round(performance.now() - started));
+    const checkedAt = new Date();
     const dbOk = data.db_status === 'ok' || data.db === 'ok';
 
-    setStatusState(serverEl, '서버 연결: 정상', 'status-ok', `응답 속도 ${latency}ms`);
-    setStatusState(dbEl, dbOk ? 'DB 연결: 정상' : 'DB 연결: 확인 필요', dbOk ? 'status-ok' : 'status-bad');
-    if (metaEl) metaEl.textContent = `최근 체크: ${new Date().toLocaleTimeString()} · 응답 ${latency}ms`;
+    const detail = `응답 속도 ${latency}ms · ${checkedAt.toLocaleTimeString()} 체크`;
+    setStatusState(serverEl, '서버 연결: 정상', 'status-ok', detail);
+    setStatusState(
+      dbEl,
+      dbOk ? 'DB 연결: 정상' : 'DB 연결: 확인 필요',
+      dbOk ? 'status-ok' : 'status-bad',
+      detail
+    );
+    if (metaEl) metaEl.textContent = `최근 체크: ${checkedAt.toLocaleTimeString()} · 응답 ${latency}ms`;
   } catch (e) {
     const reason = e?.message || '연결 오류';
     setStatusState(serverEl, '서버 연결: 실패', 'status-bad', reason);

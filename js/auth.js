@@ -41,7 +41,7 @@ async function login(event) {
     localStorage.setItem('token', data.access_token);
     const exp = parseTokenExp(data.access_token);
     if (exp) localStorage.setItem('token_exp', String(exp));
-    window.location.href = 'dashboard.html';
+    window.location.href = 'html/dashboard.html';
   } catch (err) {
     alert(err.message);
     if (statusText) statusText.textContent = '로그인에 실패했습니다. 다시 시도해주세요.';
