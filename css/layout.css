@@ -70,6 +70,7 @@
 }
 .grid { display: grid; gap: 12px; }
 .grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.grid.two .full { grid-column: 1 / -1; }
 .schedule-grid {
   display: grid;
   grid-template-columns: 100px repeat(7, 1fr);

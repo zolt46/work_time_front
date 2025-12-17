@@ -40,25 +40,55 @@
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
-      <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="requests" href="request_center.html">근무 변경 신청</a>
+      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
+      <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
         <div class="card">
           <div class="card-title">프로필 정보</div>
-          <div>이름: <span id="profile-name"></span></div>
-          <div>역할: <span id="profile-role"></span></div>
-          <div>식별자: <span id="profile-identifier"></span></div>
+          <table class="table compact">
+            <tbody>
+              <tr><th>이름</th><td id="profile-name"></td></tr>
+              <tr><th>권한</th><td id="profile-role"></td></tr>
+              <tr><th>개인 ID</th><td id="profile-identifier"></td></tr>
+              <tr><th>로그인 ID</th><td id="profile-login"></td></tr>
+              <tr><th>상태</th><td id="profile-active"></td></tr>
+              <tr><th>최근 로그인</th><td id="profile-last-login"></td></tr>
+            </tbody>
+          </table>
         </div>
         <div class="card">
-          <div class="card-title">비밀번호 변경</div>
-          <form id="password-form">
-            <input id="old-password" type="password" placeholder="현재 비밀번호" required />
-            <input id="new-password" type="password" placeholder="새 비밀번호" required />
-            <button class="btn" type="submit">변경</button>
+          <div class="card-title">로그인 ID / 비밀번호 변경</div>
+          <form id="account-form" class="stack">
+            <input id="current-password" type="password" placeholder="현재 비밀번호" required />
+            <input id="new-login" type="text" placeholder="새 로그인 ID (선택)" />
+            <input id="new-password" type="password" placeholder="새 비밀번호 (선택, 8자 이상)" />
+            <div class="muted small">로그인 ID나 비밀번호 중 변경할 항목만 입력하세요.</div>
+            <button class="btn" type="submit">계정 정보 업데이트</button>
           </form>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <div class="card-title">접근 가능한 계정 현황</div>
+          <table class="table" id="visible-users">
+            <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th></tr></thead>
+            <tbody id="visible-users-body"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">데이터 초기화</div>
+          <p class="muted">권한에 따라 선택지가 다르게 보입니다. 데이터만 초기화하며 스키마는 유지합니다.</p>
+          <div class="stack">
+            <button class="btn secondary" data-reset-scope="members">구성원 DB만 초기화</button>
+            <button class="btn secondary" data-reset-scope="operators_members">운영자+구성원 DB 초기화</button>
+            <button class="btn danger" data-reset-scope="all">전체 초기화 (마스터 계정 재생성)</button>
+          </div>
+          <div id="reset-result" class="muted small"></div>
         </div>
       </div>
       <div class="card">
@@ -70,23 +100,11 @@
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
     import { loadMySchedule } from '../js/schedule.js';
-    import { apiRequest } from '../js/api.js';
+    import { attachProfilePage } from '../js/profile.js';
 
     const user = await initAppLayout('profile');
-    if (user) {
-      document.getElementById('profile-name').textContent = user.name;
-      document.getElementById('profile-role').textContent = user.role;
-      document.getElementById('profile-identifier').textContent = user.identifier || '-';
-    }
+    await attachProfilePage(user);
     await loadMySchedule();
-    document.getElementById('password-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = { old_password: document.getElementById('old-password').value, new_password: document.getElementById('new-password').value };
-      try {
-        await apiRequest('/auth/password', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        alert('비밀번호가 변경되었습니다');
-      } catch (err) { alert(err.message); }
-    });
   </script>
 </body>
 </html>

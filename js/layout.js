@@ -33,6 +33,26 @@ function highlightNav(activePage) {
   });
 }
 
+const roleOrder = { MEMBER: 1, OPERATOR: 2, MASTER: 3 };
+
+function applyNavVisibility(role) {
+  document.querySelectorAll('.nav-link').forEach((link) => {
+    const allowedRoles = (link.dataset.roles || '')
+      .split(',')
+      .map((r) => r.trim())
+      .filter(Boolean);
+    const minRole = link.dataset.minRole;
+    let visible = true;
+    if (allowedRoles.length) {
+      visible = allowedRoles.includes(role);
+    }
+    if (visible && minRole) {
+      visible = roleOrder[role] >= roleOrder[minRole];
+    }
+    link.style.display = visible ? '' : 'none';
+  });
+}
+
 function wireCommonActions() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) logoutBtn.onclick = () => logout(true);
@@ -50,6 +70,7 @@ export async function initAppLayout(activePage) {
   setupSidebar();
   wireCommonActions();
   const user = await loadUser();
+  if (user) applyNavVisibility(user.role);
   startSessionCountdown(document.getElementById('session-countdown'));
   await checkSystemStatus(
     document.getElementById('server-status'),

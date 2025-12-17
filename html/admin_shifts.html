@@ -40,15 +40,17 @@
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="members" href="admin_members.html">구성원 관리</a>
-      <a class="nav-link" data-page="shifts" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="requests" href="request_center.html">근무 변경 신청</a>
+      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
+      <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
         <div class="card">
           <div class="card-title">근무 종류 생성</div>
-          <form id="shift-form">
+          <form id="shift-form" class="stack">
             <input id="shift-name" placeholder="근무 이름" required />
             <select id="shift-weekday">
               <option value="0">월요일</option>
@@ -66,24 +68,53 @@
           </form>
         </div>
         <div class="card">
-          <div class="card-title">근무 배정</div>
-          <form id="assign-form">
-            <input id="assign-user" placeholder="사용자 ID" required />
-            <input id="assign-shift" placeholder="근무 ID" required />
-            <input id="assign-from" type="date" required />
-            <input id="assign-to" type="date" placeholder="종료일(선택)" />
-            <button class="btn secondary" type="submit">배정하기</button>
-          </form>
+          <div class="card-title">근무 목록</div>
+          <table class="table" id="shift-table">
+            <thead><tr><th>이름</th><th>요일</th><th>시간</th><th>위치</th></tr></thead>
+            <tbody id="shift-table-body"></tbody>
+          </table>
         </div>
+      </div>
+      <div class="card">
+        <div class="card-title">근무 배정 & 미리보기</div>
+        <form id="assign-form" class="grid two">
+          <div class="stack">
+            <label>대상 구성원</label>
+            <select id="assign-user" required></select>
+          </div>
+          <div class="stack">
+            <label>배정할 근무</label>
+            <select id="assign-shift" required></select>
+          </div>
+          <div class="stack">
+            <label>시작일</label>
+            <input id="assign-from" type="date" required />
+          </div>
+          <div class="stack">
+            <label>종료일(선택)</label>
+            <input id="assign-to" type="date" placeholder="종료일(선택)" />
+          </div>
+          <div class="stack full">
+            <label>미리보기</label>
+            <div id="assign-preview" class="muted">대상과 근무를 선택하면 미리보기가 표시됩니다.</div>
+          </div>
+          <div class="stack full">
+            <button class="btn secondary" type="submit">배정하기</button>
+          </div>
+        </form>
       </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { createShift, assignShift } from '../js/admin.js';
+    import { createShift, assignShift, loadShiftOptions, loadUserOptions, loadShiftTable, watchAssignmentPreview } from '../js/admin.js';
 
     await initAppLayout('shifts');
     document.getElementById('shift-form').addEventListener('submit', createShift);
+    await loadShiftOptions('assign-shift');
+    await loadUserOptions('assign-user');
+    await loadShiftTable();
+    watchAssignmentPreview();
     document.getElementById('assign-form').addEventListener('submit', assignShift);
   </script>
 </body>

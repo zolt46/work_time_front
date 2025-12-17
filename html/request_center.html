@@ -1,9 +1,9 @@
-<!-- File: /ui/html/admin_members.html -->
+<!-- File: /ui/html/request_center.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>구성원 관리</title>
+  <title>근무 변경 신청</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,7 +12,7 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 구성원 관리</div>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 근무 변경 신청</div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
@@ -49,41 +49,33 @@
     <main class="content">
       <div class="grid two">
         <div class="card">
-          <div class="card-title">구성원 추가</div>
-          <p class="muted">로그인 ID와 임시 비밀번호를 지정하고, 권한(역할)을 선택하세요.</p>
-          <form id="member-form" class="stack">
-            <input id="member-name" placeholder="이름" required />
-            <input id="member-identifier" placeholder="개인 ID (학번 등)" />
-            <input id="member-login" placeholder="로그인 ID" required />
-            <input id="member-password" placeholder="임시 비밀번호" required />
-            <select id="member-role">
-              <option value="MEMBER">구성원</option>
-              <option value="OPERATOR">운영자</option>
-              <option value="MASTER">관리자(마스터)</option>
+          <div class="card-title">근무 변경 / 결석 신청</div>
+          <form id="request-form" class="stack">
+            <select id="req-type">
+              <option value="ABSENCE">결석 / 휴가</option>
+              <option value="EXTRA">추가 근무</option>
             </select>
-            <button class="btn" type="submit">구성원 생성</button>
+            <input id="req-date" type="date" required />
+            <select id="req-shift"></select>
+            <textarea id="req-reason" placeholder="사유 (선택)" rows="3"></textarea>
+            <button class="btn" type="submit">신청 제출</button>
           </form>
         </div>
         <div class="card">
-          <div class="card-title">권한별 보기</div>
-          <p class="muted">마스터는 모든 계정, 운영자는 마스터를 제외한 계정을 확인합니다. 멤버는 자신의 계정만 확인합니다.</p>
-          <table class="table" id="member-table">
-            <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th><th>작업</th></tr></thead>
-            <tbody id="member-table-body"></tbody>
-          </table>
+          <div class="card-title">내 신청 현황</div>
+          <ul id="my-requests" class="stack"></ul>
         </div>
       </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadMembers, createMember } from '../js/admin.js';
+    import { loadMyRequests, submitRequest, populateShiftSelect } from '../js/requests.js';
 
-    await initAppLayout('members');
-    await loadMembers();
-    document.getElementById('member-form').addEventListener('submit', async (e) => {
-      await createMember(e);
-    });
+    await initAppLayout('requests');
+    await populateShiftSelect('req-shift');
+    await loadMyRequests();
+    document.getElementById('request-form').addEventListener('submit', submitRequest);
   </script>
 </body>
 </html>
