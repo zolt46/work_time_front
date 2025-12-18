@@ -8,6 +8,7 @@ const roleLabel = {
 };
 
 let selectedMember = null;
+let editorOptions = { allowCredentialEdit: false };
 
 function setEditForm(member) {
   selectedMember = member;
@@ -17,11 +18,16 @@ function setEditForm(member) {
   const roleSelect = document.getElementById('edit-role');
   const activeSelect = document.getElementById('edit-active');
   const saveBtn = document.getElementById('edit-save');
+  const loginInput = document.getElementById('edit-login');
+  const pwInput = document.getElementById('edit-password');
   if (idInput) idInput.value = member.id;
   if (nameInput) nameInput.value = member.name || '';
   if (identInput) identInput.value = member.identifier || '';
   if (roleSelect) roleSelect.value = member.role;
   if (activeSelect) activeSelect.value = member.active ? 'true' : 'false';
+  if (loginInput) loginInput.value = member.auth_account?.login_id || '';
+  if (pwInput) pwInput.value = '';
+  if (pwInput) pwInput.disabled = !editorOptions.allowCredentialEdit;
   if (saveBtn) saveBtn.disabled = false;
 }
 
@@ -34,8 +40,12 @@ function clearEditForm() {
   const roleSelect = document.getElementById('edit-role');
   const activeSelect = document.getElementById('edit-active');
   const saveBtn = document.getElementById('edit-save');
+  const loginInput = document.getElementById('edit-login');
+  const pwInput = document.getElementById('edit-password');
   if (roleSelect) roleSelect.value = 'MEMBER';
   if (activeSelect) activeSelect.value = 'true';
+  if (loginInput) loginInput.value = '';
+  if (pwInput) pwInput.value = '';
   if (saveBtn) saveBtn.disabled = true;
 }
 
@@ -79,7 +89,7 @@ async function createMember(event) {
     name: document.getElementById('member-name').value,
     identifier: document.getElementById('member-identifier').value,
     login_id: document.getElementById('member-login').value,
-    password: document.getElementById('member-password').value,
+    password: document.getElementById('member-password').value || 'Temp123!@',
     role: document.getElementById('member-role').value
   };
   await apiRequest('/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -88,7 +98,8 @@ async function createMember(event) {
   event.target.reset();
 }
 
-function initMemberEditor() {
+function initMemberEditor(currentUser) {
+  editorOptions.allowCredentialEdit = currentUser?.role === 'MASTER';
   const form = document.getElementById('member-edit-form');
   const cancelBtn = document.getElementById('edit-cancel');
   if (cancelBtn) cancelBtn.addEventListener('click', () => clearEditForm());
@@ -105,12 +116,21 @@ function initMemberEditor() {
       role: document.getElementById('edit-role').value,
       active: document.getElementById('edit-active').value === 'true'
     };
+    const login_id = document.getElementById('edit-login')?.value;
+    const new_password = document.getElementById('edit-password')?.value;
     try {
       await apiRequest(`/users/${selectedMember.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      if (editorOptions.allowCredentialEdit && (login_id || new_password)) {
+        await apiRequest(`/users/${selectedMember.id}/credentials`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_login_id: login_id || null, new_password: new_password || null })
+        });
+      }
       await loadMembers();
       clearEditForm();
     } catch (e) {
@@ -159,7 +179,7 @@ function buildAssignSlotGrid() {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
-      cell.textContent = `${hour}:00-${hour + 1}:00`;
+      cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
       cell.addEventListener('click', () => {
         if (selectedAssignSlots.has(key)) {
           selectedAssignSlots.delete(key);

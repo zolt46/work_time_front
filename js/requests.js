@@ -50,7 +50,7 @@ function createSlotGrid(containerId, onSelect) {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
-      cell.textContent = `${hour}:00-${hour + 1}:00`;
+      cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
       cell.addEventListener('click', () => {
         if (selectedRequestKey === key) {
           selectedRequestKey = null;

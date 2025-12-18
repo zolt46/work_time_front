@@ -102,6 +102,14 @@
               <option value="false">비활성</option>
             </select>
           </div>
+          <div class="stack">
+            <label for="edit-login">로그인 ID (선택)</label>
+            <input id="edit-login" placeholder="새 로그인 ID" />
+          </div>
+          <div class="stack">
+            <label for="edit-password">새 비밀번호 (마스터용, 선택)</label>
+            <input id="edit-password" placeholder="필요 시 재설정" />
+          </div>
           <div class="stack full">
             <button class="btn" type="submit" id="edit-save" disabled>수정 내용 저장</button>
             <button class="btn muted" type="button" id="edit-cancel">선택 해제</button>
@@ -114,12 +122,12 @@
     import { initAppLayout } from '../js/layout.js';
     import { loadMembers, createMember, initMemberEditor } from '../js/admin.js';
 
-    await initAppLayout('members');
+    const currentUser = await initAppLayout('members');
     await loadMembers();
     document.getElementById('member-form').addEventListener('submit', async (e) => {
       await createMember(e);
     });
-    initMemberEditor();
+    initMemberEditor(currentUser);
   </script>
 </body>
 </html>
