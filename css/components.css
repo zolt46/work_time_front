@@ -143,3 +143,33 @@
   font-size: 12px;
   justify-content: center;
 }
+
+.input-with-toggle { position: relative; }
+.input-with-toggle input { padding-right: 48px; }
+.toggle-visibility {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(90px, 1fr));
+  gap: 6px;
+}
+.slot-grid .slot-header { font-weight: 700; text-align: center; }
+.slot-cell {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+}
+.slot-cell:hover { background: #e2e8f0; }
+.slot-cell.selected { border-color: var(--primary); background: #dbeafe; color: #1e3a8a; font-weight: 700; }

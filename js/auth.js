@@ -3,6 +3,12 @@ import { apiRequest, API_BASE_URL, clearToken } from './api.js';
 
 let countdownInterval;
 
+function setToken(token) {
+  localStorage.setItem('token', token);
+  const exp = parseTokenExp(token);
+  if (exp) localStorage.setItem('token_exp', String(exp));
+}
+
 function parseTokenExp(token) {
   if (!token) return null;
   const parts = token.split('.');
@@ -38,9 +44,7 @@ async function login(event) {
     });
     if (!res.ok) throw new Error('로그인에 실패했습니다');
     const data = await res.json();
-    localStorage.setItem('token', data.access_token);
-    const exp = parseTokenExp(data.access_token);
-    if (exp) localStorage.setItem('token_exp', String(exp));
+    setToken(data.access_token);
     window.location.href = 'html/dashboard.html';
   } catch (err) {
     alert(err.message);
@@ -73,7 +77,13 @@ function logout() {
   window.location.replace(target);
 }
 
-function startSessionCountdown(el) {
+async function refreshSession() {
+  const data = await apiRequest('/auth/refresh', { method: 'POST' });
+  setToken(data.access_token);
+  return parseTokenExp(data.access_token);
+}
+
+function startSessionCountdown(el, extendBtn) {
   if (!el) return;
   const exp = parseInt(localStorage.getItem('token_exp') || '0', 10) || parseTokenExp(localStorage.getItem('token'));
   if (countdownInterval) clearInterval(countdownInterval);
@@ -91,9 +101,26 @@ function startSessionCountdown(el) {
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
     el.textContent = `자동 로그아웃까지 ${mins}분 ${secs.toString().padStart(2, '0')}초`;
+
+    if (extendBtn) {
+      const shouldShow = remaining <= 5 * 60 * 1000;
+      extendBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+      extendBtn.disabled = false;
+    }
   };
   tick();
   countdownInterval = setInterval(tick, 1000);
 }
 
-export { login, loadUser, logout, startSessionCountdown };
+function setupPasswordToggle(inputId, toggleId) {
+  const input = document.getElementById(inputId);
+  const toggle = document.getElementById(toggleId);
+  if (!input || !toggle) return;
+  toggle.addEventListener('click', () => {
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    toggle.textContent = isHidden ? '🙈' : '👁️';
+  });
+}
+
+export { login, loadUser, logout, startSessionCountdown, setupPasswordToggle, refreshSession };

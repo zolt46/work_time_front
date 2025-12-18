@@ -16,7 +16,10 @@
         <label for="login_id">로그인 ID</label>
         <input id="login_id" required />
         <label for="password">비밀번호</label>
-        <input id="password" type="password" required />
+        <div class="input-with-toggle">
+          <input id="password" type="password" required />
+          <button type="button" class="toggle-visibility" id="toggle-login-password">👁️</button>
+        </div>
         <div class="loading-bar" id="login-loading"></div>
         <button class="btn full" type="submit">로그인</button>
         <div class="login-status">
@@ -40,10 +43,11 @@
     </div>
   </div>
   <script type="module">
-    import { login } from './js/auth.js';
+    import { login, setupPasswordToggle } from './js/auth.js';
     import { initLoginShell } from './js/layout.js';
 
     await initLoginShell();
+    setupPasswordToggle('password', 'toggle-login-password');
     document.getElementById('login-form').addEventListener('submit', login);
   </script>
 </body>

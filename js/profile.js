@@ -1,5 +1,6 @@
 // File: /ui/js/profile.js
 import { apiRequest } from './api.js';
+import { setupPasswordToggle } from './auth.js';
 
 const roleLabel = {
   MASTER: '마스터',
@@ -21,6 +22,13 @@ function renderProfile(user) {
   setText('profile-last-login', user?.auth_account?.last_login_at ? new Date(user.auth_account.last_login_at).toLocaleString() : '기록 없음');
 }
 
+function showAccountWarning(message, tips = []) {
+  const box = document.getElementById('account-warning');
+  if (!box) return;
+  const list = tips.map((t) => `• ${t}`).join('<br />');
+  box.innerHTML = `${message}${list ? '<br />' + list : ''}`;
+}
+
 async function loadVisibleUsers() {
   const tbody = document.getElementById('visible-users-body');
   if (!tbody) return;
@@ -36,6 +44,9 @@ async function loadVisibleUsers() {
 function bindAccountForm() {
   const form = document.getElementById('account-form');
   if (!form) return;
+  setupPasswordToggle('current-password', 'toggle-current');
+  setupPasswordToggle('new-password', 'toggle-new');
+  setupPasswordToggle('confirm-password', 'toggle-confirm');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -43,8 +54,17 @@ function bindAccountForm() {
       new_login_id: document.getElementById('new-login')?.value || null,
       new_password: document.getElementById('new-password')?.value || null
     };
+    const confirm = document.getElementById('confirm-password')?.value || '';
     if (!payload.new_login_id && !payload.new_password) {
-      alert('변경할 로그인 ID나 비밀번호를 입력하세요.');
+      showAccountWarning('변경할 로그인 ID나 비밀번호를 입력하세요.', ['필요한 항목만 작성 후 다시 시도']);
+      return;
+    }
+    if (payload.new_password && payload.new_password.length < 8) {
+      showAccountWarning('새 비밀번호는 8자 이상이어야 합니다.', ['영문/숫자/기호를 섞어 보안을 강화하세요.']);
+      return;
+    }
+    if (payload.new_password && payload.new_password !== confirm) {
+      showAccountWarning('비밀번호 확인이 일치하지 않습니다.', ['새 비밀번호와 확인란을 동일하게 입력하세요.']);
       return;
     }
     try {
@@ -55,9 +75,18 @@ function bindAccountForm() {
       });
       renderProfile(updated);
       form.reset();
-      alert('계정 정보가 업데이트되었습니다. 다시 로그인해야 할 수 있습니다.');
+      showAccountWarning('계정 정보가 업데이트되었습니다.', ['필요 시 다시 로그인하세요.']);
     } catch (err) {
-      alert(err.message);
+      const message = err?.message || '업데이트에 실패했습니다.';
+      const tips = [];
+      if (message.includes('8 characters') || message.includes('length')) {
+        tips.push('비밀번호는 8자 이상이어야 합니다.');
+      }
+      if (message.toLowerCase().includes('login id')) {
+        tips.push('이미 사용 중인 로그인 ID입니다. 다른 값을 입력하세요.');
+      }
+      tips.push('현재 비밀번호를 정확히 입력했는지 확인하세요.');
+      showAccountWarning(`오류: ${message}`, tips);
     }
   });
 }

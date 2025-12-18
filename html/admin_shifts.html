@@ -30,6 +30,7 @@
         <div class="status-meta" id="status-meta">상태 체크 중...</div>
       </div>
       <span id="session-countdown" class="status-chip session-timer"></span>
+      <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
       <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
       <button class="btn muted" id="logout-btn">로그아웃</button>
     </div>
@@ -76,18 +77,15 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-title">근무 배정 & 미리보기</div>
+        <div class="card-title">근무 배정 & 시간표</div>
+        <p class="muted">1시간 단위 슬롯을 선택해 요일·시간을 배정하세요. 근무 항목 선택 없이 바로 할당됩니다.</p>
         <form id="assign-form" class="grid two">
           <div class="stack">
             <label>대상 구성원</label>
             <select id="assign-user" required></select>
           </div>
           <div class="stack">
-            <label>배정할 근무</label>
-            <select id="assign-shift" required></select>
-          </div>
-          <div class="stack">
-            <label>시작일</label>
+            <label>적용 시작일</label>
             <input id="assign-from" type="date" required />
           </div>
           <div class="stack">
@@ -95,8 +93,9 @@
             <input id="assign-to" type="date" placeholder="종료일(선택)" />
           </div>
           <div class="stack full">
-            <label>미리보기</label>
-            <div id="assign-preview" class="muted">대상과 근무를 선택하면 미리보기가 표시됩니다.</div>
+            <label>시간표 슬롯 선택</label>
+            <div id="assign-slot-grid" class="slot-grid"></div>
+            <div id="assign-slot-preview" class="muted">요일과 시간을 클릭해 배정할 슬롯을 선택하세요.</div>
           </div>
           <div class="stack full">
             <button class="btn secondary" type="submit">배정하기</button>
@@ -107,14 +106,13 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { createShift, assignShift, loadShiftOptions, loadUserOptions, loadShiftTable, watchAssignmentPreview } from '../js/admin.js';
+    import { createShift, assignShift, loadUserOptions, loadShiftTable, buildAssignSlotGrid } from '../js/admin.js';
 
     await initAppLayout('shifts');
     document.getElementById('shift-form').addEventListener('submit', createShift);
-    await loadShiftOptions('assign-shift');
     await loadUserOptions('assign-user');
     await loadShiftTable();
-    watchAssignmentPreview();
+    buildAssignSlotGrid();
     document.getElementById('assign-form').addEventListener('submit', assignShift);
   </script>
 </body>

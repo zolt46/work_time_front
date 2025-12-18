@@ -1,6 +1,7 @@
 // File: /ui/js/layout.js
-import { loadUser, logout, startSessionCountdown } from './auth.js';
+import { loadUser, logout, startSessionCountdown, refreshSession } from './auth.js';
 import { checkSystemStatus } from './status.js';
+import { API_BASE_URL } from './api.js';
 
 function setupSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -71,12 +72,39 @@ export async function initAppLayout(activePage) {
   wireCommonActions();
   const user = await loadUser();
   if (user) applyNavVisibility(user.role);
-  startSessionCountdown(document.getElementById('session-countdown'));
+  startSessionCountdown(
+    document.getElementById('session-countdown'),
+    document.getElementById('extend-session')
+  );
+  const extendBtn = document.getElementById('extend-session');
+  if (extendBtn) {
+    extendBtn.addEventListener('click', async () => {
+      extendBtn.disabled = true;
+      extendBtn.textContent = '연장 중...';
+      try {
+        await refreshSession();
+        startSessionCountdown(
+          document.getElementById('session-countdown'),
+          extendBtn
+        );
+        extendBtn.textContent = '세션 연장됨';
+      } catch (e) {
+        extendBtn.textContent = '연장 실패';
+      } finally {
+        setTimeout(() => { extendBtn.textContent = '세션 연장'; extendBtn.disabled = false; }, 1500);
+      }
+    });
+  }
   await checkSystemStatus(
     document.getElementById('server-status'),
     document.getElementById('db-status'),
     document.getElementById('status-meta')
   );
+
+  // keep-alive ping to 줄여서 서버 지연 방지
+  setInterval(() => {
+    fetch(`${API_BASE_URL}/health`, { cache: 'no-store' }).catch(() => {});
+  }, 120000);
   return user;
 }
 

@@ -75,22 +75,6 @@ function weekdayLabel(num) {
   return ['월', '화', '수', '목', '금', '토', '일'][num] || num;
 }
 
-async function loadShiftOptions(selectId) {
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  const shifts = await apiRequest('/schedule/shifts');
-  select.innerHTML = '<option value="">근무 선택</option>';
-  shifts.forEach((s) => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = `${s.name} (${weekdayLabel(s.weekday)} ${s.start_time}~${s.end_time})`;
-    opt.dataset.start = s.start_time;
-    opt.dataset.end = s.end_time;
-    opt.dataset.weekday = s.weekday;
-    select.appendChild(opt);
-  });
-}
-
 async function loadShiftTable() {
   const tbody = document.getElementById('shift-table-body');
   if (!tbody) return;
@@ -116,23 +100,42 @@ async function loadUserOptions(selectId) {
   });
 }
 
-function watchAssignmentPreview() {
-  const preview = document.getElementById('assign-preview');
-  const userSelect = document.getElementById('assign-user');
-  const shiftSelect = document.getElementById('assign-shift');
-  const startInput = document.getElementById('assign-from');
-  const endInput = document.getElementById('assign-to');
-  if (!preview || !userSelect || !shiftSelect) return;
-  const render = () => {
-    const userText = userSelect.options[userSelect.selectedIndex]?.text || '구성원 미선택';
-    const shiftOpt = shiftSelect.options[shiftSelect.selectedIndex];
-    const shiftText = shiftOpt?.text || '근무 미선택';
-    const start = startInput?.value || '시작일 미지정';
-    const end = endInput?.value ? ` ~ ${endInput.value}` : '';
-    preview.textContent = `${userText} → ${shiftText} (${start}${end})`;
-  };
-  [userSelect, shiftSelect, startInput, endInput].forEach((el) => el && el.addEventListener('change', render));
-  render();
+let selectedAssignSlot = null;
+
+function buildAssignSlotGrid() {
+  const grid = document.getElementById('assign-slot-grid');
+  const preview = document.getElementById('assign-slot-preview');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const days = ['월', '화', '수', '목', '금', '토', '일'];
+  const hours = Array.from({ length: 15 }, (_, i) => 8 + i);
+  const headerBlank = document.createElement('div');
+  headerBlank.className = 'slot-header';
+  grid.appendChild(headerBlank);
+  days.forEach((day) => {
+    const h = document.createElement('div');
+    h.className = 'slot-header';
+    h.textContent = day;
+    grid.appendChild(h);
+  });
+  hours.forEach((hour) => {
+    const label = document.createElement('div');
+    label.className = 'slot-header';
+    label.textContent = `${hour}:00`;
+    grid.appendChild(label);
+    days.forEach((_, weekday) => {
+      const cell = document.createElement('div');
+      cell.className = 'slot-cell';
+      cell.textContent = `${hour}:00-${hour + 1}:00`;
+      cell.addEventListener('click', () => {
+        grid.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
+        cell.classList.add('selected');
+        selectedAssignSlot = { weekday, hour };
+        if (preview) preview.textContent = `${days[weekday]} ${hour}:00-${hour + 1}:00 슬롯 선택됨`;
+      });
+      grid.appendChild(cell);
+    });
+  });
 }
 
 async function createShift(event) {
@@ -146,22 +149,26 @@ async function createShift(event) {
   };
   await apiRequest('/schedule/shifts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   alert('근무가 생성되었습니다');
-  await loadShiftOptions('assign-shift');
   await loadShiftTable();
   event.target.reset();
 }
 
 async function assignShift(event) {
   event.preventDefault();
+  if (!selectedAssignSlot) {
+    alert('요일·시간 슬롯을 선택하세요.');
+    return;
+  }
   const payload = {
     user_id: document.getElementById('assign-user').value,
-    shift_id: document.getElementById('assign-shift').value,
+    weekday: selectedAssignSlot.weekday,
+    start_hour: selectedAssignSlot.hour,
     valid_from: document.getElementById('assign-from').value,
     valid_to: document.getElementById('assign-to').value || null
   };
-  await apiRequest('/schedule/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  await apiRequest('/schedule/slots/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   alert('배정되었습니다');
   watchAssignmentPreview();
 }
 
-export { loadMembers, createMember, createShift, assignShift, loadShiftOptions, loadUserOptions, loadShiftTable, watchAssignmentPreview };
+export { loadMembers, createMember, createShift, assignShift, loadUserOptions, loadShiftTable, buildAssignSlotGrid };

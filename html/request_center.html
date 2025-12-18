@@ -30,6 +30,7 @@
         <div class="status-meta" id="status-meta">상태 체크 중...</div>
       </div>
       <span id="session-countdown" class="status-chip session-timer"></span>
+      <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
       <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
       <button class="btn muted" id="logout-btn">로그아웃</button>
     </div>
@@ -49,15 +50,21 @@
     <main class="content">
       <div class="grid two">
         <div class="card">
-          <div class="card-title">근무 변경 / 결석 신청</div>
+          <div class="card-title">결근 / 추가 근무 신청</div>
           <form id="request-form" class="stack">
             <select id="req-type">
-              <option value="ABSENCE">결석 / 휴가</option>
+              <option value="ABSENCE">결근</option>
               <option value="EXTRA">추가 근무</option>
             </select>
+            <div id="req-user-wrapper" class="stack" style="display:none;">
+              <label for="req-user">신청 대상 멤버 선택</label>
+              <select id="req-user"></select>
+            </div>
             <input id="req-date" type="date" required />
-            <select id="req-shift"></select>
-            <textarea id="req-reason" placeholder="사유 (선택)" rows="3"></textarea>
+            <label>시간표에서 1시간 슬롯 선택</label>
+            <div id="req-slot-grid" class="slot-grid"></div>
+            <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
+            <textarea id="req-reason" placeholder="사유를 입력하세요" rows="3" required></textarea>
             <button class="btn" type="submit">신청 제출</button>
           </form>
         </div>
@@ -70,12 +77,10 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadMyRequests, submitRequest, populateShiftSelect } from '../js/requests.js';
+    import { initRequestPage } from '../js/requests.js';
 
-    await initAppLayout('requests');
-    await populateShiftSelect('req-shift');
-    await loadMyRequests();
-    document.getElementById('request-form').addEventListener('submit', submitRequest);
+    const user = await initAppLayout('requests');
+    await initRequestPage(user);
   </script>
 </body>
 </html>

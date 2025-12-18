@@ -30,6 +30,7 @@
         <div class="status-meta" id="status-meta">상태 체크 중...</div>
       </div>
       <span id="session-countdown" class="status-chip session-timer"></span>
+      <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
       <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
       <button class="btn muted" id="logout-btn">로그아웃</button>
     </div>
@@ -64,9 +65,20 @@
         <div class="card">
           <div class="card-title">로그인 ID / 비밀번호 변경</div>
           <form id="account-form" class="stack">
-            <input id="current-password" type="password" placeholder="현재 비밀번호" required />
+            <div class="input-with-toggle">
+              <input id="current-password" type="password" placeholder="현재 비밀번호" required />
+              <button type="button" class="toggle-visibility" id="toggle-current">👁️</button>
+            </div>
             <input id="new-login" type="text" placeholder="새 로그인 ID (선택)" />
-            <input id="new-password" type="password" placeholder="새 비밀번호 (선택, 8자 이상)" />
+            <div class="input-with-toggle">
+              <input id="new-password" type="password" placeholder="새 비밀번호 (선택, 8자 이상)" />
+              <button type="button" class="toggle-visibility" id="toggle-new">👁️</button>
+            </div>
+            <div class="input-with-toggle">
+              <input id="confirm-password" type="password" placeholder="새 비밀번호 확인" />
+              <button type="button" class="toggle-visibility" id="toggle-confirm">👁️</button>
+            </div>
+            <div class="alert muted small" id="account-warning">비밀번호는 8자 이상, 영문/숫자 조합 권장 · 로그인 ID 중복 불가</div>
             <div class="muted small">로그인 ID나 비밀번호 중 변경할 항목만 입력하세요.</div>
             <button class="btn" type="submit">계정 정보 업데이트</button>
           </form>
