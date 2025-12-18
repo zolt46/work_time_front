@@ -1,9 +1,9 @@
-<!-- File: /ui/html/request_approvals.html -->
+<!-- File: /ui/html/history.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>변경 승인함</title>
+  <title>변동 이력</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,7 +12,7 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 근무 변경 승인함</div>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 변동 이력</div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
@@ -50,22 +50,23 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="card">
-        <div class="card-title">대기 중인 근무 변경 요청</div>
-        <table class="table" id="pending-requests">
+        <div class="card-title">최근 이력 (최근 30일 · 최대 50건)</div>
+        <div id="history-status" class="muted">불러오는 중...</div>
+        <table class="table" id="history-table">
           <thead>
-            <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
+            <tr><th>시간</th><th>동작</th><th>신청자</th><th>대상자</th><th>신청 ID</th><th>세부</th></tr>
           </thead>
-          <tbody id="pending-requests-body"></tbody>
+          <tbody></tbody>
         </table>
       </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadPendingRequests } from '../js/requests.js';
+    import { loadHistory } from '../js/history.js';
 
-    await initAppLayout('approvals');
-    await loadPendingRequests();
+    const user = await initAppLayout('history');
+    await loadHistory(user);
   </script>
 </body>
 </html>

@@ -36,8 +36,17 @@ async function apiRequest(path, options = {}) {
     return;
   }
   if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || '요청에 실패했습니다');
+    let message = '요청에 실패했습니다';
+    try {
+      const data = await resp.json();
+      if (data?.detail) message = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+      else if (data?.message) message = data.message;
+      else message = JSON.stringify(data);
+    } catch (e) {
+      const text = await resp.text();
+      if (text) message = text;
+    }
+    throw new Error(message);
   }
   if (resp.status === 204) return null;
   return await resp.json();

@@ -45,6 +45,7 @@
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
@@ -78,11 +79,17 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { assignShift, loadUserOptions, buildAssignSlotGrid } from '../js/admin.js';
+    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser } from '../js/admin.js';
 
     await initAppLayout('shifts');
+    const today = new Date().toISOString().slice(0, 10);
+    const fromInput = document.getElementById('assign-from');
+    if (fromInput && !fromInput.value) fromInput.value = today;
     await loadUserOptions('assign-user');
     buildAssignSlotGrid();
+    await refreshAssignedSlotsForUser();
+    document.getElementById('assign-user').addEventListener('change', refreshAssignedSlotsForUser);
+    document.getElementById('assign-from').addEventListener('change', refreshAssignedSlotsForUser);
     document.getElementById('assign-form').addEventListener('submit', assignShift);
   </script>
 </body>

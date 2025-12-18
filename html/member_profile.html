@@ -45,6 +45,7 @@
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
@@ -67,16 +68,16 @@
           <form id="account-form" class="stack">
             <div class="input-with-toggle">
               <input id="current-password" type="password" placeholder="현재 비밀번호" required />
-              <button type="button" class="toggle-visibility" id="toggle-current">👓</button>
+              <button type="button" class="toggle-visibility" id="toggle-current">👁</button>
             </div>
             <input id="new-login" type="text" placeholder="새 로그인 ID (선택)" />
             <div class="input-with-toggle">
               <input id="new-password" type="password" placeholder="새 비밀번호 (선택, 8자 이상)" />
-              <button type="button" class="toggle-visibility" id="toggle-new">👓</button>
+              <button type="button" class="toggle-visibility" id="toggle-new">👁</button>
             </div>
             <div class="input-with-toggle">
               <input id="confirm-password" type="password" placeholder="새 비밀번호 확인" />
-              <button type="button" class="toggle-visibility" id="toggle-confirm">👓</button>
+              <button type="button" class="toggle-visibility" id="toggle-confirm">👁</button>
             </div>
             <div class="alert muted small" id="account-warning">비밀번호는 8자 이상, 영문/숫자 조합 권장 · 로그인 ID 중복 불가</div>
             <div class="muted small">로그인 ID나 비밀번호 중 변경할 항목만 입력하세요.</div>

@@ -45,6 +45,7 @@
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
@@ -61,10 +62,10 @@
               <select id="req-user"></select>
             </div>
             <input id="req-date" type="date" required />
-            <label>시간표에서 1시간 슬롯 선택</label>
+            <label>시간표에서 여러 1시간 슬롯 선택</label>
             <div id="req-slot-grid" class="slot-grid table-like"></div>
             <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
-            <textarea id="req-reason" placeholder="사유를 입력하세요" rows="3" required></textarea>
+            <textarea id="req-reason" placeholder="사유를 입력하세요 (필수)" rows="3" required></textarea>
             <button class="btn" type="submit">신청 제출</button>
           </form>
         </div>
@@ -80,6 +81,9 @@
     import { initRequestPage } from '../js/requests.js';
 
     const user = await initAppLayout('requests');
+    const today = new Date().toISOString().slice(0, 10);
+    const dateInput = document.getElementById('req-date');
+    if (dateInput && !dateInput.value) dateInput.value = today;
     await initRequestPage(user);
   </script>
 </body>

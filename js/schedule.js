@@ -8,6 +8,32 @@ function toMinutes(timeStr) {
   return h * 60 + m;
 }
 
+function getWeekStart(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const diff = (d.getDay() + 6) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff);
+  return start.toISOString().slice(0, 10);
+}
+
+function normalizeEvents(assignments = []) {
+  if (!assignments.length) return [];
+  if (assignments[0].shift) return assignments;
+  return assignments.map((ev) => {
+    const weekday = (new Date(ev.date).getDay() + 6) % 7;
+    return {
+      shift: {
+        weekday,
+        start_time: ev.start_time,
+        end_time: ev.end_time,
+        name: ev.shift_name || '',
+      },
+      user: { name: ev.user_name },
+      source: ev.source || 'BASE',
+    };
+  });
+}
+
 function deriveHourWindow(assignments) {
   if (!assignments || assignments.length === 0) return { startHour: 8, endHour: 20 };
   const mins = assignments.flatMap((a) => [toMinutes(a.shift.start_time), toMinutes(a.shift.end_time)]);
@@ -62,6 +88,7 @@ function createTimelineColumns(hours) {
 
 function placeAssignments(dayCols, hours, assignments) {
   const colorPool = ['#1d4ed8', '#0f766e', '#b45309', '#be185d', '#7c3aed', '#2563eb'];
+  const sourceColor = { EXTRA: '#0f766e', BASE: '#2563eb' };
   const userColor = new Map();
 
   const overlapsHour = (start, end, hour) => {
@@ -70,14 +97,14 @@ function placeAssignments(dayCols, hours, assignments) {
     return end > hourStart && start < hourEnd;
   };
 
-  assignments.forEach((assign, idx) => {
+  assignments.forEach((assign) => {
     const dayIndex = assign.shift.weekday;
     const col = dayCols[dayIndex];
     if (!col) return;
     const startMinutes = toMinutes(assign.shift.start_time);
     const endMinutes = toMinutes(assign.shift.end_time);
     const memberName = assign.user?.name || assign.shift.name || '미정';
-    const color = userColor.get(memberName) || colorPool[userColor.size % colorPool.length];
+    const color = sourceColor[assign.source] || userColor.get(memberName) || colorPool[userColor.size % colorPool.length];
     if (!userColor.has(memberName)) userColor.set(memberName, color);
 
     hours.forEach((hour) => {
@@ -88,6 +115,7 @@ function placeAssignments(dayCols, hours, assignments) {
       pill.className = 'timetable-pill';
       pill.textContent = memberName;
       pill.style.setProperty('--pill-color', color);
+      if (assign.source === 'EXTRA') pill.classList.add('pill-extra');
       cell.appendChild(pill);
     });
   });
@@ -106,13 +134,14 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   const container = document.getElementById(targetId);
   if (!container) return;
   container.innerHTML = '';
+  const normalized = normalizeEvents(assignments);
   if (!assignments || assignments.length === 0) {
     container.classList.remove('timetable');
     container.textContent = '배정된 일정이 없습니다.';
     return;
   }
 
-  const { startHour, endHour } = deriveHourWindow(assignments);
+  const { startHour, endHour } = deriveHourWindow(normalized);
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
   const wrapper = document.createElement('div');
   wrapper.className = 'timetable';
@@ -126,7 +155,7 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   body.style.setProperty('--hour-height', `${hourHeight}px`);
 
   const { times, dayCols } = createTimelineColumns(hours);
-  placeAssignments(dayCols, hours, assignments);
+  placeAssignments(dayCols, hours, normalized);
 
   body.appendChild(times);
   dayCols.forEach((col) => body.appendChild(col));
@@ -137,9 +166,11 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
 }
 
 async function loadGlobalSchedule(targetId = 'schedule-container', options = {}) {
-  const data = await apiRequest('/schedule/global');
-  renderTimeline(data.assignments, targetId, options);
-  return data.assignments;
+  const start = getWeekStart();
+  const params = new URLSearchParams({ start });
+  const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+  renderTimeline(events, targetId, options);
+  return events;
 }
 
 function renderCompactSchedule(assignments, targetId = 'schedule-summary') {

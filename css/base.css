@@ -33,6 +33,7 @@ button, input, select {
 .btn.muted { background: var(--muted); color: #f8fafc; }
 .btn.danger { background: #e53e3e; }
 .btn.tiny { padding: 6px 10px; font-size: 12px; }
+.btn.loading { opacity: 0.7; cursor: wait; }
 .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 input, select, textarea {
   width: 100%;
@@ -61,5 +62,7 @@ input, select, textarea {
 .badge.pending { background: #f6ad55; color: #7b341e; }
 .badge.approved { background: #9ae6b4; color: #22543d; }
 .badge.rejected { background: #feb2b2; color: #742a2a; }
+.badge.cancelled { background: #cbd5e1; color: #334155; }
 .stack { display: flex; flex-direction: column; gap: 8px; }
 .small { font-size: 12px; }
+.loading-text { color: var(--muted); font-size: 13px; }

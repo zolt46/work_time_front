@@ -1,10 +1,21 @@
-// File: /ui/js/requests.js
 import { apiRequest } from './api.js';
 
 const days = ['월', '화', '수', '목', '금', '토', '일'];
+const hours = Array.from({ length: 15 }, (_, i) => 8 + i); // 08~22시
+
 let shiftCache = null;
-let selectedRequestSlot = null;
-let selectedRequestKey = null;
+let slotCells = new Map();
+let selectedSlots = new Set();
+let assignedSlots = new Set();
+let slotShiftMap = new Map();
+let currentUser = null;
+
+const statusLabel = {
+  PENDING: '대기',
+  APPROVED: '승인',
+  REJECTED: '거절',
+  CANCELLED: '취소'
+};
 
 function setShiftCache(shifts) {
   shiftCache = shifts;
@@ -17,20 +28,87 @@ async function ensureShifts() {
   return shiftCache;
 }
 
+function getWeekStart(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const day = d.getDay(); // Sun=0
+  const diff = (day + 6) % 7; // Mon=0
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff);
+  return start.toISOString().slice(0, 10);
+}
+
 function shiftLabel(shiftId) {
   if (!shiftCache) return shiftId;
   const shift = shiftCache.find((s) => s.id === shiftId);
-  return shift ? `${shift.weekday !== undefined ? days[shift.weekday] + ' ' : ''}${shift.start_time}~${shift.end_time}` : shiftId;
+  return shift ? `${days[shift.weekday]} ${shift.start_time}~${shift.end_time}` : shiftId;
 }
 
 function typeLabel(type) {
   return type === 'ABSENCE' ? '결근' : '추가 근무';
 }
 
-function createSlotGrid(containerId, onSelect) {
+function resetSelection() {
+  selectedSlots.clear();
+  slotCells.forEach((cell) => cell.classList.remove('selected'));
+  updatePreview();
+}
+
+function updatePreview() {
+  const preview = document.getElementById('req-slot-preview');
+  if (!preview) return;
+  if (!selectedSlots.size) {
+    preview.textContent = '요일·시간 칸을 눌러 여러 슬롯을 선택하세요.';
+    return;
+  }
+  const texts = Array.from(selectedSlots).map((key) => {
+    const [w, h] = key.split('-').map(Number);
+    return `${days[w]} ${h}:00-${h + 1}:00`;
+  });
+  preview.textContent = `${texts.length}개 선택됨: ${texts.join(', ')}`;
+}
+
+function applyDayDisable() {
+  const dateStr = document.getElementById('req-date').value;
+  const activeWeekday = dateStr ? (new Date(dateStr).getDay() + 6) % 7 : null;
+  slotCells.forEach((cell, key) => {
+    const weekday = Number(key.split('-')[0]);
+    const disabled = activeWeekday !== null && weekday !== activeWeekday;
+    cell.classList.toggle('disabled', disabled);
+  });
+}
+
+function onCellClick(key) {
+  const cell = slotCells.get(key);
+  if (!cell) return;
+  if (cell.classList.contains('disabled')) {
+    alert('선택한 날짜와 요일이 일치하는 칸만 선택할 수 있습니다.');
+    return;
+  }
+  const type = document.getElementById('req-type').value;
+  const isAssigned = assignedSlots.has(key);
+  if (type === 'ABSENCE' && !isAssigned) {
+    alert('결근 신청은 현재 배정된 시간에서만 가능합니다.');
+    return;
+  }
+  if (type === 'EXTRA' && isAssigned) {
+    alert('이미 배정된 시간은 추가 근무로 신청할 수 없습니다.');
+    return;
+  }
+  if (selectedSlots.has(key)) {
+    selectedSlots.delete(key);
+    cell.classList.remove('selected');
+  } else {
+    selectedSlots.add(key);
+    cell.classList.add('selected');
+  }
+  updatePreview();
+}
+
+function createSlotGrid(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = '';
+  slotCells = new Map();
   const headerBlank = document.createElement('div');
   headerBlank.className = 'slot-header';
   container.appendChild(headerBlank);
@@ -40,10 +118,9 @@ function createSlotGrid(containerId, onSelect) {
     h.textContent = day;
     container.appendChild(h);
   });
-  const hours = Array.from({ length: 15 }, (_, i) => 8 + i);
   hours.forEach((hour) => {
     const label = document.createElement('div');
-    label.className = 'slot-header';
+    label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
     container.appendChild(label);
     days.forEach((_, weekday) => {
@@ -51,21 +128,12 @@ function createSlotGrid(containerId, onSelect) {
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
-      cell.addEventListener('click', () => {
-        if (selectedRequestKey === key) {
-          selectedRequestKey = null;
-          container.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
-          onSelect(null);
-          return;
-        }
-        selectedRequestKey = key;
-        container.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
-        cell.classList.add('selected');
-        onSelect({ weekday, hour });
-      });
+      cell.addEventListener('click', () => onCellClick(key));
+      slotCells.set(key, cell);
       container.appendChild(cell);
     });
   });
+  applyDayDisable();
 }
 
 async function ensureSlot(weekday, hour) {
@@ -86,55 +154,119 @@ async function ensureSlot(weekday, hour) {
   return shift;
 }
 
+function getTargetUserId() {
+  const select = document.getElementById('req-user');
+  if (select && select.value) return select.value;
+  return currentUser?.id;
+}
+
+async function refreshAssignedSlots() {
+  assignedSlots.clear();
+  slotShiftMap.clear();
+  slotCells.forEach((cell) => {
+    cell.classList.remove('assigned', 'selected');
+  });
+  selectedSlots.clear();
+  updatePreview();
+
+  const userId = getTargetUserId();
+  const dateStr = document.getElementById('req-date').value || new Date().toISOString().slice(0, 10);
+  if (!userId || !dateStr) {
+    applyDayDisable();
+    return;
+  }
+
+  const params = new URLSearchParams({ start: getWeekStart(dateStr), user_id: userId });
+  try {
+    const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+    events.forEach((ev) => {
+      const dayIndex = (new Date(ev.date).getDay() + 6) % 7;
+      const startHour = parseInt(ev.start_time.split(':')[0], 10);
+      const endHour = parseInt(ev.end_time.split(':')[0], 10);
+      for (let h = startHour; h < endHour; h++) {
+        const key = `${dayIndex}-${h}`;
+        assignedSlots.add(key);
+        slotShiftMap.set(key, ev.shift_id);
+        const cell = slotCells.get(key);
+        if (cell) cell.classList.add('assigned');
+      }
+    });
+  } catch (e) {
+    console.error('배정 슬롯 불러오기 실패', e);
+  }
+  applyDayDisable();
+}
+
 async function submitRequest(event) {
   event.preventDefault();
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = '제출 중...';
+  }
   const type = document.getElementById('req-type').value;
   const target_date = document.getElementById('req-date').value;
   const reason = (document.getElementById('req-reason').value || '').trim();
   const targetUserSelect = document.getElementById('req-user');
   const user_id = targetUserSelect && targetUserSelect.value ? targetUserSelect.value : null;
 
-  if (!selectedRequestSlot) {
-    alert('시간표에서 1시간 슬롯을 선택하세요.');
+  if (!target_date) {
+    alert('신청 날짜를 선택하세요.');
+    submitBtn?.classList.remove('loading');
+    submitBtn && (submitBtn.disabled = false, submitBtn.textContent = '신청 제출');
+    return;
+  }
+  if (!selectedSlots.size) {
+    alert('시간표에서 최소 1개 이상의 슬롯을 선택하세요.');
+    submitBtn?.classList.remove('loading');
+    submitBtn && (submitBtn.disabled = false, submitBtn.textContent = '신청 제출');
     return;
   }
   if (!reason) {
     alert('사유를 입력하세요.');
+    submitBtn?.classList.remove('loading');
+    submitBtn && (submitBtn.disabled = false, submitBtn.textContent = '신청 제출');
     return;
   }
-  if (target_date) {
-    const d = new Date(target_date);
-    const weekdayFromDate = (d.getDay() + 6) % 7; // JS 일요일=0 -> 월요일=0 로 변환
-    if (weekdayFromDate !== selectedRequestSlot.weekday) {
-      alert('선택한 날짜의 요일과 시간표 슬롯의 요일이 다릅니다. 날짜를 다시 선택하세요.');
-      return;
-    }
-  }
+
+  const shiftIds = [];
   try {
-    const shift = await ensureSlot(selectedRequestSlot.weekday, selectedRequestSlot.hour);
+    for (const key of selectedSlots) {
+      const [weekday, hour] = key.split('-').map(Number);
+      if (type === 'ABSENCE') {
+        const sid = slotShiftMap.get(key);
+        if (!sid) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
+        shiftIds.push(sid);
+      } else {
+        const shift = await ensureSlot(weekday, hour);
+        shiftIds.push(shift.id);
+      }
+    }
     await apiRequest('/requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, target_date, target_shift_id: shift.id, reason, user_id })
+      body: JSON.stringify({ type, target_date, target_shift_ids: shiftIds, reason, user_id })
     });
-    alert('요청이 접수되었습니다');
+    alert('요청이 접수되었습니다.');
+    resetSelection();
     await loadMyRequests();
+    await refreshAssignedSlots();
   } catch (e) {
     alert(e.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '신청 제출';
+    }
   }
 }
 
-async function populateShiftSelect(selectId) {
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  const shifts = await ensureShifts();
-  select.innerHTML = '';
-  shifts.forEach((s) => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = `${s.name} (${s.start_time}~${s.end_time})`;
-    select.appendChild(opt);
-  });
+async function cancelRequest(id) {
+  await apiRequest(`/requests/${id}/cancel`, { method: 'POST' });
+  await loadMyRequests();
+  await refreshAssignedSlots();
 }
 
 async function loadMyRequests() {
@@ -143,16 +275,40 @@ async function loadMyRequests() {
   const data = await apiRequest('/requests/my');
   await ensureShifts();
   list.innerHTML = '';
+  if (!data.length) {
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = '접수된 신청이 없습니다.';
+    list.appendChild(empty);
+    return;
+  }
   data.forEach((r) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${typeLabel(r.type)}</strong> - ${r.target_date} · ${shiftLabel(r.target_shift_id)} <span class="badge">${r.status}</span>`;
-    if (r.reason) {
-      const reason = document.createElement('div');
-      reason.className = 'muted small';
-      reason.textContent = r.reason;
-      li.appendChild(reason);
+    const container = document.createElement('div');
+    container.className = 'request-row';
+    const badge = document.createElement('span');
+    badge.className = `badge ${r.status.toLowerCase()}`;
+    badge.textContent = statusLabel[r.status] || r.status;
+    const header = document.createElement('div');
+    header.className = 'request-header';
+    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftLabel(r.target_shift_id)}`;
+    header.appendChild(badge);
+
+    const reason = document.createElement('div');
+    reason.className = 'small muted';
+    reason.textContent = `사유: ${r.reason || '-'}`;
+    container.appendChild(header);
+    container.appendChild(reason);
+
+    if (r.status !== 'CANCELLED') {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn tiny muted';
+      cancelBtn.textContent = '신청 취소';
+      cancelBtn.onclick = () => {
+        if (confirm('해당 신청을 취소하고 기존 상태로 되돌리시겠습니까?')) cancelRequest(r.id);
+      };
+      container.appendChild(cancelBtn);
     }
-    list.appendChild(li);
+    list.appendChild(container);
   });
 }
 
@@ -169,7 +325,7 @@ async function loadPendingRequests() {
   data.forEach((r) => {
     const requester = userMap[r.user_id];
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftLabel(r.target_shift_id)}</td><td>${r.reason || ''}</td><td>${r.status}</td>`;
+    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftLabel(r.target_shift_id)}</td><td>${r.reason || ''}</td><td>${statusLabel[r.status] || r.status}</td>`;
     const tdAction = document.createElement('td');
     const approve = document.createElement('button');
     approve.textContent = '승인';
@@ -191,40 +347,53 @@ async function act(id, action) {
   await loadPendingRequests();
 }
 
-async function loadRequestUsers() {
+async function loadRequestUsers(current) {
   const wrapper = document.getElementById('req-user-wrapper');
   const select = document.getElementById('req-user');
   if (!wrapper || !select) return;
+  if (current.role === 'MEMBER') {
+    wrapper.style.display = 'none';
+    return;
+  }
   const users = await apiRequest('/users');
   wrapper.style.display = 'block';
   select.innerHTML = '<option value="">내 계정 선택</option>';
-  users.forEach((u) => {
-    const opt = document.createElement('option');
-    opt.value = u.id;
-    opt.textContent = `${u.name} (${u.identifier || u.role})`;
-    select.appendChild(opt);
+  users
+    .filter((u) => u.role === 'MEMBER')
+    .forEach((u) => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.name} (${u.identifier || '개인 ID 없음'})`;
+      select.appendChild(opt);
+    });
+}
+
+function bindFormEvents() {
+  const dateInput = document.getElementById('req-date');
+  const typeSelect = document.getElementById('req-type');
+  const userSelect = document.getElementById('req-user');
+  if (dateInput) dateInput.addEventListener('change', refreshAssignedSlots);
+  if (typeSelect) typeSelect.addEventListener('change', () => {
+    resetSelection();
   });
+  if (userSelect) userSelect.addEventListener('change', refreshAssignedSlots);
 }
 
 function initSlotSelection() {
-  createSlotGrid('req-slot-grid', (slot) => {
-    selectedRequestSlot = slot;
-    const preview = document.getElementById('req-slot-preview');
-    if (preview) {
-      preview.textContent = slot
-        ? `${days[slot.weekday]} ${slot.hour}:00-${slot.hour + 1}:00 슬롯 선택됨`
-        : '요일·시간을 클릭해 슬롯을 선택하세요.';
-    }
-  });
+  createSlotGrid('req-slot-grid');
+  updatePreview();
 }
 
-async function initRequestPage(currentUser) {
+async function initRequestPage(current) {
+  currentUser = current;
   await ensureShifts();
   initSlotSelection();
+  await refreshAssignedSlots();
   if (currentUser && currentUser.role !== 'MEMBER') {
-    await loadRequestUsers();
+    await loadRequestUsers(currentUser);
   }
   await loadMyRequests();
+  bindFormEvents();
   const form = document.getElementById('request-form');
   if (form) form.addEventListener('submit', submitRequest);
 }

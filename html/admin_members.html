@@ -45,6 +45,7 @@
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
@@ -66,12 +67,58 @@
           </form>
         </div>
         <div class="card">
-          <div class="card-title">권한별 보기</div>
-          <p class="muted">마스터는 모든 계정, 운영자는 마스터를 제외한 계정을 확인합니다. 멤버는 자신의 계정만 확인합니다.</p>
-          <table class="table" id="member-table">
-            <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th><th>작업</th></tr></thead>
-            <tbody id="member-table-body"></tbody>
-          </table>
+          <div class="card-title">권한별 보기 & 수정</div>
+          <p class="muted">마스터는 모든 계정, 운영자는 마스터를 제외한 계정을 확인합니다. 테이블에서 선택한 정보를 바로 아래에서 편집할 수 있습니다.</p>
+          <div class="grid two">
+            <div class="stack">
+              <table class="table" id="member-table">
+                <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th><th>작업</th></tr></thead>
+                <tbody id="member-table-body"></tbody>
+              </table>
+            </div>
+            <form id="member-edit-form" class="stack">
+              <input type="hidden" id="edit-id" />
+              <div class="stack">
+                <label for="edit-name">이름</label>
+                <input id="edit-name" placeholder="이름" required />
+              </div>
+              <div class="stack">
+                <label for="edit-identifier">개인 ID</label>
+                <input id="edit-identifier" placeholder="개인 ID" />
+              </div>
+              <div class="stack">
+                <label for="edit-role">권한</label>
+                <select id="edit-role">
+                  <option value="MEMBER">구성원</option>
+                  <option value="OPERATOR">운영자</option>
+                  <option value="MASTER">관리자(마스터)</option>
+                </select>
+              </div>
+              <div class="stack">
+                <label for="edit-active">상태</label>
+                <select id="edit-active">
+                  <option value="true">활성</option>
+                  <option value="false">비활성</option>
+                </select>
+              </div>
+              <div class="stack">
+                <label for="edit-login">로그인 ID (선택)</label>
+                <input id="edit-login" placeholder="새 로그인 ID" />
+              </div>
+              <div class="stack">
+                <label for="edit-password">새 비밀번호 (마스터 설정용)</label>
+                <input id="edit-password" placeholder="필요 시 재설정" />
+                <span class="small muted">저장된 비밀번호는 보안상 표시할 수 없습니다. 새 임시 비밀번호를 입력해 전달하세요.</span>
+              </div>
+              <div class="stack">
+                <div class="muted" id="member-detail"></div>
+              </div>
+              <div class="stack">
+                <button class="btn" type="submit" id="edit-save" disabled>수정 내용 저장</button>
+                <button class="btn muted" type="button" id="edit-cancel">선택 해제</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
       <div class="card">

@@ -113,7 +113,7 @@ function setupPasswordToggle(inputId, toggleId) {
   toggle.addEventListener('click', () => {
     const isHidden = input.type === 'password';
     input.type = isHidden ? 'text' : 'password';
-    toggle.textContent = isHidden ? '🔒' : '👓';
+    toggle.textContent = isHidden ? '👁' : '🙈';
   });
 }
 
