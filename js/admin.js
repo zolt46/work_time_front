@@ -17,11 +17,11 @@ async function loadMembers() {
     tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || ''}</td><td>${m.auth_account?.login_id || ''}</td><td>${m.active ? '활성' : '비활성'}</td>`;
     const actions = document.createElement('td');
 
-    const credBtn = document.createElement('button');
-    credBtn.textContent = '자격 변경';
-    credBtn.className = 'btn tiny';
-    credBtn.onclick = () => promptCredentialUpdate(m);
-    actions.appendChild(credBtn);
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '수정';
+    editBtn.className = 'btn tiny';
+    editBtn.onclick = () => editMember(m);
+    actions.appendChild(editBtn);
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '삭제';
@@ -34,26 +34,28 @@ async function loadMembers() {
   });
 }
 
-async function promptCredentialUpdate(member) {
-  const newLogin = prompt(`새 로그인 ID 입력 (${member.auth_account?.login_id || '현재 없음'})`, member.auth_account?.login_id || '');
-  const newPassword = prompt('새 비밀번호(변경하지 않을 경우 비워두세요)');
-  if (!newLogin && !newPassword) return;
+async function deleteMember(member) {
+  if (!confirm(`${member.name} 계정을 삭제하시겠습니까?`)) return;
+  await apiRequest(`/users/${member.id}`, { method: 'DELETE' });
+  await loadMembers();
+}
+
+async function editMember(member) {
+  const name = prompt('이름을 입력하세요', member.name) ?? member.name;
+  const identifier = prompt('개인 ID를 입력하세요', member.identifier || '') ?? member.identifier;
+  const role = prompt('권한을 입력하세요 (MASTER/OPERATOR/MEMBER)', member.role) ?? member.role;
+  const activeInput = prompt('활성 상태를 입력하세요 (true/false)', member.active ? 'true' : 'false');
+  const active = (activeInput ?? (member.active ? 'true' : 'false')).toLowerCase() === 'true';
   try {
-    await apiRequest(`/users/${member.id}/credentials`, {
+    await apiRequest(`/users/${member.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ new_login_id: newLogin || null, new_password: newPassword || null })
+      body: JSON.stringify({ name, identifier, role, active })
     });
     await loadMembers();
   } catch (e) {
     alert(e.message);
   }
-}
-
-async function deleteMember(member) {
-  if (!confirm(`${member.name} 계정을 삭제하시겠습니까?`)) return;
-  await apiRequest(`/users/${member.id}`, { method: 'DELETE' });
-  await loadMembers();
 }
 
 async function createMember(event) {
@@ -100,7 +102,7 @@ async function loadUserOptions(selectId) {
   });
 }
 
-let selectedAssignSlot = null;
+const selectedAssignSlots = new Set();
 
 function buildAssignSlotGrid() {
   const grid = document.getElementById('assign-slot-grid');
@@ -124,14 +126,27 @@ function buildAssignSlotGrid() {
     label.textContent = `${hour}:00`;
     grid.appendChild(label);
     days.forEach((_, weekday) => {
+      const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.textContent = `${hour}:00-${hour + 1}:00`;
       cell.addEventListener('click', () => {
-        grid.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
-        cell.classList.add('selected');
-        selectedAssignSlot = { weekday, hour };
-        if (preview) preview.textContent = `${days[weekday]} ${hour}:00-${hour + 1}:00 슬롯 선택됨`;
+        if (selectedAssignSlots.has(key)) {
+          selectedAssignSlots.delete(key);
+          cell.classList.remove('selected');
+        } else {
+          selectedAssignSlots.add(key);
+          cell.classList.add('selected');
+        }
+        if (preview) {
+          const selectedTexts = Array.from(selectedAssignSlots).map((k) => {
+            const [w, h] = k.split('-').map(Number);
+            return `${days[w]} ${h}:00-${h + 1}:00`;
+          });
+          preview.textContent = selectedTexts.length
+            ? `${selectedTexts.length}개 슬롯 선택: ${selectedTexts.join(', ')}`
+            : '요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.';
+        }
       });
       grid.appendChild(cell);
     });
@@ -155,20 +170,19 @@ async function createShift(event) {
 
 async function assignShift(event) {
   event.preventDefault();
-  if (!selectedAssignSlot) {
+  if (!selectedAssignSlots.size) {
     alert('요일·시간 슬롯을 선택하세요.');
     return;
   }
-  const payload = {
-    user_id: document.getElementById('assign-user').value,
-    weekday: selectedAssignSlot.weekday,
-    start_hour: selectedAssignSlot.hour,
-    valid_from: document.getElementById('assign-from').value,
-    valid_to: document.getElementById('assign-to').value || null
-  };
-  await apiRequest('/schedule/slots/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  alert('배정되었습니다');
-  watchAssignmentPreview();
+  const user_id = document.getElementById('assign-user').value;
+  const valid_from = document.getElementById('assign-from').value;
+  const valid_to = document.getElementById('assign-to').value || null;
+  for (const key of selectedAssignSlots) {
+    const [weekday, hour] = key.split('-').map(Number);
+    const payload = { user_id, weekday, start_hour: hour, valid_from, valid_to };
+    await apiRequest('/schedule/slots/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  }
+  alert('선택한 슬롯이 배정되었습니다');
 }
 
 export { loadMembers, createMember, createShift, assignShift, loadUserOptions, loadShiftTable, buildAssignSlotGrid };

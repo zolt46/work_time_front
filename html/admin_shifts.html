@@ -48,70 +48,40 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
-      <div class="grid two">
-        <div class="card">
-          <div class="card-title">근무 종류 생성</div>
-          <form id="shift-form" class="stack">
-            <input id="shift-name" placeholder="근무 이름" required />
-            <select id="shift-weekday">
-              <option value="0">월요일</option>
-              <option value="1">화요일</option>
-              <option value="2">수요일</option>
-              <option value="3">목요일</option>
-              <option value="4">금요일</option>
-              <option value="5">토요일</option>
-              <option value="6">일요일</option>
-            </select>
-            <input id="shift-start" type="time" required />
-            <input id="shift-end" type="time" required />
-            <input id="shift-location" placeholder="위치" />
-            <button class="btn" type="submit">근무 생성</button>
-          </form>
-        </div>
-        <div class="card">
-          <div class="card-title">근무 목록</div>
-          <table class="table" id="shift-table">
-            <thead><tr><th>이름</th><th>요일</th><th>시간</th><th>위치</th></tr></thead>
-            <tbody id="shift-table-body"></tbody>
-          </table>
-        </div>
-      </div>
       <div class="card">
-        <div class="card-title">근무 배정 & 시간표</div>
-        <p class="muted">1시간 단위 슬롯을 선택해 요일·시간을 배정하세요. 근무 항목 선택 없이 바로 할당됩니다.</p>
-        <form id="assign-form" class="grid two">
-          <div class="stack">
-            <label>대상 구성원</label>
-            <select id="assign-user" required></select>
+        <div class="card-title">근무 배정 시간표</div>
+        <p class="muted">모바일에서도 누르기 쉽게 가로/세로 표를 터치해 원하는 1시간 슬롯을 선택하세요. 다시 누르면 해제됩니다.</p>
+        <form id="assign-form" class="stack">
+          <div class="grid two">
+            <div class="stack">
+              <label>대상 구성원</label>
+              <select id="assign-user" required></select>
+            </div>
+            <div class="stack">
+              <label>적용 시작일</label>
+              <input id="assign-from" type="date" required />
+            </div>
+            <div class="stack">
+              <label>종료일(선택)</label>
+              <input id="assign-to" type="date" placeholder="종료일(선택)" />
+            </div>
           </div>
           <div class="stack">
-            <label>적용 시작일</label>
-            <input id="assign-from" type="date" required />
+            <label>시간표에서 슬롯 선택</label>
+            <div id="assign-slot-grid" class="slot-grid table-like"></div>
+            <div id="assign-slot-preview" class="muted">요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.</div>
           </div>
-          <div class="stack">
-            <label>종료일(선택)</label>
-            <input id="assign-to" type="date" placeholder="종료일(선택)" />
-          </div>
-          <div class="stack full">
-            <label>시간표 슬롯 선택</label>
-            <div id="assign-slot-grid" class="slot-grid"></div>
-            <div id="assign-slot-preview" class="muted">요일과 시간을 클릭해 배정할 슬롯을 선택하세요.</div>
-          </div>
-          <div class="stack full">
-            <button class="btn secondary" type="submit">배정하기</button>
-          </div>
+          <button class="btn secondary" type="submit">선택 슬롯 배정</button>
         </form>
       </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { createShift, assignShift, loadUserOptions, loadShiftTable, buildAssignSlotGrid } from '../js/admin.js';
+    import { assignShift, loadUserOptions, buildAssignSlotGrid } from '../js/admin.js';
 
     await initAppLayout('shifts');
-    document.getElementById('shift-form').addEventListener('submit', createShift);
     await loadUserOptions('assign-user');
-    await loadShiftTable();
     buildAssignSlotGrid();
     document.getElementById('assign-form').addEventListener('submit', assignShift);
   </script>

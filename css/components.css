@@ -162,6 +162,10 @@
   grid-template-columns: repeat(8, minmax(90px, 1fr));
   gap: 6px;
 }
+.slot-grid.table-like {
+  grid-template-columns: repeat(8, minmax(72px, 1fr));
+  gap: 4px;
+}
 .slot-grid .slot-header { font-weight: 700; text-align: center; }
 .slot-cell {
   border: 1px dashed var(--border);

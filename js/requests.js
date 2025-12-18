@@ -4,6 +4,7 @@ import { apiRequest } from './api.js';
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 let shiftCache = null;
 let selectedRequestSlot = null;
+let selectedRequestKey = null;
 
 function setShiftCache(shifts) {
   shiftCache = shifts;
@@ -46,10 +47,18 @@ function createSlotGrid(containerId, onSelect) {
     label.textContent = `${hour}:00`;
     container.appendChild(label);
     days.forEach((_, weekday) => {
+      const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.textContent = `${hour}:00-${hour + 1}:00`;
       cell.addEventListener('click', () => {
+        if (selectedRequestKey === key) {
+          selectedRequestKey = null;
+          container.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
+          onSelect(null);
+          return;
+        }
+        selectedRequestKey = key;
         container.querySelectorAll('.slot-cell').forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
         onSelect({ weekday, hour });
@@ -201,7 +210,11 @@ function initSlotSelection() {
   createSlotGrid('req-slot-grid', (slot) => {
     selectedRequestSlot = slot;
     const preview = document.getElementById('req-slot-preview');
-    if (preview) preview.textContent = `${days[slot.weekday]} ${slot.hour}:00-${slot.hour + 1}:00 슬롯 선택됨`;
+    if (preview) {
+      preview.textContent = slot
+        ? `${days[slot.weekday]} ${slot.hour}:00-${slot.hour + 1}:00 슬롯 선택됨`
+        : '요일·시간을 클릭해 슬롯을 선택하세요.';
+    }
   });
 }
 
