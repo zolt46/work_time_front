@@ -1,5 +1,5 @@
 // File: /ui/js/profile.js
-import { apiRequest } from './api.js';
+import { apiRequest, redirectToLogin } from './api.js';
 import { setupPasswordToggle } from './auth.js';
 
 const roleLabel = {
@@ -114,7 +114,8 @@ function bindResetButtons(role) {
         });
         const label = document.getElementById('reset-result');
         if (label) label.textContent = `${new Date().toLocaleTimeString()} · ${result.detail}`;
-        await loadVisibleUsers();
+        alert('초기화가 완료되어 다시 로그인합니다.');
+        redirectToLogin();
       } catch (err) {
         alert(err.message);
       }

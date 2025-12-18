@@ -1,6 +1,20 @@
 // File: /ui/js/api.js
 const API_BASE_URL = "https://work-time-back.onrender.com";
 
+function buildLoginUrl() {
+  const path = window.location.pathname;
+  const base = path.includes('/html/')
+    ? path.split('/html/')[0]
+    : path.replace(/\/[^/]*$/, '/');
+  const normalized = base.endsWith('/') ? base : `${base}/`;
+  return `${window.location.origin}${normalized}index.html`;
+}
+
+function redirectToLogin() {
+  clearToken();
+  window.location.replace(buildLoginUrl());
+}
+
 function getToken() {
   return localStorage.getItem('token');
 }
@@ -18,8 +32,7 @@ async function apiRequest(path, options = {}) {
   }
   const resp = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   if (resp.status === 401) {
-    clearToken();
-    window.location.href = 'index.html';
+    redirectToLogin();
     return;
   }
   if (!resp.ok) {
@@ -30,4 +43,4 @@ async function apiRequest(path, options = {}) {
   return await resp.json();
 }
 
-export { API_BASE_URL, apiRequest, getToken, clearToken };
+export { API_BASE_URL, apiRequest, getToken, clearToken, redirectToLogin };

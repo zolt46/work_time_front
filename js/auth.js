@@ -1,5 +1,5 @@
 // File: /ui/js/auth.js
-import { apiRequest, API_BASE_URL, clearToken } from './api.js';
+import { apiRequest, API_BASE_URL, clearToken, redirectToLogin } from './api.js';
 
 let countdownInterval;
 
@@ -68,13 +68,7 @@ async function loadUser() {
 }
 
 function logout() {
-  clearToken();
-  const path = window.location.pathname;
-  const base = path.includes('/html/')
-    ? path.split('/html/')[0]
-    : path.replace(/\/[^/]*$/, '/');
-  const target = `${window.location.origin}${base.endsWith('/') ? base : base + '/'}index.html`;
-  window.location.replace(target);
+  redirectToLogin();
 }
 
 async function refreshSession() {
@@ -119,7 +113,7 @@ function setupPasswordToggle(inputId, toggleId) {
   toggle.addEventListener('click', () => {
     const isHidden = input.type === 'password';
     input.type = isHidden ? 'text' : 'password';
-    toggle.textContent = isHidden ? '숨김' : '보기';
+    toggle.textContent = isHidden ? '🔒' : '👓';
   });
 }
 

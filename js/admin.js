@@ -7,6 +7,38 @@ const roleLabel = {
   MEMBER: '구성원'
 };
 
+let selectedMember = null;
+
+function setEditForm(member) {
+  selectedMember = member;
+  const idInput = document.getElementById('edit-id');
+  const nameInput = document.getElementById('edit-name');
+  const identInput = document.getElementById('edit-identifier');
+  const roleSelect = document.getElementById('edit-role');
+  const activeSelect = document.getElementById('edit-active');
+  const saveBtn = document.getElementById('edit-save');
+  if (idInput) idInput.value = member.id;
+  if (nameInput) nameInput.value = member.name || '';
+  if (identInput) identInput.value = member.identifier || '';
+  if (roleSelect) roleSelect.value = member.role;
+  if (activeSelect) activeSelect.value = member.active ? 'true' : 'false';
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+function clearEditForm() {
+  selectedMember = null;
+  ['edit-id', 'edit-name', 'edit-identifier'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const roleSelect = document.getElementById('edit-role');
+  const activeSelect = document.getElementById('edit-active');
+  const saveBtn = document.getElementById('edit-save');
+  if (roleSelect) roleSelect.value = 'MEMBER';
+  if (activeSelect) activeSelect.value = 'true';
+  if (saveBtn) saveBtn.disabled = true;
+}
+
 async function loadMembers() {
   const tbody = document.getElementById('member-table-body');
   if (!tbody) return;
@@ -18,9 +50,9 @@ async function loadMembers() {
     const actions = document.createElement('td');
 
     const editBtn = document.createElement('button');
-    editBtn.textContent = '수정';
+    editBtn.textContent = '선택';
     editBtn.className = 'btn tiny';
-    editBtn.onclick = () => editMember(m);
+    editBtn.onclick = () => setEditForm(m);
     actions.appendChild(editBtn);
 
     const delBtn = document.createElement('button');
@@ -30,6 +62,7 @@ async function loadMembers() {
     actions.appendChild(delBtn);
 
     tr.appendChild(actions);
+    tr.addEventListener('click', () => setEditForm(m));
     tbody.appendChild(tr);
   });
 }
@@ -38,24 +71,6 @@ async function deleteMember(member) {
   if (!confirm(`${member.name} 계정을 삭제하시겠습니까?`)) return;
   await apiRequest(`/users/${member.id}`, { method: 'DELETE' });
   await loadMembers();
-}
-
-async function editMember(member) {
-  const name = prompt('이름을 입력하세요', member.name) ?? member.name;
-  const identifier = prompt('개인 ID를 입력하세요', member.identifier || '') ?? member.identifier;
-  const role = prompt('권한을 입력하세요 (MASTER/OPERATOR/MEMBER)', member.role) ?? member.role;
-  const activeInput = prompt('활성 상태를 입력하세요 (true/false)', member.active ? 'true' : 'false');
-  const active = (activeInput ?? (member.active ? 'true' : 'false')).toLowerCase() === 'true';
-  try {
-    await apiRequest(`/users/${member.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, identifier, role, active })
-    });
-    await loadMembers();
-  } catch (e) {
-    alert(e.message);
-  }
 }
 
 async function createMember(event) {
@@ -73,19 +88,34 @@ async function createMember(event) {
   event.target.reset();
 }
 
-function weekdayLabel(num) {
-  return ['월', '화', '수', '목', '금', '토', '일'][num] || num;
-}
-
-async function loadShiftTable() {
-  const tbody = document.getElementById('shift-table-body');
-  if (!tbody) return;
-  const shifts = await apiRequest('/schedule/shifts');
-  tbody.innerHTML = '';
-  shifts.forEach((s) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${s.name}</td><td>${weekdayLabel(s.weekday)}</td><td>${s.start_time} ~ ${s.end_time}</td><td>${s.location || ''}</td>`;
-    tbody.appendChild(tr);
+function initMemberEditor() {
+  const form = document.getElementById('member-edit-form');
+  const cancelBtn = document.getElementById('edit-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => clearEditForm());
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selectedMember) {
+      alert('수정할 구성원을 먼저 선택하세요.');
+      return;
+    }
+    const payload = {
+      name: document.getElementById('edit-name').value,
+      identifier: document.getElementById('edit-identifier').value,
+      role: document.getElementById('edit-role').value,
+      active: document.getElementById('edit-active').value === 'true'
+    };
+    try {
+      await apiRequest(`/users/${selectedMember.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await loadMembers();
+      clearEditForm();
+    } catch (e) {
+      alert(e.message);
+    }
   });
 }
 
@@ -153,21 +183,6 @@ function buildAssignSlotGrid() {
   });
 }
 
-async function createShift(event) {
-  event.preventDefault();
-  const payload = {
-    name: document.getElementById('shift-name').value,
-    weekday: parseInt(document.getElementById('shift-weekday').value, 10),
-    start_time: document.getElementById('shift-start').value,
-    end_time: document.getElementById('shift-end').value,
-    location: document.getElementById('shift-location').value
-  };
-  await apiRequest('/schedule/shifts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  alert('근무가 생성되었습니다');
-  await loadShiftTable();
-  event.target.reset();
-}
-
 async function assignShift(event) {
   event.preventDefault();
   if (!selectedAssignSlots.size) {
@@ -185,4 +200,4 @@ async function assignShift(event) {
   alert('선택한 슬롯이 배정되었습니다');
 }
 
-export { loadMembers, createMember, createShift, assignShift, loadUserOptions, loadShiftTable, buildAssignSlotGrid };
+export { loadMembers, createMember, assignShift, loadUserOptions, buildAssignSlotGrid, initMemberEditor };

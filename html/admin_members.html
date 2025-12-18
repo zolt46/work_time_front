@@ -74,17 +74,52 @@
           </table>
         </div>
       </div>
+      <div class="card">
+        <div class="card-title">선택 구성원 수정</div>
+        <p class="muted">테이블에서 수정할 구성원을 선택하세요. 정보 수정 후 저장하면 바로 적용됩니다.</p>
+        <form id="member-edit-form" class="grid two">
+          <input type="hidden" id="edit-id" />
+          <div class="stack">
+            <label for="edit-name">이름</label>
+            <input id="edit-name" placeholder="이름" required />
+          </div>
+          <div class="stack">
+            <label for="edit-identifier">개인 ID</label>
+            <input id="edit-identifier" placeholder="개인 ID" />
+          </div>
+          <div class="stack">
+            <label for="edit-role">권한</label>
+            <select id="edit-role">
+              <option value="MEMBER">구성원</option>
+              <option value="OPERATOR">운영자</option>
+              <option value="MASTER">관리자(마스터)</option>
+            </select>
+          </div>
+          <div class="stack">
+            <label for="edit-active">상태</label>
+            <select id="edit-active">
+              <option value="true">활성</option>
+              <option value="false">비활성</option>
+            </select>
+          </div>
+          <div class="stack full">
+            <button class="btn" type="submit" id="edit-save" disabled>수정 내용 저장</button>
+            <button class="btn muted" type="button" id="edit-cancel">선택 해제</button>
+          </div>
+        </form>
+      </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadMembers, createMember } from '../js/admin.js';
+    import { loadMembers, createMember, initMemberEditor } from '../js/admin.js';
 
     await initAppLayout('members');
     await loadMembers();
     document.getElementById('member-form').addEventListener('submit', async (e) => {
       await createMember(e);
     });
+    initMemberEditor();
   </script>
 </body>
 </html>
