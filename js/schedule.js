@@ -35,13 +35,14 @@ function normalizeEvents(assignments = []) {
 }
 
 function deriveHourWindow(assignments) {
-  if (!assignments || assignments.length === 0) return { startHour: 8, endHour: 20 };
+  if (!assignments || assignments.length === 0) return { startHour: 9, endHour: 18 };
   const mins = assignments.flatMap((a) => [toMinutes(a.shift.start_time), toMinutes(a.shift.end_time)]);
-  const startHour = Math.max(0, Math.min(...mins) / 60 >> 0);
-  const endHour = Math.min(24, Math.ceil(Math.max(...mins) / 60));
+  const startHour = Math.max(9, Math.floor(Math.min(...mins) / 60));
+  const endHour = Math.min(18, Math.ceil(Math.max(...mins) / 60));
+  if (startHour >= endHour) return { startHour: 9, endHour: 18 };
   return {
-    startHour: Math.min(startHour, 8),
-    endHour: Math.max(endHour, 18)
+    startHour,
+    endHour
   };
 }
 

@@ -1,7 +1,7 @@
 import { apiRequest } from './api.js';
 
 const days = ['월', '화', '수', '목', '금', '토', '일'];
-const hours = Array.from({ length: 15 }, (_, i) => 8 + i); // 08~22시
+const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시(끝)
 
 let shiftCache = null;
 let slotCells = new Map();
@@ -47,6 +47,39 @@ function typeLabel(type) {
   return type === 'ABSENCE' ? '결근' : '추가 근무';
 }
 
+function slotsToRanges(requireShiftId = false) {
+  const grouped = new Map();
+  selectedSlots.forEach((key) => {
+    const [weekday, hour] = key.split('-').map(Number);
+    const shiftId = slotShiftMap.get(key);
+    if (!grouped.has(weekday)) grouped.set(weekday, []);
+    grouped.get(weekday).push({ hour, shiftId });
+  });
+
+  const ranges = [];
+  grouped.forEach((entries, weekday) => {
+    const sorted = entries.sort((a, b) => a.hour - b.hour);
+    let start = sorted[0].hour;
+    let prev = sorted[0].hour;
+    let currentShift = requireShiftId ? sorted[0].shiftId : null;
+    if (requireShiftId && !currentShift) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
+    for (let i = 1; i < sorted.length; i++) {
+      const { hour, shiftId } = sorted[i];
+      if (requireShiftId && !shiftId) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
+      const sameShift = !requireShiftId || shiftId === currentShift;
+      if (hour === prev + 1 && sameShift) {
+        prev = hour;
+        continue;
+      }
+      ranges.push({ weekday, start_hour: start, end_hour: prev + 1, shift_id: currentShift });
+      start = prev = hour;
+      currentShift = requireShiftId ? shiftId : null;
+    }
+    ranges.push({ weekday, start_hour: start, end_hour: prev + 1, shift_id: requireShiftId ? currentShift : null });
+  });
+  return ranges;
+}
+
 function resetSelection() {
   selectedSlots.clear();
   slotCells.forEach((cell) => cell.classList.remove('selected'));
@@ -60,11 +93,9 @@ function updatePreview() {
     preview.textContent = '요일·시간 칸을 눌러 여러 슬롯을 선택하세요.';
     return;
   }
-  const texts = Array.from(selectedSlots).map((key) => {
-    const [w, h] = key.split('-').map(Number);
-    return `${days[w]} ${h}:00-${h + 1}:00`;
-  });
-  preview.textContent = `${texts.length}개 선택됨: ${texts.join(', ')}`;
+  const ranges = slotsToRanges(false);
+  const texts = ranges.map((r) => `${days[r.weekday]} ${String(r.start_hour).padStart(2, '0')}:00~${String(r.end_hour).padStart(2, '0')}:00`);
+  preview.textContent = `${ranges.length}개 구간: ${texts.join(', ')}`;
 }
 
 function applyDayDisable() {
@@ -136,11 +167,11 @@ function createSlotGrid(containerId) {
   applyDayDisable();
 }
 
-async function ensureSlot(weekday, hour) {
+async function ensureSlotRange(weekday, startHour, endHour) {
   const payload = {
     weekday,
-    start_time: `${hour.toString().padStart(2, '0')}:00`,
-    end_time: `${(hour + 1).toString().padStart(2, '0')}:00`
+    start_time: `${startHour.toString().padStart(2, '0')}:00`,
+    end_time: `${endHour.toString().padStart(2, '0')}:00`
   };
   const shift = await apiRequest('/schedule/slots/ensure', {
     method: 'POST',
@@ -183,7 +214,7 @@ async function refreshAssignedSlots() {
       const dayIndex = (new Date(ev.date).getDay() + 6) % 7;
       const startHour = parseInt(ev.start_time.split(':')[0], 10);
       const endHour = parseInt(ev.end_time.split(':')[0], 10);
-      for (let h = startHour; h < endHour; h++) {
+      for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {
         const key = `${dayIndex}-${h}`;
         assignedSlots.add(key);
         slotShiftMap.set(key, ev.shift_id);
@@ -232,21 +263,23 @@ async function submitRequest(event) {
 
   const shiftIds = [];
   try {
-    for (const key of selectedSlots) {
-      const [weekday, hour] = key.split('-').map(Number);
-      if (type === 'ABSENCE') {
-        const sid = slotShiftMap.get(key);
-        if (!sid) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
-        shiftIds.push(sid);
-      } else {
-        const shift = await ensureSlot(weekday, hour);
+    const ranges = slotsToRanges(type === 'ABSENCE');
+    if (type === 'ABSENCE') {
+      ranges.forEach((r) => {
+        if (!r.shift_id) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
+        shiftIds.push(r.shift_id);
+      });
+    } else {
+      for (const r of ranges) {
+        const shift = await ensureSlotRange(r.weekday, r.start_hour, r.end_hour);
         shiftIds.push(shift.id);
       }
     }
+    const uniqueShiftIds = [...new Set(shiftIds)];
     await apiRequest('/requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, target_date, target_shift_ids: shiftIds, reason, user_id })
+      body: JSON.stringify({ type, target_date, target_shift_ids: uniqueShiftIds, reason, user_id })
     });
     alert('요청이 접수되었습니다.');
     resetSelection();

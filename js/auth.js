@@ -110,10 +110,13 @@ function setupPasswordToggle(inputId, toggleId) {
   const input = document.getElementById(inputId);
   const toggle = document.getElementById(toggleId);
   if (!input || !toggle) return;
+  const showIcon = '●';
+  const hideIcon = '○';
+  toggle.textContent = hideIcon;
   toggle.addEventListener('click', () => {
     const isHidden = input.type === 'password';
     input.type = isHidden ? 'text' : 'password';
-    toggle.textContent = isHidden ? '👁' : '🙈';
+    toggle.textContent = isHidden ? showIcon : hideIcon;
   });
 }
 

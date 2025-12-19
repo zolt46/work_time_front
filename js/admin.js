@@ -7,22 +7,19 @@ const roleLabel = {
   MEMBER: '구성원'
 };
 
+const days = ['월', '화', '수', '목', '금', '토', '일'];
+const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~17시(끝은 18시)
+
+let members = [];
 let selectedMember = null;
+let currentUser = null;
 let editorOptions = { allowCredentialEdit: false };
+
 const assignGridCells = new Map();
 let assignedSlots = new Set();
 let selectedAssignSlots = new Set();
-const days = ['월', '화', '수', '목', '금', '토', '일'];
-const hours = Array.from({ length: 15 }, (_, i) => 8 + i);
 
-function weekStart(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
-  const diff = (d.getDay() + 6) % 7;
-  const start = new Date(d);
-  start.setDate(d.getDate() - diff);
-  return start.toISOString().slice(0, 10);
-}
-
+// ---------------------- 공통 유틸 ----------------------
 function setButtonLoading(btn, isLoading, text) {
   if (!btn) return;
   btn.disabled = isLoading;
@@ -30,14 +27,114 @@ function setButtonLoading(btn, isLoading, text) {
   if (text) btn.textContent = text;
 }
 
-function setEditForm(member) {
+function formatDate(dateStr) {
+  if (!dateStr) return '기록 없음';
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? dateStr : date.toLocaleString();
+}
+
+// ---------------------- 구성원 관리 ----------------------
+function applyMemberFilters(list) {
+  const keyword = (document.getElementById('member-search')?.value || '').toLowerCase();
+  const roleFilter = document.getElementById('member-filter-role')?.value || '';
+  const activeFilter = document.getElementById('member-filter-active')?.value || '';
+  return list.filter((m) => {
+    const matchesKeyword =
+      !keyword ||
+      m.name.toLowerCase().includes(keyword) ||
+      (m.identifier || '').toLowerCase().includes(keyword) ||
+      (m.auth_account?.login_id || '').toLowerCase().includes(keyword);
+    const matchesRole = !roleFilter || m.role === roleFilter;
+    const matchesActive =
+      !activeFilter ||
+      (activeFilter === 'active' && m.active) ||
+      (activeFilter === 'inactive' && !m.active);
+    return matchesKeyword && matchesRole && matchesActive;
+  });
+}
+
+function renderMembers() {
+  const tbody = document.getElementById('member-table-body');
+  const count = document.getElementById('member-count');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const filtered = applyMemberFilters(members);
+  filtered.forEach((m) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || '-'}</td><td>${m.auth_account?.login_id || '-'}</td><td>${m.active ? '활성' : '비활성'}</td><td>${formatDate(m.auth_account?.last_login_at)}</td>`;
+    if (selectedMember?.id === m.id) tr.classList.add('selected');
+    tr.addEventListener('click', () => setMemberForm(m));
+    tbody.appendChild(tr);
+  });
+  if (count) count.textContent = `${filtered.length}명 표시 / 전체 ${members.length}명`;
+}
+
+function configureRoleSelect() {
+  const roleSelect = document.getElementById('edit-role');
+  if (!roleSelect || !currentUser) return;
+  const isMaster = currentUser.role === 'MASTER';
+  roleSelect.querySelectorAll('option').forEach((opt) => {
+    const allowed = isMaster || opt.value === 'MEMBER';
+    opt.disabled = !allowed;
+  });
+  roleSelect.disabled = !isMaster;
+}
+
+function updateCredentialInputs() {
+  const loginInput = document.getElementById('edit-login');
+  const pwInput = document.getElementById('edit-password');
+  const hint = document.getElementById('member-hint');
+  const canEditCredential = editorOptions.allowCredentialEdit || !selectedMember;
+  if (loginInput) loginInput.disabled = selectedMember ? !canEditCredential : false;
+  if (pwInput) {
+    pwInput.disabled = selectedMember ? !canEditCredential : false;
+    pwInput.required = !selectedMember; // 신규 생성 시에는 필수
+  }
+  if (hint) {
+    hint.textContent = canEditCredential
+      ? '저장된 비밀번호는 보이지 않습니다. 필요할 때 새 임시 비밀번호로 재설정하세요.'
+      : '로그인 ID/비밀번호 수정은 마스터만 가능합니다. 신규 생성 시에는 입력 가능합니다.';
+  }
+}
+
+function renderMemberDetail(member) {
+  const detail = document.getElementById('member-detail');
+  const modeLabel = document.getElementById('member-form-mode');
+  if (!detail || !modeLabel) return;
+  if (!member) {
+    modeLabel.textContent = '신규 구성원 추가';
+    detail.textContent = '선택된 구성원이 없습니다. 새 입력을 진행하세요.';
+    return;
+  }
+  modeLabel.textContent = `선택됨: ${member.name}`;
+  const lastLogin = formatDate(member.auth_account?.last_login_at);
+  detail.innerHTML = `
+    <strong>${member.name}</strong> · ${roleLabel[member.role] || member.role}<br />
+    개인 ID: ${member.identifier || '-'} · 로그인 ID: ${member.auth_account?.login_id || '-'}<br />
+    상태: ${member.active ? '활성' : '비활성'} · 최근 로그인: ${lastLogin}
+  `;
+}
+
+function resetMemberForm() {
+  selectedMember = null;
+  const form = document.getElementById('member-combined-form');
+  if (!form) return;
+  form.reset();
+  const activeSelect = document.getElementById('edit-active');
+  if (activeSelect) activeSelect.value = 'true';
+  configureRoleSelect();
+  updateCredentialInputs();
+  renderMemberDetail(null);
+  renderMembers();
+}
+
+function setMemberForm(member) {
   selectedMember = member;
   const idInput = document.getElementById('edit-id');
   const nameInput = document.getElementById('edit-name');
   const identInput = document.getElementById('edit-identifier');
   const roleSelect = document.getElementById('edit-role');
   const activeSelect = document.getElementById('edit-active');
-  const saveBtn = document.getElementById('edit-save');
   const loginInput = document.getElementById('edit-login');
   const pwInput = document.getElementById('edit-password');
   if (idInput) idInput.value = member.id;
@@ -47,163 +144,146 @@ function setEditForm(member) {
   if (activeSelect) activeSelect.value = member.active ? 'true' : 'false';
   if (loginInput) loginInput.value = member.auth_account?.login_id || '';
   if (pwInput) pwInput.value = '';
-  if (pwInput) pwInput.disabled = !editorOptions.allowCredentialEdit;
-  if (saveBtn) saveBtn.disabled = false;
-  const detail = document.getElementById('member-detail');
-  if (detail) {
-    const lastLogin = member.auth_account?.last_login_at ? new Date(member.auth_account.last_login_at).toLocaleString() : '기록 없음';
-    detail.innerHTML = `
-      <strong>선택됨:</strong> ${member.name} / ${roleLabel[member.role] || member.role}<br />
-      개인 ID: ${member.identifier || '-'} · 로그인 ID: ${member.auth_account?.login_id || '-'}<br />
-      상태: ${member.active ? '활성' : '비활성'} · 최근 로그인: ${lastLogin}<br />
-      비밀번호는 해시로 저장되어 조회할 수 없습니다. 필요 시 새 임시 비밀번호로 재설정해 전달하세요.
-    `;
-  }
-}
-
-function clearEditForm() {
-  selectedMember = null;
-  ['edit-id', 'edit-name', 'edit-identifier'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  const roleSelect = document.getElementById('edit-role');
-  const activeSelect = document.getElementById('edit-active');
-  const saveBtn = document.getElementById('edit-save');
-  const loginInput = document.getElementById('edit-login');
-  const pwInput = document.getElementById('edit-password');
-  if (roleSelect) roleSelect.value = 'MEMBER';
-  if (activeSelect) activeSelect.value = 'true';
-  if (loginInput) loginInput.value = '';
-  if (pwInput) pwInput.value = '';
-  if (saveBtn) saveBtn.disabled = true;
-  const detail = document.getElementById('member-detail');
-  if (detail) detail.textContent = '테이블에서 구성원을 선택하면 상세 정보가 표시됩니다.';
+  configureRoleSelect();
+  updateCredentialInputs();
+  renderMemberDetail(member);
+  renderMembers();
 }
 
 async function loadMembers() {
-  const tbody = document.getElementById('member-table-body');
-  if (!tbody) return;
-  const members = await apiRequest('/users');
-  tbody.innerHTML = '';
-  members.forEach((m) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || ''}</td><td>${m.auth_account?.login_id || ''}</td><td>${m.active ? '활성' : '비활성'}</td>`;
-    const actions = document.createElement('td');
-
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '선택';
-    editBtn.className = 'btn tiny';
-    editBtn.onclick = () => setEditForm(m);
-    actions.appendChild(editBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '삭제';
-    delBtn.className = 'btn tiny muted';
-    delBtn.onclick = () => deleteMember(m);
-    actions.appendChild(delBtn);
-
-    tr.appendChild(actions);
-    tr.addEventListener('click', () => setEditForm(m));
-    tbody.appendChild(tr);
-  });
-}
-
-async function deleteMember(member) {
-  if (!confirm(`${member.name} 계정을 삭제하시겠습니까?`)) return;
-  await apiRequest(`/users/${member.id}`, { method: 'DELETE' });
-  await loadMembers();
-}
-
-async function createMember(event) {
-  event.preventDefault();
-  const submitBtn = event.target.querySelector('button[type="submit"]');
-  setButtonLoading(submitBtn, true, '생성 중...');
-  const payload = {
-    name: document.getElementById('member-name').value,
-    identifier: document.getElementById('member-identifier').value,
-    login_id: document.getElementById('member-login').value,
-    password: document.getElementById('member-password').value || 'Temp123!@',
-    role: document.getElementById('member-role').value
-  };
-  try {
-    await apiRequest('/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    await loadMembers();
-    await loadUserOptions('assign-user');
-    event.target.reset();
-    alert('구성원이 생성되었습니다. 임시 비밀번호를 전달하세요.');
-  } catch (e) {
-    alert(e.message || '구성원 생성 중 오류가 발생했습니다.');
-  } finally {
-    setButtonLoading(submitBtn, false, '구성원 생성');
+  members = await apiRequest('/users');
+  const selected = selectedMember ? members.find((m) => m.id === selectedMember.id) : null;
+  if (selected) {
+    setMemberForm(selected);
+  } else {
+    renderMembers();
   }
 }
 
-function initMemberEditor(currentUser) {
-  editorOptions.allowCredentialEdit = currentUser?.role === 'MASTER';
-  const form = document.getElementById('member-edit-form');
-  const cancelBtn = document.getElementById('edit-cancel');
-  if (cancelBtn) cancelBtn.addEventListener('click', () => clearEditForm());
-  if (!form) return;
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+async function saveMember(event) {
+  event.preventDefault();
+  const submitBtn = document.getElementById('edit-save');
+  setButtonLoading(submitBtn, true, '저장 중...');
+  const payload = {
+    name: document.getElementById('edit-name').value,
+    identifier: document.getElementById('edit-identifier').value,
+    role: document.getElementById('edit-role').value,
+    active: document.getElementById('edit-active').value === 'true'
+  };
+  const login_id = document.getElementById('edit-login').value;
+  const new_password = document.getElementById('edit-password').value;
+
+  try {
+    let saved;
     if (!selectedMember) {
-      alert('수정할 구성원을 먼저 선택하세요.');
-      return;
-    }
-    const payload = {
-      name: document.getElementById('edit-name').value,
-      identifier: document.getElementById('edit-identifier').value,
-      role: document.getElementById('edit-role').value,
-      active: document.getElementById('edit-active').value === 'true'
-    };
-    const login_id = document.getElementById('edit-login')?.value;
-    const new_password = document.getElementById('edit-password')?.value;
-    try {
-      setButtonLoading(document.getElementById('edit-save'), true, '저장 중...');
-      await apiRequest(`/users/${selectedMember.id}`, {
+      if (!new_password) {
+        throw new Error('신규 구성원 비밀번호를 입력하세요.');
+      }
+      saved = await apiRequest('/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, login_id, password: new_password })
+      });
+      alert('구성원이 생성되었습니다. 임시 비밀번호를 전달하세요.');
+    } else {
+      saved = await apiRequest(`/users/${selectedMember.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (editorOptions.allowCredentialEdit && (login_id || new_password)) {
-        await apiRequest(`/users/${selectedMember.id}/credentials`, {
+        saved = await apiRequest(`/users/${selectedMember.id}/credentials`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ new_login_id: login_id || null, new_password: new_password || null })
+          body: JSON.stringify({
+            new_login_id: login_id || null,
+            new_password: new_password || null
+          })
         });
       }
-      await loadMembers();
-      clearEditForm();
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setButtonLoading(document.getElementById('edit-save'), false, '수정 내용 저장');
+      alert('구성원 정보가 업데이트되었습니다.');
     }
+    await loadMembers();
+    const latest = members.find((m) => m.id === saved.id);
+    if (latest) setMemberForm(latest);
+  } catch (e) {
+    alert(e.message || '처리에 실패했습니다.');
+  } finally {
+    setButtonLoading(submitBtn, false, '저장');
+  }
+}
+
+function bindMemberEvents() {
+  document.getElementById('member-combined-form')?.addEventListener('submit', saveMember);
+  document.getElementById('member-new')?.addEventListener('click', resetMemberForm);
+  document.getElementById('member-refresh')?.addEventListener('click', loadMembers);
+  document.getElementById('edit-cancel')?.addEventListener('click', resetMemberForm);
+  ['member-search', 'member-filter-role', 'member-filter-active'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', renderMembers);
   });
 }
 
-async function loadUserOptions(selectId) {
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  const users = await apiRequest('/users');
-  select.innerHTML = '<option value="">대상 선택</option>';
-  users
-    .filter((u) => u.role === 'MEMBER')
-    .forEach((u) => {
-      const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = `${u.name} (${u.identifier || '개인 ID 없음'})`;
-      select.appendChild(opt);
-    });
+async function initMemberPage(user) {
+  currentUser = user;
+  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
+  configureRoleSelect();
+  updateCredentialInputs();
+  bindMemberEvents();
+  resetMemberForm();
+  await loadMembers();
+}
+
+// ---------------------- 근무 배정 ----------------------
+function slotsToRanges(slotKeys) {
+  const grouped = new Map();
+  slotKeys.forEach((key) => {
+    const [weekday, hour] = key.split('-').map(Number);
+    if (!grouped.has(weekday)) grouped.set(weekday, []);
+    grouped.get(weekday).push(hour);
+  });
+  const ranges = [];
+  grouped.forEach((hoursList, weekday) => {
+    const sorted = hoursList.sort((a, b) => a - b);
+    let start = sorted[0];
+    let prev = sorted[0];
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === prev + 1) {
+        prev = sorted[i];
+        continue;
+      }
+      ranges.push({ weekday, start_hour: start, end_hour: prev + 1 });
+      start = prev = sorted[i];
+    }
+    ranges.push({ weekday, start_hour: start, end_hour: prev + 1 });
+  });
+  return ranges;
+}
+
+function clearAssignSelection() {
+  selectedAssignSlots.clear();
+  assignGridCells.forEach((cell) => cell.classList.remove('selected'));
+  const preview = document.getElementById('assign-slot-preview');
+  if (preview) preview.textContent = '요일·시간 칸을 눌러 근무 시간을 선택하세요.';
+}
+
+function updateAssignPreview() {
+  const preview = document.getElementById('assign-slot-preview');
+  if (!preview) return;
+  if (!selectedAssignSlots.size) {
+    preview.textContent = '요일·시간 칸을 눌러 근무 시간을 선택하세요.';
+    return;
+  }
+  const ranges = slotsToRanges(selectedAssignSlots);
+  const texts = ranges.map((r) => `${days[r.weekday]} ${String(r.start_hour).padStart(2, '0')}:00~${String(r.end_hour).padStart(2, '0')}:00`);
+  preview.textContent = `${ranges.length}개 구간: ${texts.join(', ')}`;
 }
 
 function buildAssignSlotGrid() {
   const grid = document.getElementById('assign-slot-grid');
-  const preview = document.getElementById('assign-slot-preview');
   if (!grid) return;
   grid.innerHTML = '';
   assignGridCells.clear();
+
   const headerBlank = document.createElement('div');
   headerBlank.className = 'slot-header';
   grid.appendChild(headerBlank);
@@ -215,7 +295,7 @@ function buildAssignSlotGrid() {
   });
   hours.forEach((hour) => {
     const label = document.createElement('div');
-    label.className = 'slot-header';
+    label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
     grid.appendChild(label);
     days.forEach((_, weekday) => {
@@ -224,16 +304,13 @@ function buildAssignSlotGrid() {
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
       cell.addEventListener('click', () => {
-        if (assignedSlots.has(key)) {
-          alert('이미 배정된 슬롯입니다. 먼저 기존 배정을 정리하거나 다른 시간대를 선택하세요.');
-          return;
-        }
         if (selectedAssignSlots.has(key)) {
           selectedAssignSlots.delete(key);
-          cell.classList.remove('selected');
+          cell.classList.remove('selected', 'assigned');
         } else {
           selectedAssignSlots.add(key);
           cell.classList.add('selected');
+          if (assignedSlots.has(key)) cell.classList.add('assigned');
         }
         updateAssignPreview();
       });
@@ -244,33 +321,42 @@ function buildAssignSlotGrid() {
   updateAssignPreview();
 }
 
-function clearAssignSelection() {
-  selectedAssignSlots.clear();
-  assignGridCells.forEach((cell) => cell.classList.remove('selected'));
-  const preview = document.getElementById('assign-slot-preview');
-  if (preview) preview.textContent = '요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.';
+async function loadUserOptions(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const users = members.length ? members : await apiRequest('/users');
+  select.innerHTML = '<option value="">대상 선택</option>';
+  users
+    .filter((u) => u.role === 'MEMBER')
+    .forEach((u) => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.name} (${u.identifier || '개인 ID 없음'})`;
+      select.appendChild(opt);
+    });
 }
 
-function updateAssignPreview() {
-  const preview = document.getElementById('assign-slot-preview');
-  if (!preview) return;
-  if (!selectedAssignSlots.size) {
-    preview.textContent = '요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.';
-    return;
-  }
-  const selectedTexts = Array.from(selectedAssignSlots).map((k) => {
-    const [w, h] = k.split('-').map(Number);
-    return `${days[w]} ${h}:00-${h + 1}:00`;
+function applyAssignedState() {
+  assignGridCells.forEach((cell) => cell.classList.remove('assigned', 'selected'));
+  selectedAssignSlots.forEach((key) => {
+    const cell = assignGridCells.get(key);
+    if (cell) {
+      cell.classList.add('assigned');
+      cell.classList.add('selected');
+    }
   });
-  preview.textContent = `${selectedTexts.length}개 슬롯 선택: ${selectedTexts.join(', ')}`;
+  updateAssignPreview();
 }
 
 async function refreshAssignedSlotsForUser() {
-  assignedSlots.clear();
-  assignGridCells.forEach((cell) => cell.classList.remove('assigned'));
-  clearAssignSelection();
+  assignedSlots = new Set();
+  selectedAssignSlots = new Set();
+  applyAssignedState();
   const user_id = document.getElementById('assign-user')?.value;
-  if (!user_id) return;
+  if (!user_id) {
+    clearAssignSelection();
+    return;
+  }
   const from = document.getElementById('assign-from')?.value || new Date().toISOString().slice(0, 10);
   const params = new URLSearchParams({ start: weekStart(from), user_id });
   try {
@@ -279,43 +365,63 @@ async function refreshAssignedSlotsForUser() {
       const weekday = (new Date(ev.date).getDay() + 6) % 7;
       const startHour = parseInt(ev.start_time.split(':')[0], 10);
       const endHour = parseInt(ev.end_time.split(':')[0], 10);
-      for (let h = startHour; h < endHour; h++) {
+      for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {
         const key = `${weekday}-${h}`;
         assignedSlots.add(key);
-        const cell = assignGridCells.get(key);
-        if (cell) cell.classList.add('assigned');
+        selectedAssignSlots.add(key);
       }
     });
+    applyAssignedState();
   } catch (e) {
     console.error('배정 슬롯 불러오기 실패', e);
   }
 }
 
+function weekStart(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const diff = (d.getDay() + 6) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff);
+  return start.toISOString().slice(0, 10);
+}
+
 async function assignShift(event) {
   event.preventDefault();
   if (!selectedAssignSlots.size) {
-    alert('요일·시간 슬롯을 선택하세요.');
+    alert('요일·시간 슬롯을 최소 1개 이상 선택하세요.');
     return;
   }
   const user_id = document.getElementById('assign-user').value;
   const valid_from = document.getElementById('assign-from').value;
   const valid_to = document.getElementById('assign-to').value || null;
+  if (!user_id) {
+    alert('근무를 배정할 구성원을 선택하세요.');
+    return;
+  }
+  if (!valid_from) {
+    alert('적용 시작일을 입력하세요.');
+    return;
+  }
   const submitBtn = event.target.querySelector('button[type="submit"]');
   setButtonLoading(submitBtn, true, '배정 중...');
-  for (const key of selectedAssignSlots) {
-    const [weekday, hour] = key.split('-').map(Number);
-    const payload = { user_id, weekday, start_hour: hour, valid_from, valid_to };
-    try {
-      await apiRequest('/schedule/slots/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    } catch (e) {
-      alert(e.message);
-      break;
-    }
+  const slots = slotsToRanges(selectedAssignSlots).map((r) => ({
+    weekday: r.weekday,
+    start_hour: r.start_hour,
+    end_hour: r.end_hour
+  }));
+  try {
+    await apiRequest('/schedule/slots/bulk_assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, valid_from, valid_to, slots })
+    });
+    alert('선택한 근무 시간이 저장되었습니다.');
+    await refreshAssignedSlotsForUser();
+  } catch (e) {
+    alert(e.message || '근무 배정 중 오류가 발생했습니다.');
+  } finally {
+    setButtonLoading(submitBtn, false, '선택 슬롯 배정');
   }
-  alert('선택한 슬롯이 배정되었습니다');
-  await refreshAssignedSlotsForUser();
-  clearAssignSelection();
-  setButtonLoading(submitBtn, false, '선택 슬롯 배정');
 }
 
-export { loadMembers, createMember, assignShift, loadUserOptions, buildAssignSlotGrid, initMemberEditor, refreshAssignedSlotsForUser };
+export { initMemberPage, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser };
