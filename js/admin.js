@@ -16,12 +16,34 @@ const selectedAssignSlots = new Set();
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
+function parseDateValue(dateStr) {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function formatDateOnly(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function weekStart(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
+  const d = parseDateValue(dateStr);
   const diff = (d.getDay() + 6) % 7;
   const start = new Date(d);
   start.setDate(d.getDate() - diff);
-  return start.toISOString().slice(0, 10);
+  return formatDateOnly(start);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleString();
+  } catch {
+    return dateStr;
+  }
 }
 
 function formatDate(dateStr) {
@@ -173,9 +195,10 @@ async function saveMember(event) {
   event.preventDefault();
   const submitBtn = document.getElementById('edit-save');
   setButtonLoading(submitBtn, true, '저장 중...');
+  const identifierInput = document.getElementById('edit-identifier');
   const payload = {
     name: document.getElementById('edit-name').value,
-    identifier: document.getElementById('edit-identifier').value,
+    identifier: identifierInput?.value,
     role: document.getElementById('edit-role').value,
     active: document.getElementById('edit-active').value === 'true'
   };
@@ -183,6 +206,11 @@ async function saveMember(event) {
   const new_password = document.getElementById('edit-password')?.value;
 
   try {
+    if (!payload.identifier) {
+      const generated = `AUTO-${Math.random().toString(36).slice(2, 7).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+      payload.identifier = generated;
+      if (identifierInput) identifierInput.value = generated;
+    }
     let saved;
     if (!selectedMember) {
       if (!new_password) throw new Error('신규 구성원 비밀번호를 입력하세요.');
@@ -325,12 +353,13 @@ async function refreshAssignedSlotsForUser() {
   clearAssignSelection();
   const user_id = document.getElementById('assign-user')?.value;
   if (!user_id) return;
-  const from = document.getElementById('assign-from')?.value || new Date().toISOString().slice(0, 10);
-  const params = new URLSearchParams({ start: weekStart(from), user_id });
+  const fromInput = document.getElementById('assign-from')?.value || formatDateOnly(new Date());
+  const params = new URLSearchParams({ start: weekStart(fromInput), user_id });
   try {
     const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
     events.forEach((ev) => {
-      const weekday = (new Date(ev.date).getDay() + 6) % 7;
+      const dateObj = parseDateValue(ev.date);
+      const weekday = (dateObj.getDay() + 6) % 7;
       const startHour = parseInt(ev.start_time.split(':')[0], 10);
       const endHour = parseInt(ev.end_time.split(':')[0], 10);
       for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {

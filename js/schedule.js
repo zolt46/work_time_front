@@ -3,24 +3,37 @@ import { apiRequest } from './api.js';
 
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 
+function parseDateValue(dateStr) {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function formatDateOnly(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function toMinutes(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 }
 
 function getWeekStart(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
+  const d = parseDateValue(dateStr);
   const diff = (d.getDay() + 6) % 7;
   const start = new Date(d);
   start.setDate(d.getDate() - diff);
-  return start.toISOString().slice(0, 10);
+  return formatDateOnly(start);
 }
 
 function normalizeEvents(assignments = []) {
   if (!assignments.length) return [];
   if (assignments[0].shift) return assignments;
   return assignments.map((ev) => {
-    const weekday = (new Date(ev.date).getDay() + 6) % 7;
+    const weekday = (parseDateValue(ev.date).getDay() + 6) % 7;
     return {
       shift: {
         weekday,

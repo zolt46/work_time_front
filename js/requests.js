@@ -3,6 +3,19 @@ import { apiRequest } from './api.js';
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
+function parseDateValue(dateStr) {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function formatDateOnly(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 let shiftCache = null;
 let slotCells = new Map();
 let selectedSlots = new Set();
@@ -29,12 +42,12 @@ async function ensureShifts() {
 }
 
 function getWeekStart(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
+  const d = parseDateValue(dateStr);
   const day = d.getDay(); // Sun=0
   const diff = (day + 6) % 7; // Mon=0
   const start = new Date(d);
   start.setDate(d.getDate() - diff);
-  return start.toISOString().slice(0, 10);
+  return formatDateOnly(start);
 }
 
 function shiftLabel(shiftId) {
@@ -100,7 +113,7 @@ function updatePreview() {
 
 function applyDayDisable() {
   const dateStr = document.getElementById('req-date').value;
-  const activeWeekday = dateStr ? (new Date(dateStr).getDay() + 6) % 7 : null;
+  const activeWeekday = dateStr ? (parseDateValue(dateStr).getDay() + 6) % 7 : null;
   slotCells.forEach((cell, key) => {
     const weekday = Number(key.split('-')[0]);
     const disabled = activeWeekday !== null && weekday !== activeWeekday;
@@ -211,7 +224,7 @@ async function refreshAssignedSlots() {
   try {
     const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
     events.forEach((ev) => {
-      const dayIndex = (new Date(ev.date).getDay() + 6) % 7;
+      const dayIndex = (parseDateValue(ev.date).getDay() + 6) % 7;
       const startHour = parseInt(ev.start_time.split(':')[0], 10);
       const endHour = parseInt(ev.end_time.split(':')[0], 10);
       for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {
