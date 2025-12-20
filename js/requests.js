@@ -3,6 +3,29 @@ import { apiRequest } from './api.js';
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientNetworkError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  return err instanceof TypeError || msg.includes('failed to fetch') || msg.includes('network');
+}
+
+async function apiRequestWithRetry(path, options = {}, { retries = 1, delayMs = 500 } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await apiRequest(path, options);
+    } catch (err) {
+      lastError = err;
+      if (!isTransientNetworkError(err) || attempt === retries) throw err;
+      await sleep(delayMs * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 function parseDateValue(dateStr) {
   if (!dateStr) return new Date();
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -186,11 +209,11 @@ async function ensureSlotRange(weekday, startHour, endHour) {
     start_time: `${startHour.toString().padStart(2, '0')}:00`,
     end_time: `${endHour.toString().padStart(2, '0')}:00`
   };
-  const shift = await apiRequest('/schedule/slots/ensure', {
+  const shift = await apiRequestWithRetry('/schedule/slots/ensure', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  });
+  }, { retries: 2, delayMs: 400 });
   if (shiftCache) {
     const exists = shiftCache.find((s) => s.id === shift.id);
     if (!exists) shiftCache.push(shift);
@@ -237,8 +260,10 @@ async function refreshAssignedSlots() {
     });
   } catch (e) {
     console.error('배정 슬롯 불러오기 실패', e);
+    return false;
   }
   applyDayDisable();
+  return true;
 }
 
 async function submitRequest(event) {
@@ -289,15 +314,20 @@ async function submitRequest(event) {
       }
     }
     const uniqueShiftIds = [...new Set(shiftIds)];
-    await apiRequest('/requests', {
+    await apiRequestWithRetry('/requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, target_date, target_shift_ids: uniqueShiftIds, reason, user_id })
-    });
+    }, { retries: 2, delayMs: 600 });
     alert('요청이 접수되었습니다.');
     resetSelection();
-    await loadMyRequests();
-    await refreshAssignedSlots();
+    const [myLoaded, slotsLoaded] = await Promise.all([
+      loadMyRequests(),
+      refreshAssignedSlots()
+    ]);
+    if (!myLoaded || !slotsLoaded) {
+      alert('요청은 접수되었으나 화면 갱신에 실패했습니다. 새로고침 후 다시 확인해주세요.');
+    }
   } catch (e) {
     alert(e.message);
   } finally {
@@ -318,7 +348,18 @@ async function cancelRequest(id) {
 async function loadMyRequests() {
   const list = document.getElementById('my-requests');
   if (!list) return;
-  const data = await apiRequest('/requests/my');
+  let data;
+  try {
+    data = await apiRequestWithRetry('/requests/my');
+  } catch (e) {
+    console.error('내 신청 불러오기 실패', e);
+    list.innerHTML = '';
+    const error = document.createElement('div');
+    error.className = 'error';
+    error.textContent = `신청 내역을 불러오지 못했습니다. 새로고침 후 다시 시도하세요. (${e.message || e})`;
+    list.appendChild(error);
+    return false;
+  }
   await ensureShifts();
   list.innerHTML = '';
   if (!data.length) {
@@ -356,6 +397,7 @@ async function loadMyRequests() {
     }
     list.appendChild(container);
   });
+  return true;
 }
 
 async function loadPendingRequests() {
