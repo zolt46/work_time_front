@@ -1,6 +1,12 @@
 // File: /ui/js/status.js
 import { API_BASE_URL } from './api.js';
 
+function fetchWithTimeout(url, { timeoutMs = 4000, ...options } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 function setStatusState(el, text, state, detail) {
   if (!el) return;
   const textEl = el.querySelector('.status-text');
@@ -15,7 +21,7 @@ export async function checkDbStatus(el) {
   if (!el) return;
   setStatusState(el, 'DB 연결 확인 중...', 'status-pending');
   try {
-    const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+    const resp = await fetchWithTimeout(`${API_BASE_URL}/health`, { cache: 'no-store' });
     if (!resp.ok) throw new Error('health_failed');
     const data = await resp.json();
     const ok = data.db_status === 'ok' || data.db === 'ok';
@@ -28,11 +34,12 @@ export async function checkDbStatus(el) {
 export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
   const started = performance.now();
   const attempt = options.__attempt || 1;
+  const timeoutMs = options.timeoutMs ?? 4000;
   if (serverEl) setStatusState(serverEl, '서버 확인 중', 'status-pending');
   if (dbEl) setStatusState(dbEl, 'DB 확인 중', 'status-pending');
   if (metaEl) metaEl.textContent = '상태 체크 중...';
   try {
-    const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+    const resp = await fetchWithTimeout(`${API_BASE_URL}/health`, { cache: 'no-store', timeoutMs });
     if (!resp.ok) throw new Error(`health_failed_${resp.status}`);
     const data = await resp.json();
     const latency = Math.max(1, Math.round(performance.now() - started));
@@ -49,8 +56,8 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
   } catch (e) {
     const reason = e?.message || '연결 오류';
     const nextAttempt = attempt + 1;
-    const maxRetries = options.maxRetries ?? 4;
-    const retryDelay = options.retryDelay ?? 2500;
+    const maxRetries = options.maxRetries ?? 2;
+    const retryDelay = options.retryDelay ?? 1800;
     const detail = `오류: ${reason}${maxRetries ? ` · ${attempt}/${maxRetries}회 시도` : ''}`;
     setStatusState(serverEl, '서버 오류', 'status-bad', detail);
     setStatusState(dbEl, 'DB 오류', 'status-bad', detail);

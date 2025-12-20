@@ -95,10 +95,11 @@ export async function initAppLayout(activePage) {
       }
     });
   }
-  await checkSystemStatus(
+  checkSystemStatus(
     document.getElementById('server-status'),
     document.getElementById('db-status'),
-    document.getElementById('status-meta')
+    document.getElementById('status-meta'),
+    { timeoutMs: 4000 }
   );
 
   // keep-alive ping to 줄여서 서버 지연 방지
@@ -111,14 +112,15 @@ export async function initAppLayout(activePage) {
 export async function initLoginShell() {
   setupSidebar();
   const loginProgress = document.getElementById('login-progress');
-  await checkSystemStatus(
+  checkSystemStatus(
     document.getElementById('server-status'),
     document.getElementById('db-status'),
     document.getElementById('status-meta'),
     {
       autoRetry: true,
-      maxRetries: 10,
-      retryDelay: 1800,
+      maxRetries: 3,
+      retryDelay: 1200,
+      timeoutMs: 4000,
       onRecover: () => window.location.reload(),
       onRetry: (nextAttempt, maxRetries) => {
         if (loginProgress) {
