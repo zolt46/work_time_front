@@ -60,6 +60,17 @@ async function refreshToken() {
 async function apiRequest(path, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
   let token = getToken();
+  const exp = parseInt(localStorage.getItem('token_exp') || '0', 10);
+  if (token && exp && exp - Date.now() < 5_000) {
+    try {
+      token = await refreshToken();
+    } catch (e) {
+      clearToken();
+      redirectToLogin();
+      return;
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
