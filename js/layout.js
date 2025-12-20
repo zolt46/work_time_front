@@ -118,13 +118,14 @@ export async function initLoginShell() {
     document.getElementById('status-meta'),
     {
       autoRetry: true,
-      maxRetries: 3,
-      retryDelay: 1200,
-      timeoutMs: 4000,
+      maxRetries: Infinity,
+      retryDelay: 900,
+      timeoutMs: 3500,
       onRecover: () => window.location.reload(),
       onRetry: (nextAttempt, maxRetries) => {
         if (loginProgress) {
-          loginProgress.textContent = `서버 준비 중... 자동 재시도 (${nextAttempt}/${maxRetries}회)`;
+          const attemptLabel = Number.isFinite(maxRetries) ? `${nextAttempt}/${maxRetries}회` : `${nextAttempt}회째`;
+          loginProgress.textContent = `서버 준비 중... 자동 재시도 (${attemptLabel})`;
         }
       }
     }
