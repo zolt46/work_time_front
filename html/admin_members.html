@@ -128,10 +128,10 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { initMemberPage } from '../js/admin.js';
+    import { initMemberManagement } from '../js/admin.js';
 
     const currentUser = await initAppLayout('members');
-    await initMemberPage(currentUser);
+    await initMemberManagement(currentUser);
   </script>
 </body>
 </html>

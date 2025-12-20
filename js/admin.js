@@ -238,6 +238,13 @@ async function initMemberPage(user) {
   await loadMembers();
 }
 
+async function initMemberManagement(user) {
+  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
+  bindMemberEvents();
+  clearEditForm();
+  await loadMembers();
+}
+
 async function loadUserOptions(selectId) {
   const select = document.getElementById(selectId);
   if (!select) return;
@@ -424,4 +431,4 @@ function slotsToRanges(slotKeys) {
   return ranges;
 }
 
-export { initMemberPage, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser };
+export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser };
