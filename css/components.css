@@ -206,3 +206,39 @@ table.table tbody tr:hover { background: #f8fafc; }
 .request-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
 .badge.cancelled { background: #e2e8f0; color: #334155; }
 .timetable-pill.pill-extra { background: color-mix(in srgb, #0f766e 14%, #fff); border-color: color-mix(in srgb, #0f766e 40%, #fff); color: #064e3b; }
+
+.flex.wrap { flex-wrap: wrap; align-items: flex-end; }
+
+.member-layout {
+  display: grid;
+  grid-template-columns: minmax(440px, 1.5fr) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .member-layout { grid-template-columns: 1fr; }
+}
+
+.member-card .member-filters { gap: 8px; }
+.member-card .member-filters > * { flex: 1 1 180px; min-width: 160px; }
+.member-card table { font-size: 14px; }
+.member-table-foot { align-items: flex-start; }
+
+.member-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 12px;
+}
+
+.member-form-actions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.member-detail-box {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}

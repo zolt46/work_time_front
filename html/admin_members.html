@@ -49,11 +49,11 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
-      <div class="grid two">
-        <div class="card">
+      <div class="member-layout">
+        <div class="card member-card">
           <div class="card-title">구성원 목록</div>
           <p class="muted small">행을 눌러 선택/해제하세요. 검색·필터를 조합하면 시인성이 좋아집니다.</p>
-          <div class="flex wrap">
+          <div class="flex wrap member-filters">
             <input id="member-search" class="stretch" placeholder="이름, 개인 ID, 로그인 ID 검색" />
             <select id="member-filter-role">
               <option value="">모든 권한</option>
@@ -72,17 +72,17 @@
             <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th><th>최근 로그인</th></tr></thead>
             <tbody id="member-table-body"></tbody>
           </table>
-          <div class="flex between small muted">
+          <div class="flex between small muted member-table-foot">
             <span id="member-count"></span>
-            <button class="btn tiny" type="button" id="member-new">선택 해제</button>
+            <span>행을 클릭하면 선택/해제됩니다.</span>
           </div>
         </div>
-        <div class="card">
+        <div class="card member-form-card">
           <div class="card-title">구성원 생성/수정</div>
           <p class="muted small" id="member-form-mode">신규 생성 후에는 임시 비밀번호를 전달하세요.</p>
           <form id="member-combined-form" class="stack">
             <input type="hidden" id="edit-id" />
-            <div class="grid two gap">
+            <div class="member-form-grid">
               <label class="stack tight">
                 <span>이름</span>
                 <input id="edit-name" placeholder="이름" required />
@@ -116,11 +116,11 @@
               </label>
             </div>
             <div class="small muted" id="member-hint">비밀번호는 표시되지 않습니다. 새 임시 비밀번호를 입력해 공유하세요.</div>
-            <div class="flex">
+            <div class="flex member-form-actions">
               <button class="btn" type="submit" id="edit-save">저장</button>
               <button class="btn muted" type="button" id="edit-cancel">입력 초기화</button>
             </div>
-            <div class="muted small" id="member-detail">선택된 구성원이 없습니다. 새 입력을 진행하세요.</div>
+            <div class="muted small member-detail-box" id="member-detail">선택된 구성원이 없습니다. 새 입력을 진행하세요.</div>
           </form>
         </div>
       </div>

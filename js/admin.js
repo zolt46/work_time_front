@@ -41,6 +41,17 @@ function setButtonLoading(btn, isLoading, text) {
   if (text) btn.textContent = text;
 }
 
+function updateSaveButtonState() {
+  const saveBtn = document.getElementById('edit-save');
+  if (!saveBtn) return;
+  const name = document.getElementById('edit-name')?.value.trim();
+  const login = document.getElementById('edit-login')?.value.trim();
+  const password = document.getElementById('edit-password')?.value.trim();
+  const isEditing = Boolean(selectedMember);
+  const passwordReady = isEditing ? true : Boolean(password);
+  saveBtn.disabled = !(name && login && passwordReady);
+}
+
 function setEditForm(member) {
   if (selectedMember?.id === member.id) {
     clearEditForm();
@@ -78,6 +89,7 @@ function setEditForm(member) {
       비밀번호는 해시로 저장되어 조회할 수 없습니다. 필요 시 새 임시 비밀번호로 재설정해 전달하세요.
     `;
   }
+  updateSaveButtonState();
 }
 
 function clearEditForm() {
@@ -98,7 +110,7 @@ function clearEditForm() {
     pwInput.value = '';
     pwInput.disabled = !editorOptions.allowCredentialEdit;
   }
-  if (saveBtn) saveBtn.disabled = true;
+  updateSaveButtonState();
   const detail = document.getElementById('member-detail');
   const modeLabel = document.getElementById('member-form-mode');
   if (modeLabel) modeLabel.textContent = '신규 구성원을 추가하거나 목록에서 선택해 수정하세요.';
@@ -205,14 +217,17 @@ async function saveMember(event) {
     alert(e.message || '처리에 실패했습니다.');
   } finally {
     setButtonLoading(submitBtn, false, '저장');
+    updateSaveButtonState();
   }
 }
 
 function bindMemberEvents() {
   document.getElementById('member-combined-form')?.addEventListener('submit', saveMember);
-  document.getElementById('member-new')?.addEventListener('click', clearEditForm);
   document.getElementById('edit-cancel')?.addEventListener('click', clearEditForm);
   document.getElementById('member-refresh')?.addEventListener('click', loadMembers);
+  ['edit-name', 'edit-identifier', 'edit-role', 'edit-active', 'edit-login', 'edit-password'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', updateSaveButtonState);
+  });
   ['member-search', 'member-filter-role', 'member-filter-active'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', renderMembers);
   });
