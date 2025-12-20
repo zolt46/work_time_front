@@ -1,27 +1,7 @@
 // File: /ui/js/auth.js
-import { apiRequest, API_BASE_URL, clearToken, redirectToLogin } from './api.js';
+import { apiRequest, API_BASE_URL, clearToken, redirectToLogin, setToken, parseTokenExp } from './api.js';
 
 let countdownInterval;
-
-function setToken(token) {
-  localStorage.setItem('token', token);
-  const exp = parseTokenExp(token);
-  if (exp) localStorage.setItem('token_exp', String(exp));
-}
-
-function parseTokenExp(token) {
-  if (!token) return null;
-  const parts = token.split('.');
-  if (parts.length < 2) return null;
-  try {
-    const base = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(base));
-    if (payload.exp) return payload.exp * 1000;
-  } catch (e) {
-    console.error('Failed to parse token exp', e);
-  }
-  return null;
-}
 
 async function login(event) {
   event.preventDefault();
