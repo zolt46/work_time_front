@@ -1,20 +1,20 @@
 // File: /ui/js/admin.js
 import { apiRequest } from './api.js';
 
-var roleLabel = {
+const roleLabel = {
   MASTER: '마스터',
   OPERATOR: '운영자',
   MEMBER: '구성원'
 };
 
-var members = [];
-var selectedMember = null;
-var editorOptions = { allowCredentialEdit: false };
-var assignGridCells = new Map();
-var assignedSlots = new Set();
-var selectedAssignSlots = new Set();
-var days = ['월', '화', '수', '목', '금', '토', '일'];
-var hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
+let members = [];
+let selectedMember = null;
+const editorOptions = { allowCredentialEdit: false };
+const assignGridCells = new Map();
+const assignedSlots = new Set();
+const selectedAssignSlots = new Set();
+const days = ['월', '화', '수', '목', '금', '토', '일'];
+const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
 function weekStart(dateStr) {
   const d = dateStr ? new Date(dateStr) : new Date();
@@ -22,6 +22,15 @@ function weekStart(dateStr) {
   const start = new Date(d);
   start.setDate(d.getDate() - diff);
   return start.toISOString().slice(0, 10);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleString();
+  } catch {
+    return dateStr;
+  }
 }
 
 // ---------------------- 공통 유틸 ----------------------
@@ -45,14 +54,17 @@ function setEditForm(member) {
   const activeSelect = document.getElementById('edit-active');
   const loginInput = document.getElementById('edit-login');
   const pwInput = document.getElementById('edit-password');
+  const saveBtn = document.getElementById('edit-save');
   if (idInput) idInput.value = member.id;
   if (nameInput) nameInput.value = member.name || '';
   if (identInput) identInput.value = member.identifier || '';
   if (roleSelect) roleSelect.value = member.role;
   if (activeSelect) activeSelect.value = member.active ? 'true' : 'false';
   if (loginInput) loginInput.value = member.auth_account?.login_id || '';
-  if (pwInput) pwInput.value = '';
-  if (pwInput) pwInput.disabled = !editorOptions.allowCredentialEdit;
+  if (pwInput) {
+    pwInput.value = '';
+    pwInput.disabled = !editorOptions.allowCredentialEdit;
+  }
   if (saveBtn) saveBtn.disabled = false;
   const detail = document.getElementById('member-detail');
   const modeLabel = document.getElementById('member-form-mode');
@@ -82,7 +94,10 @@ function clearEditForm() {
   if (roleSelect) roleSelect.value = 'MEMBER';
   if (activeSelect) activeSelect.value = 'true';
   if (loginInput) loginInput.value = '';
-  if (pwInput) pwInput.value = '';
+  if (pwInput) {
+    pwInput.value = '';
+    pwInput.disabled = !editorOptions.allowCredentialEdit;
+  }
   if (saveBtn) saveBtn.disabled = true;
   const detail = document.getElementById('member-detail');
   const modeLabel = document.getElementById('member-form-mode');
@@ -196,46 +211,11 @@ async function saveMember(event) {
 function bindMemberEvents() {
   document.getElementById('member-combined-form')?.addEventListener('submit', saveMember);
   document.getElementById('member-new')?.addEventListener('click', clearEditForm);
+  document.getElementById('edit-cancel')?.addEventListener('click', clearEditForm);
   document.getElementById('member-refresh')?.addEventListener('click', loadMembers);
   ['member-search', 'member-filter-role', 'member-filter-active'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', renderMembers);
   });
-  return ranges;
-}
-
-async function initMemberPage(user) {
-  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
-  bindMemberEvents();
-  clearEditForm();
-  await loadMembers();
-}
-
-async function initMemberPage(user) {
-  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
-  bindMemberEvents();
-  clearEditForm();
-  await loadMembers();
-}
-
-async function initMemberPage(user) {
-  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
-  bindMemberEvents();
-  clearEditForm();
-  await loadMembers();
-}
-
-async function initMemberPage(user) {
-  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
-  bindMemberEvents();
-  clearEditForm();
-  await loadMembers();
-}
-
-async function initMemberPage(user) {
-  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
-  bindMemberEvents();
-  clearEditForm();
-  await loadMembers();
 }
 
 async function initMemberManagement(user) {
@@ -248,7 +228,7 @@ async function initMemberManagement(user) {
 async function loadUserOptions(selectId) {
   const select = document.getElementById(selectId);
   if (!select) return;
-  const users = await apiRequest('/users');
+  const users = members.length ? members : await apiRequest('/users');
   select.innerHTML = '<option value="">대상 선택</option>';
   users
     .filter((u) => u.role === 'MEMBER')
@@ -260,11 +240,19 @@ async function loadUserOptions(selectId) {
     });
 }
 
+function clearAssignSelection() {
+  selectedAssignSlots.clear();
+  assignGridCells.forEach((cell) => cell.classList.remove('selected'));
+  updateAssignPreview();
+}
+
 function buildAssignSlotGrid() {
   const grid = document.getElementById('assign-slot-grid');
   if (!grid) return;
   grid.innerHTML = '';
   assignGridCells.clear();
+  assignedSlots.clear();
+  selectedAssignSlots.clear();
 
   const headerBlank = document.createElement('div');
   headerBlank.className = 'slot-header';
@@ -304,21 +292,6 @@ function buildAssignSlotGrid() {
   updateAssignPreview();
 }
 
-async function loadUserOptions(selectId) {
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  const users = members.length ? members : await apiRequest('/users');
-  select.innerHTML = '<option value="">대상 선택</option>';
-  users
-    .filter((u) => u.role === 'MEMBER')
-    .forEach((u) => {
-      const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = `${u.name} (${u.identifier || '개인 ID 없음'})`;
-      select.appendChild(opt);
-    });
-}
-
 function updateAssignPreview() {
   const preview = document.getElementById('assign-slot-preview');
   if (!preview) return;
@@ -334,8 +307,8 @@ function updateAssignPreview() {
 async function refreshAssignedSlotsForUser() {
   assignedSlots.clear();
   assignGridCells.forEach((cell) => cell.classList.remove('assigned'));
-  const user_id = document.getElementById('assign-user')?.value;
   clearAssignSelection();
+  const user_id = document.getElementById('assign-user')?.value;
   if (!user_id) return;
   const from = document.getElementById('assign-from')?.value || new Date().toISOString().slice(0, 10);
   const params = new URLSearchParams({ start: weekStart(from), user_id });
@@ -359,23 +332,15 @@ async function refreshAssignedSlotsForUser() {
   }
 }
 
-function weekStart(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
-  const diff = (d.getDay() + 6) % 7;
-  const start = new Date(d);
-  start.setDate(d.getDate() - diff);
-  return start.toISOString().slice(0, 10);
-}
-
 async function assignShift(event) {
   event.preventDefault();
   if (!selectedAssignSlots.size) {
     alert('요일·시간 슬롯을 최소 1개 이상 선택하세요.');
     return;
   }
-  const user_id = document.getElementById('assign-user').value;
-  const valid_from = document.getElementById('assign-from').value;
-  const valid_to = document.getElementById('assign-to').value || valid_from;
+  const user_id = document.getElementById('assign-user')?.value;
+  const valid_from = document.getElementById('assign-from')?.value;
+  const valid_to = document.getElementById('assign-to')?.value || valid_from;
   if (!valid_from) {
     alert('적용 시작일을 입력하세요.');
     return;
