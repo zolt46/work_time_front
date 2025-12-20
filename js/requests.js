@@ -1,7 +1,7 @@
 import { apiRequest } from './api.js';
 
 const days = ['월', '화', '수', '목', '금', '토', '일'];
-const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시(끝)
+const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
 let shiftCache = null;
 let slotCells = new Map();

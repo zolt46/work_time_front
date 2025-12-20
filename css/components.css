@@ -48,8 +48,11 @@
 .btn.full { width: 100%; text-align: center; }
 .nav-link { position: relative; }
 .nav-link.active::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
-.table tbody tr.selected { background: #eef2ff; }
-.table tbody tr:hover { background: #f8fafc; }
+.flex.between { justify-content: space-between; align-items: center; }
+.stretch { flex: 1 1 200px; min-width: 180px; }
+.stack.tight { gap: 4px; }
+table.table tbody tr.selected { background: #eef2ff; }
+table.table tbody tr:hover { background: #f8fafc; }
 @keyframes slide { 0% { transform: translateX(-100%);} 100% { transform: translateX(260%);} }
 .compact-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .compact-list li { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }

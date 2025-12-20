@@ -63,6 +63,13 @@ function bindAccountForm() {
       showAccountWarning('새 비밀번호는 8자 이상이어야 합니다.', ['영문/숫자/기호를 섞어 보안을 강화하세요.']);
       return;
     }
+    if (payload.new_password) {
+      const complexityOk = /^(?=.*[0-9])(?=.*[!@#$%^&*()_\-+=\[{\]}|;:'\",.<>/?`~]).{8,}$/.test(payload.new_password);
+      if (!complexityOk) {
+        showAccountWarning('숫자와 기호를 각각 1개 이상 포함해야 합니다.', ['예: Abcd1234! 처럼 조합해 주세요.']);
+        return;
+      }
+    }
     if (payload.new_password && payload.new_password !== confirm) {
       showAccountWarning('비밀번호 확인이 일치하지 않습니다.', ['새 비밀번호와 확인란을 동일하게 입력하세요.']);
       return;
