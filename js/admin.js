@@ -343,7 +343,7 @@ async function refreshAssignedSlotsForUser() {
   assignGridCells.forEach((cell) => cell.classList.remove('assigned'));
   clearAssignSelection();
   const user_id = document.getElementById('assign-user')?.value;
-  if (!user_id) return;
+  if (!user_id) return true;
   const fromInput = document.getElementById('assign-from')?.value || formatDateOnlyLocal(new Date());
   const params = new URLSearchParams({ start: weekStart(fromInput), user_id });
   try {
@@ -364,7 +364,9 @@ async function refreshAssignedSlotsForUser() {
     updateAssignPreview();
   } catch (e) {
     console.error('배정 슬롯 불러오기 실패', e);
+    return false;
   }
+  return true;
 }
 
 async function assignShift(event) {
