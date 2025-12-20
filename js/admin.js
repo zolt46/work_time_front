@@ -37,16 +37,7 @@ function weekStart(dateStr) {
   return formatDateOnly(start);
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    return new Date(dateStr).toLocaleString();
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatDate(dateStr) {
+function formatDateTime(dateStr) {
   if (!dateStr) return '-';
   try {
     return new Date(dateStr).toLocaleString();
@@ -166,7 +157,7 @@ function renderMembers() {
   const filtered = applyMemberFilters(members);
   filtered.forEach((m) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || '-'}</td><td>${m.auth_account?.login_id || '-'}</td><td>${m.active ? '활성' : '비활성'}</td><td>${formatDate(m.auth_account?.last_login_at)}</td>`;
+    tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || '-'}</td><td>${m.auth_account?.login_id || '-'}</td><td>${m.active ? '활성' : '비활성'}</td><td>${formatDateTime(m.auth_account?.last_login_at)}</td>`;
     if (selectedMember?.id === m.id) tr.classList.add('selected');
     tr.addEventListener('click', () => setEditForm(m));
     tbody.appendChild(tr);
