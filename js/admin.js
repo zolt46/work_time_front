@@ -1,22 +1,20 @@
 // File: /ui/js/admin.js
 import { apiRequest } from './api.js';
 
-const roleLabel = {
+var roleLabel = {
   MASTER: '마스터',
   OPERATOR: '운영자',
   MEMBER: '구성원'
 };
 
-let members = [];
-let selectedMember = null;
-let currentUser = null;
-let editorOptions = { allowCredentialEdit: false };
-
-const assignGridCells = new Map();
-let assignedSlots = new Set();
-let selectedAssignSlots = new Set();
-const days = ['월', '화', '수', '목', '금', '토', '일'];
-const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
+var members = [];
+var selectedMember = null;
+var editorOptions = { allowCredentialEdit: false };
+var assignGridCells = new Map();
+var assignedSlots = new Set();
+var selectedAssignSlots = new Set();
+var days = ['월', '화', '수', '목', '금', '토', '일'];
+var hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
 function weekStart(dateStr) {
   const d = dateStr ? new Date(dateStr) : new Date();
@@ -203,6 +201,13 @@ function bindMemberEvents() {
     document.getElementById(id)?.addEventListener('input', renderMembers);
   });
   return ranges;
+}
+
+async function initMemberPage(user) {
+  editorOptions.allowCredentialEdit = user?.role === 'MASTER';
+  bindMemberEvents();
+  clearEditForm();
+  await loadMembers();
 }
 
 async function initMemberPage(user) {

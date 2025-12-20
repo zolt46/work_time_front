@@ -35,6 +35,7 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
   const started = performance.now();
   const attempt = options.__attempt || 1;
   const timeoutMs = options.timeoutMs ?? 4000;
+  const maxRetries = options.autoRetry ? (options.maxRetries ?? Infinity) : (options.maxRetries ?? 0);
   if (serverEl) setStatusState(serverEl, '서버 확인 중', 'status-pending');
   if (dbEl) setStatusState(dbEl, 'DB 확인 중', 'status-pending');
   if (metaEl) metaEl.textContent = '상태 체크 중...';
@@ -56,14 +57,14 @@ export async function checkSystemStatus(serverEl, dbEl, metaEl, options = {}) {
   } catch (e) {
     const reason = e?.message || '연결 오류';
     const nextAttempt = attempt + 1;
-    const maxRetries = options.maxRetries ?? 2;
     const retryDelay = options.retryDelay ?? 1800;
-    const detail = `오류: ${reason}${maxRetries ? ` · ${attempt}/${maxRetries}회 시도` : ''}`;
+    const detail = `오류: ${reason}${Number.isFinite(maxRetries) ? ` · ${attempt}/${maxRetries}회 시도` : ''}`;
     setStatusState(serverEl, '서버 오류', 'status-bad', detail);
     setStatusState(dbEl, 'DB 오류', 'status-bad', detail);
     if (metaEl) metaEl.textContent = detail;
     if (options.onRetry) options.onRetry(nextAttempt, maxRetries, detail);
-    if (options.autoRetry && (!maxRetries || nextAttempt <= maxRetries)) {
+    const shouldRetry = options.autoRetry && (nextAttempt <= maxRetries || !Number.isFinite(maxRetries));
+    if (shouldRetry) {
       setTimeout(() => {
         checkSystemStatus(serverEl, dbEl, metaEl, { ...options, __attempt: nextAttempt });
       }, retryDelay);
