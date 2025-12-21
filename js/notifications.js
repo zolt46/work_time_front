@@ -1,5 +1,12 @@
 import { apiRequest } from './api.js';
 
+const bellSvg = `
+<svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none">
+  <path d="M12 3a6 6 0 0 0-6 6v4.38l-.92 2.3A1 1 0 0 0 6.02 17h11.96a1 1 0 0 0 .94-1.32l-.92-2.3V9a6 6 0 0 0-6-6Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.06"/>
+  <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
+`;
+
 function buildItem(text, status) {
   const li = document.createElement('li');
   li.className = `notif-item ${status ? status.toLowerCase() : ''}`;
@@ -11,24 +18,16 @@ async function fetchNotifications(user) {
   if (!user) return [];
   if (user.role === 'MEMBER') {
     const mine = await apiRequest('/requests/my');
-    return mine.slice(0, 10).map((r) => {
-      const status = r.status;
-      return {
-        status,
-        text: `${r.target_date} ${r.type === 'ABSENCE' ? '결근' : '추가'} / ${status}`
-      };
-    });
+    return mine.slice(0, 10).map((r) => ({
+      status: r.status,
+      text: `${r.target_date} ${r.type === 'ABSENCE' ? '결근' : '추가'} / ${r.status}`
+    }));
   }
-  // operator/master
   const feed = await apiRequest('/requests/feed');
-  return feed.slice(0, 12).map((r) => {
-    const status = r.status;
-    const label = status === 'CANCELLED' && r.cancelled_after_approval ? '승인 후 취소' : status;
-    return {
-      status,
-      text: `${r.target_date} ${r.type === 'ABSENCE' ? '결근' : '추가'} · ${label}`
-    };
-  });
+  return feed.slice(0, 12).map((r) => ({
+    status: r.status,
+    text: `${r.target_date} ${r.type === 'ABSENCE' ? '결근' : '추가'} · ${r.status}`
+  }));
 }
 
 export async function initNotifications(user) {
@@ -41,7 +40,7 @@ export async function initNotifications(user) {
     btn.id = 'notif-btn';
     btn.className = 'icon-btn bell';
     btn.title = '알림 보기';
-    btn.innerHTML = '🔔<span id="notif-badge" class="notif-badge" style="display:none;"></span>';
+    btn.innerHTML = `${bellSvg}<span id="notif-badge" class="notif-badge" style="display:none;"></span>`;
     container.insertBefore(btn, container.firstChild);
   }
   if (!panel) {

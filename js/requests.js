@@ -79,7 +79,7 @@ function shiftLabel(shiftId) {
   return shift ? `${days[shift.weekday]} ${shift.start_time}~${shift.end_time}` : shiftId;
 }
 
-function requestTimeLabel(req) {
+function formatRequestTime(req) {
   if (req.target_start_time && req.target_end_time) {
     const start = req.target_start_time.slice(0, 5);
     const end = req.target_end_time.slice(0, 5);
@@ -444,9 +444,10 @@ async function loadPendingRequests() {
     const requester = userMap[r.user_id];
     const timeLabel = requestTimeLabel(r);
     const tr = document.createElement('tr');
-    const timeLabel = requestTimeLabel(r);
-    const shiftText = `${shiftLabel(r.target_shift_id)}${timeLabel ? ` (${timeLabel})` : ''}`;
-    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusLabel[r.status] || r.status}</td>`;
+    const timeText = formatRequestTime(r);
+    const shiftText = `${shiftLabel(r.target_shift_id)}${timeText ? ` (${timeText})` : ''}`;
+    const statusText = r.status === 'REJECTED' ? '거절/취소' : (statusLabel[r.status] || r.status);
+    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusText}</td>`;
     const tdAction = document.createElement('td');
     if (r.status === 'CANCELLED') {
       tdAction.textContent = '승인된 후 취소됨';

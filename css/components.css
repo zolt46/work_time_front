@@ -261,7 +261,8 @@ table.table tbody tr:hover { background: #f8fafc; }
 .notif-item.pending { border-color: #2563eb3d; }
 .notif-item.approved { border-color: #0ea5e93d; }
 .notif-item.rejected, .notif-item.cancelled { border-color: #ef44443d; }
-.icon-btn.bell { position: relative; }
+.icon-btn.bell { position: relative; padding: 8px; color: #0f172a; }
+.icon-btn.bell svg { display: block; }
 .notif-badge {
   position: absolute;
   top: -6px;
