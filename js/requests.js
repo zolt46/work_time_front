@@ -493,6 +493,26 @@ async function act(id, action) {
   await loadRequestFeed();
 }
 
+async function loadRequestFeed() {
+  const tbody = document.getElementById('request-feed-body');
+  if (!tbody) return;
+  const [feed, users] = await Promise.all([
+    apiRequest('/requests/feed'),
+    apiRequest('/users')
+  ]);
+  await ensureShifts();
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+  tbody.innerHTML = '';
+  feed.forEach((r) => {
+    const requester = userMap[r.user_id];
+    const shiftText = `${shiftLabel(r.target_shift_id)}${requestTimeLabel(r) ? ` (${requestTimeLabel(r)})` : ''}`;
+    const statusText = statusLabel[r.status] || r.status;
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${r.reason || ''}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
 async function loadRequestUsers(current) {
   const wrapper = document.getElementById('req-user-wrapper');
   const select = document.getElementById('req-user');
@@ -547,4 +567,4 @@ async function initRequestPage(current) {
   if (form) form.addEventListener('submit', submitRequest);
 }
 
-export { submitRequest, loadMyRequests, loadPendingRequests, initRequestPage, setShiftCache, requestTimeLabel };
+export { submitRequest, loadMyRequests, loadPendingRequests, loadRequestFeed, initRequestPage, setShiftCache, requestTimeLabel };
