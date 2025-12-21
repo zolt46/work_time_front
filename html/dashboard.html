@@ -70,7 +70,7 @@
     import { initAppLayout } from '../js/layout.js';
     import { loadGlobalSchedule, renderCompactSchedule } from '../js/schedule.js';
 
-    await initAppLayout('dashboard');
+    const user = await initAppLayout('dashboard');
 
     try {
       const mine = await apiRequest('/schedule/me');
@@ -80,12 +80,19 @@
     }
 
     try {
-    const pending = await apiRequest('/requests/pending');
-    const actionable = pending.filter((p) => p.status === 'PENDING');
-    document.getElementById('pending-count').textContent = `${actionable.length}건 승인 대기`;
-  } catch {
-    document.getElementById('pending-count').textContent = '확인 불가';
-  }
+      if (user?.role === 'MEMBER') {
+        const myRequests = await apiRequest('/requests/my');
+        const pendingCount = myRequests.filter((r) => r.status === 'PENDING').length;
+        document.getElementById('pending-count').textContent = pendingCount
+          ? `${pendingCount}건 심사 대기`
+          : '대기 중인 신청 없음';
+      } else {
+        const pending = await apiRequest('/requests/pending');
+        document.getElementById('pending-count').textContent = `${pending.length}건 승인 대기`;
+      }
+    } catch {
+      document.getElementById('pending-count').textContent = '확인 불가';
+    }
 
     let assignments = [];
     try {

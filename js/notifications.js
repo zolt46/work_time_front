@@ -60,6 +60,15 @@ export async function initNotifications(user) {
 
   const listEl = panel.querySelector('#notif-list');
   const badgeEl = document.getElementById('notif-badge');
+  const lastSeenKey = 'notif_last_seen';
+
+  function computeUnread(items) {
+    const lastSeen = parseInt(localStorage.getItem(lastSeenKey) || '0', 10);
+    return items.filter((i) => {
+      const created = i.created_at ? Date.parse(i.created_at) : 0;
+      return i.status === 'PENDING' && created > lastSeen;
+    }).length;
+  }
 
   async function refresh() {
     if (!listEl) return;
@@ -72,14 +81,10 @@ export async function initNotifications(user) {
       } else {
         items.forEach((it) => listEl.appendChild(buildItem(humanize(it), it.status)));
       }
-      const pendingCount = items.filter((i) => i.status === 'PENDING').length;
+      const unread = computeUnread(items);
       if (badgeEl) {
-        badgeEl.textContent = pendingCount;
-        badgeEl.style.display = pendingCount ? 'inline-block' : 'none';
-      }
-      // 알림을 본 것으로 처리: 패널이 열려 있을 때는 배지를 비운다
-      if (panel.classList.contains('show') && badgeEl) {
-        badgeEl.style.display = 'none';
+        badgeEl.textContent = unread;
+        badgeEl.style.display = unread ? 'inline-block' : 'none';
       }
     } catch (e) {
       listEl.innerHTML = `<li class="error">알림을 불러오지 못했습니다: ${e.message || e}</li>`;
@@ -98,15 +103,9 @@ export async function initNotifications(user) {
     panel.classList.toggle('show', willShow);
     if (willShow) {
       refresh().then(() => {
+        localStorage.setItem(lastSeenKey, Date.now().toString());
         if (badgeEl) badgeEl.style.display = 'none';
       });
-    }
-  });
-  panel.addEventListener('click', () => {
-    panel.classList.remove('show');
-    if (badgeEl) badgeEl.style.display = 'none';
-    if (listEl && !listEl.querySelector('.muted') && !listEl.querySelector('.error')) {
-      listEl.innerHTML = '<li class="muted">새 알림이 없습니다</li>';
     }
   });
   document.addEventListener('click', (e) => {

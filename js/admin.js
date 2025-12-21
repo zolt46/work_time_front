@@ -400,6 +400,10 @@ async function assignShift(event) {
       body: JSON.stringify({ user_id, valid_from, valid_to, slots })
     });
     alert('선택한 근무 시간이 저장되었습니다.');
+    const refreshed = await refreshAssignedSlotsForUser();
+    if (refreshed === false) {
+      window.location.reload();
+    }
   } catch (e) {
     alert(e.message || '근무 배정 중 오류가 발생했습니다.');
   } finally {
