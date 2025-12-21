@@ -49,23 +49,35 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
-      <div class="card">
-        <div class="card-title">대기 중인 근무 변경 요청</div>
-        <table class="table" id="pending-requests">
-          <thead>
-            <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
-          </thead>
-          <tbody id="pending-requests-body"></tbody>
-        </table>
+      <div class="grid two">
+        <div class="card">
+          <div class="card-title">대기 중인 근무 변경 요청</div>
+          <table class="table" id="pending-requests">
+            <thead>
+              <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
+            </thead>
+            <tbody id="pending-requests-body"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">최근 요청 흐름</div>
+          <table class="table">
+            <thead>
+              <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>상태</th><th>사유</th></tr>
+            </thead>
+            <tbody id="request-feed-body"></tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadPendingRequests } from '../js/requests.js';
+    import { loadPendingRequests, loadRequestFeed } from '../js/requests.js';
 
     await initAppLayout('approvals');
     await loadPendingRequests();
+    await loadRequestFeed();
   </script>
 </body>
 </html>

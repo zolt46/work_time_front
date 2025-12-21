@@ -80,11 +80,12 @@
     }
 
     try {
-      const pending = await apiRequest('/requests/pending');
-      document.getElementById('pending-count').textContent = `${pending.length}건 승인 대기`;
-    } catch {
-      document.getElementById('pending-count').textContent = '확인 불가';
-    }
+    const pending = await apiRequest('/requests/pending');
+    const actionable = pending.filter((p) => p.status === 'PENDING');
+    document.getElementById('pending-count').textContent = `${actionable.length}건 승인 대기`;
+  } catch {
+    document.getElementById('pending-count').textContent = '확인 불가';
+  }
 
     let assignments = [];
     try {

@@ -2,6 +2,7 @@
 import { loadUser, logout, startSessionCountdown, refreshSession } from './auth.js';
 import { checkSystemStatus } from './status.js';
 import { API_BASE_URL } from './api.js';
+import { initNotifications } from './notifications.js';
 
 function setupSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -101,6 +102,8 @@ export async function initAppLayout(activePage) {
     document.getElementById('status-meta'),
     { timeoutMs: 4000 }
   );
+
+  await initNotifications(user);
 
   // keep-alive ping to 줄여서 서버 지연 방지
   setInterval(() => {

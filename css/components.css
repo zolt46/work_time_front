@@ -88,10 +88,9 @@ table.table tbody tr:hover { background: #f8fafc; }
 }
 .timetable-times {
   display: grid;
-  grid-template-rows: repeat(var(--hour-rows, 12), var(--hour-height, 44px));
+  grid-template-rows: repeat(var(--hour-rows, 12), minmax(var(--hour-height, 44px), auto));
   background: #f8fafc;
   border-right: 1px solid var(--border);
-  height: calc(var(--hour-rows, 12) * var(--hour-height, 44px));
 }
 .timetable-times .time-label {
   padding: 6px 10px;
@@ -101,16 +100,9 @@ table.table tbody tr:hover { background: #f8fafc; }
 }
 .timetable-column {
   display: grid;
-  grid-template-rows: repeat(var(--hour-rows, 12), var(--hour-height, 44px));
+  grid-template-rows: repeat(var(--hour-rows, 12), minmax(var(--hour-height, 44px), auto));
   border-left: 1px solid var(--border);
-  height: calc(var(--hour-rows, 12) * var(--hour-height, 44px));
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--hour-height, 44px) - 1px),
-    #f8fafc calc(var(--hour-height, 44px) - 1px),
-    #f8fafc var(--hour-height, 44px)
-  );
+  background: #fff;
 }
 .timetable-cell {
   border-bottom: 1px solid var(--border);
@@ -241,4 +233,43 @@ table.table tbody tr:hover { background: #f8fafc; }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
+}
+
+.notif-panel {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  width: 280px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  padding: 10px;
+  display: none;
+  z-index: 50;
+}
+.notif-panel.show { display: block; }
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.notif-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.notif-item { font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+.notif-item.pending { border-color: #2563eb3d; }
+.notif-item.approved { border-color: #0ea5e93d; }
+.notif-item.rejected, .notif-item.cancelled { border-color: #ef44443d; }
+.icon-btn.bell { position: relative; }
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 1;
 }
