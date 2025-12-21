@@ -377,9 +377,14 @@ async function assignShift(event) {
   }
   const user_id = document.getElementById('assign-user')?.value;
   const valid_from = document.getElementById('assign-from')?.value;
-  const valid_to = document.getElementById('assign-to')?.value || valid_from;
+  const valid_to_raw = document.getElementById('assign-to')?.value || '';
+  const valid_to = valid_to_raw || null;
   if (!valid_from) {
     alert('적용 시작일을 입력하세요.');
+    return;
+  }
+  if (valid_to && valid_to < valid_from) {
+    alert('종료일은 시작일 이후여야 합니다.');
     return;
   }
   if (!user_id) {
@@ -394,10 +399,12 @@ async function assignShift(event) {
       start_hour: slot.start_hour,
       end_hour: slot.end_hour
     }));
+    const payload = { user_id, valid_from, slots };
+    if (valid_to) payload.valid_to = valid_to;
     await apiRequest('/schedule/slots/bulk_assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id, valid_from, valid_to, slots })
+      body: JSON.stringify(payload)
     });
     alert('선택한 근무 시간이 저장되었습니다.');
     const refreshed = await refreshAssignedSlotsForUser();

@@ -88,6 +88,22 @@ function formatRequestTime(req) {
   return '';
 }
 
+function requestTimeLabel(req) {
+  const explicit = formatRequestTime(req);
+  if (explicit) return explicit;
+  if (shiftCache) {
+    const shift = shiftCache.find((s) => s.id === req.target_shift_id);
+    if (shift?.start_time && shift?.end_time) {
+      return `${shift.start_time.slice(0, 5)}~${shift.end_time.slice(0, 5)}`;
+    }
+  }
+  return '';
+}
+
+if (typeof window !== 'undefined') {
+  window.requestTimeLabel = requestTimeLabel;
+}
+
 function typeLabel(type) {
   return type === 'ABSENCE' ? '결근' : '추가 근무';
 }
@@ -403,7 +419,7 @@ async function loadMyRequests() {
     badge.textContent = statusLabel[r.status] || r.status;
     const header = document.createElement('div');
     header.className = 'request-header';
-    const timeText = formatRequestTime(r);
+    const timeText = requestTimeLabel(r);
     const shiftText = shiftLabel(r.target_shift_id);
     header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftText}${timeText ? ` (${timeText})` : ''}`;
     header.appendChild(badge);
@@ -446,7 +462,7 @@ async function loadPendingRequests() {
     const requester = userMap[r.user_id];
     const timeLabel = requestTimeLabel(r);
     const tr = document.createElement('tr');
-    const timeText = formatRequestTime(r);
+    const timeText = requestTimeLabel(r);
     const shiftText = `${shiftLabel(r.target_shift_id)}${timeText ? ` (${timeText})` : ''}`;
     const statusText = r.status === 'REJECTED' ? '거절/취소' : (statusLabel[r.status] || r.status);
     tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusText}</td>`;
@@ -531,26 +547,4 @@ async function initRequestPage(current) {
   if (form) form.addEventListener('submit', submitRequest);
 }
 
-async function loadRequestFeed() {
-  const tbody = document.getElementById('request-feed-body');
-  if (!tbody) return;
-  const [data, users] = await Promise.all([
-    apiRequest('/requests/feed'),
-    apiRequest('/users')
-  ]);
-  await ensureShifts();
-  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
-  tbody.innerHTML = '';
-  data.forEach((r) => {
-    const requester = userMap[r.user_id];
-    const timeLabel = requestTimeLabel(r);
-    const shiftText = `${shiftLabel(r.target_shift_id)}${timeLabel ? ` (${timeLabel})` : ''}`;
-    const statusText = statusLabel[r.status] || r.status;
-    const statusExtra = r.cancelled_after_approval ? ' (승인 후 취소됨)' : r.status === 'REJECTED' ? ' (거절)' : '';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}${statusExtra}</td><td>${r.reason || ''}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-export { submitRequest, loadMyRequests, loadPendingRequests, loadRequestFeed, initRequestPage, setShiftCache };
+export { submitRequest, loadMyRequests, loadPendingRequests, initRequestPage, setShiftCache, requestTimeLabel };

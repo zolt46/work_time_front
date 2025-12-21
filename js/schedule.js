@@ -144,6 +144,32 @@ function placeAssignments(dayCols, hours, assignments) {
   });
 }
 
+function syncRowHeights(hours, timesEl, dayCols, minHeight = 44) {
+  if (!timesEl || !dayCols?.length || !hours?.length) return;
+  const rowCount = hours.length;
+  const heights = Array(rowCount).fill(minHeight);
+
+  const collect = (container) => {
+    const cells = Array.from(container.children).slice(0, rowCount);
+    cells.forEach((cell, idx) => {
+      const cellHeight = Math.ceil(cell.scrollHeight || cell.offsetHeight || minHeight);
+      heights[idx] = Math.max(heights[idx], cellHeight);
+    });
+  };
+
+  collect(timesEl);
+  dayCols.forEach((col) => collect(col));
+
+  const rowTemplate = heights.map((h) => `${Math.max(minHeight, h)}px`).join(' ');
+  const totalHeight = heights.reduce((a, b) => a + b, 0);
+  timesEl.style.gridTemplateRows = rowTemplate;
+  timesEl.style.height = `${totalHeight}px`;
+  dayCols.forEach((col) => {
+    col.style.gridTemplateRows = rowTemplate;
+    col.style.height = `${totalHeight}px`;
+  });
+}
+
 function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   const container = document.getElementById(targetId);
   if (!container) return;
@@ -170,6 +196,7 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
 
   const { times, dayCols } = createTimelineColumns(hours);
   placeAssignments(dayCols, hours, normalized);
+  syncRowHeights(hours, times, dayCols, hourHeight);
 
   body.appendChild(times);
   dayCols.forEach((col) => body.appendChild(col));
