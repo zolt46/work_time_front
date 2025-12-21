@@ -85,7 +85,7 @@ function formatRequestTime(req) {
     const end = req.target_end_time.slice(0, 5);
     return `${start}~${end}`;
   }
-  return null;
+  return '';
 }
 
 function typeLabel(type) {
@@ -403,16 +403,18 @@ async function loadMyRequests() {
     badge.textContent = statusLabel[r.status] || r.status;
     const header = document.createElement('div');
     header.className = 'request-header';
-    const timeLabel = requestTimeLabel(r);
+    const timeText = formatRequestTime(r);
     const shiftText = shiftLabel(r.target_shift_id);
-    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftText}${timeLabel ? ' (' + timeLabel + ')' : ''}`;
+    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftText}${timeText ? ` (${timeText})` : ''}`;
     header.appendChild(badge);
 
     const reason = document.createElement('div');
     reason.className = 'small muted';
-    const cancelNote = r.cancelled_after_approval ? ' (승인 후 취소됨)' : '';
-    const rejectNote = r.status === 'REJECTED' ? ' (거절됨)' : '';
-    reason.textContent = `사유: ${r.reason || '-'}${cancelNote || rejectNote}`;
+    const notes = [];
+    if (r.status === 'REJECTED') notes.push('거절됨');
+    if (r.cancelled_after_approval) notes.push('승인 후 취소됨');
+    const noteText = notes.length ? ` (${notes.join(', ')})` : '';
+    reason.textContent = `사유: ${r.reason || '-'}${noteText}`;
     container.appendChild(header);
     container.appendChild(reason);
 

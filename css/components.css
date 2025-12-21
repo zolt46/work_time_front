@@ -235,16 +235,17 @@ table.table tbody tr:hover { background: #f8fafc; }
   padding: 10px 12px;
 }
 
+.header-right { position: relative; }
 .notif-panel {
   position: absolute;
-  top: 56px;
-  right: 12px;
-  width: 280px;
+  top: 60px;
+  right: 0;
+  min-width: 320px;
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-  padding: 10px;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  padding: 12px;
   display: none;
   z-index: 50;
 }
@@ -253,15 +254,15 @@ table.table tbody tr:hover { background: #f8fafc; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-weight: 700;
 }
-.notif-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.notif-item { font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+.notif-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; }
+.notif-item { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
 .notif-item.pending { border-color: #2563eb3d; }
 .notif-item.approved { border-color: #0ea5e93d; }
 .notif-item.rejected, .notif-item.cancelled { border-color: #ef44443d; }
-.icon-btn.bell { position: relative; padding: 8px; color: #0f172a; }
+.icon-btn.bell { position: relative; padding: 8px; color: #0f172a; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
 .icon-btn.bell svg { display: block; }
 .notif-badge {
   position: absolute;
