@@ -79,6 +79,15 @@ function shiftLabel(shiftId) {
   return shift ? `${days[shift.weekday]} ${shift.start_time}~${shift.end_time}` : shiftId;
 }
 
+function requestTimeLabel(req) {
+  if (req.target_start_time && req.target_end_time) {
+    const start = req.target_start_time.slice(0, 5);
+    const end = req.target_end_time.slice(0, 5);
+    return `${start}~${end}`;
+  }
+  return null;
+}
+
 function typeLabel(type) {
   return type === 'ABSENCE' ? '결근' : '추가 근무';
 }
@@ -302,22 +311,29 @@ async function submitRequest(event) {
   const shiftIds = [];
   try {
     const ranges = slotsToRanges(type === 'ABSENCE');
+    const targetRanges = [];
     if (type === 'ABSENCE') {
       ranges.forEach((r) => {
         if (!r.shift_id) throw new Error('배정되지 않은 시간은 결근으로 신청할 수 없습니다.');
         shiftIds.push(r.shift_id);
+        targetRanges.push({ shift_id: r.shift_id, start_hour: r.start_hour, end_hour: r.end_hour });
       });
     } else {
       for (const r of ranges) {
         const shift = await ensureSlotRange(r.weekday, r.start_hour, r.end_hour);
         shiftIds.push(shift.id);
+        targetRanges.push({
+          shift_id: shift.id,
+          start_hour: parseInt(shift.start_time.split(':')[0], 10),
+          end_hour: parseInt(shift.end_time.split(':')[0], 10)
+        });
       }
     }
     const uniqueShiftIds = [...new Set(shiftIds)];
     await apiRequestWithRetry('/requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, target_date, target_shift_ids: uniqueShiftIds, reason, user_id })
+      body: JSON.stringify({ type, target_date, target_shift_ids: uniqueShiftIds, target_ranges: targetRanges, reason, user_id })
     }, { retries: 2, delayMs: 600 });
     alert('요청이 접수되었습니다.');
     resetSelection();
@@ -387,12 +403,15 @@ async function loadMyRequests() {
     badge.textContent = statusLabel[r.status] || r.status;
     const header = document.createElement('div');
     header.className = 'request-header';
-    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftLabel(r.target_shift_id)}`;
+    const timeLabel = requestTimeLabel(r);
+    const shiftText = shiftLabel(r.target_shift_id);
+    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftText}${timeLabel ? ' (' + timeLabel + ')' : ''}`;
     header.appendChild(badge);
 
     const reason = document.createElement('div');
     reason.className = 'small muted';
-    reason.textContent = `사유: ${r.reason || '-'}`;
+    const notice = r.cancelled_after_approval ? ' (승인 후 취소됨)' : '';
+    reason.textContent = `사유: ${r.reason || '-'}${notice}`;
     container.appendChild(header);
     container.appendChild(reason);
 
@@ -422,19 +441,26 @@ async function loadPendingRequests() {
   tbody.innerHTML = '';
   data.forEach((r) => {
     const requester = userMap[r.user_id];
+    const timeLabel = requestTimeLabel(r);
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftLabel(r.target_shift_id)}</td><td>${r.reason || ''}</td><td>${statusLabel[r.status] || r.status}</td>`;
+    const shiftText = `${shiftLabel(r.target_shift_id)}${timeLabel ? ` (${timeLabel})` : ''}`;
+    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusLabel[r.status] || r.status}</td>`;
     const tdAction = document.createElement('td');
-    const approve = document.createElement('button');
-    approve.textContent = '승인';
-    approve.className = 'btn secondary tiny';
-    approve.onclick = () => act(r.id, 'approve');
-    const reject = document.createElement('button');
-    reject.textContent = '거절';
-    reject.className = 'btn muted tiny';
-    reject.onclick = () => act(r.id, 'reject');
-    tdAction.appendChild(approve);
-    tdAction.appendChild(reject);
+    if (r.status === 'CANCELLED') {
+      tdAction.textContent = '승인된 후 취소됨';
+      tdAction.className = 'muted small';
+    } else {
+      const approve = document.createElement('button');
+      approve.textContent = '승인';
+      approve.className = 'btn secondary tiny';
+      approve.onclick = () => act(r.id, 'approve');
+      const reject = document.createElement('button');
+      reject.textContent = '거절';
+      reject.className = 'btn muted tiny';
+      reject.onclick = () => act(r.id, 'reject');
+      tdAction.appendChild(approve);
+      tdAction.appendChild(reject);
+    }
     tr.appendChild(tdAction);
     tbody.appendChild(tr);
   });
