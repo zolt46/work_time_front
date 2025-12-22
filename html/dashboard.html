@@ -56,7 +56,10 @@
         </div>
         <div class="card">
           <div class="card-title">대기 중인 요청</div>
-          <div id="pending-count" class="muted">불러오는 중...</div>
+          <div id="pending-summary" class="stack tight">
+            <div id="pending-count" class="muted">불러오는 중...</div>
+            <ul id="pending-insights" class="compact-list"></ul>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -70,6 +73,7 @@
     import { initAppLayout } from '../js/layout.js';
     import { loadGlobalSchedule, renderCompactSchedule } from '../js/schedule.js';
 
+    const pendingInsights = document.getElementById('pending-insights');
     const user = await initAppLayout('dashboard');
 
     try {
@@ -79,19 +83,53 @@
       document.getElementById('today-info').textContent = '데이터 없음';
     }
 
+    function renderPendingInsights(items, viewer) {
+      if (!pendingInsights) return;
+      pendingInsights.innerHTML = '';
+      if (!items.length) {
+        pendingInsights.innerHTML = '<li class="muted">표시할 데이터가 없습니다.</li>';
+        return;
+      }
+      const pendingCount = items.filter((r) => r.status === 'PENDING').length;
+      const today = new Date().toISOString().slice(0, 10);
+      const todayPending = items.filter((r) => r.status === 'PENDING' && r.target_date === today).length;
+      const approved = items.filter((r) => r.status === 'APPROVED').length;
+      const cancelled = items.filter((r) => r.status === 'CANCELLED').length;
+      const rejected = items.filter((r) => r.status === 'REJECTED').length;
+      const lastSevenDays = items.filter((r) => {
+        const created = new Date(r.created_at);
+        const diff = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+        return diff <= 7;
+      }).length;
+      const lines = [
+        `<strong>${pendingCount}건</strong> 승인 대기 (${todayPending}건은 오늘 일정)`,
+        `<strong>${lastSevenDays}건</strong> 최근 7일 신규 접수`,
+        `<strong>${approved}건</strong> 승인됨 · <strong>${rejected}건</strong> 거절됨 · <strong>${cancelled}건</strong> 취소됨`
+      ];
+      lines.forEach((text) => {
+        const li = document.createElement('li');
+        li.innerHTML = text;
+        pendingInsights.appendChild(li);
+      });
+      const countLabel = document.getElementById('pending-count');
+      if (countLabel) {
+        countLabel.textContent = pendingCount ? `${pendingCount}건 승인 대기` : '대기 중인 신청 없음';
+      }
+    }
+
     try {
       if (user?.role === 'MEMBER') {
         const myRequests = await apiRequest('/requests/my');
-        const pendingCount = myRequests.filter((r) => r.status === 'PENDING').length;
-        document.getElementById('pending-count').textContent = pendingCount
-          ? `${pendingCount}건 심사 대기`
-          : '대기 중인 신청 없음';
+        const relevant = myRequests.filter((r) => ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(r.status));
+        renderPendingInsights(relevant, 'MEMBER');
       } else {
-        const pending = await apiRequest('/requests/pending');
-        document.getElementById('pending-count').textContent = `${pending.length}건 승인 대기`;
+        const feed = await apiRequest('/requests/feed');
+        const relevant = feed.filter((r) => ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(r.status));
+        renderPendingInsights(relevant, 'OPERATOR');
       }
     } catch {
       document.getElementById('pending-count').textContent = '확인 불가';
+      if (pendingInsights) pendingInsights.innerHTML = '<li class="error">요청 현황을 불러오지 못했습니다.</li>';
     }
 
     let assignments = [];
