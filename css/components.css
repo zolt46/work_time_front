@@ -111,8 +111,7 @@ table.table tbody tr:hover { background: #f8fafc; }
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  height: calc(var(--hour-height, 44px) - 2px);
-  overflow-y: auto;
+  min-height: calc(var(--hour-height, 44px) - 2px);
 }
 .timetable-cell:nth-child(odd) { background: rgba(15, 23, 42, 0.015); }
 .timetable-pill {
