@@ -202,6 +202,7 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   placeAssignments(dayCols, hours, normalized);
   const recalcHeights = () => syncRowHeights(hours, times, dayCols, hourHeight);
   recalcHeights();
+  requestAnimationFrame(recalcHeights);
 
   body.appendChild(times);
   dayCols.forEach((col) => body.appendChild(col));
@@ -210,9 +211,14 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   wrapper.appendChild(body);
   container.appendChild(wrapper);
 
+  const resizeObserver = new ResizeObserver(() => recalcHeights());
+  resizeObserver.observe(wrapper);
   const resizeHandler = () => recalcHeights();
   window.addEventListener('resize', resizeHandler);
-  container._timetableCleanup = () => window.removeEventListener('resize', resizeHandler);
+  container._timetableCleanup = () => {
+    window.removeEventListener('resize', resizeHandler);
+    resizeObserver.disconnect();
+  };
 }
 
 async function loadGlobalSchedule(targetId = 'schedule-container', options = {}) {

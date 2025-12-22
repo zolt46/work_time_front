@@ -73,11 +73,11 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { loadPendingRequests, loadRequestFeed } from '../js/requests.js';
+    import { loadPendingRequests, renderRequestFeed } from '../js/requests.js';
 
     await initAppLayout('approvals');
     await loadPendingRequests();
-    await loadRequestFeed();
+    await renderRequestFeed();
   </script>
 </body>
 </html>

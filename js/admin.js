@@ -355,6 +355,8 @@ async function refreshAssignedSlotsForUser() {
     const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
     let minFrom = null;
     let maxTo = null;
+    const fromInputEl = document.getElementById('assign-from');
+    const toInputEl = document.getElementById('assign-to');
     events.forEach((ev) => {
       if (ev.source === 'BASE') {
         const fromDate = ev.valid_from ? new Date(ev.valid_from) : null;
@@ -382,6 +384,12 @@ async function refreshAssignedSlotsForUser() {
       } else {
         rangeEl.textContent = '적용 기간 정보가 없습니다.';
       }
+    }
+    if (fromInputEl && minFrom) {
+      fromInputEl.value = formatDateOnlyLocal(minFrom);
+    }
+    if (toInputEl) {
+      toInputEl.value = maxTo ? formatDateOnlyLocal(maxTo) : '';
     }
     updateAssignPreview();
   } catch (e) {
