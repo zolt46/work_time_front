@@ -461,7 +461,9 @@ async function loadPendingRequests() {
   await ensureShifts();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
   tbody.innerHTML = '';
-  data.forEach((r) => {
+  data
+    .filter((r) => r.status === 'PENDING')
+    .forEach((r) => {
     const requester = userMap[r.user_id];
     const timeLabel = requestTimeLabel(r);
     const tr = document.createElement('tr');
@@ -507,14 +509,39 @@ async function renderRequestFeed() {
   await ensureShifts();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
   tbody.innerHTML = '';
+  const events = [];
   feed.forEach((r) => {
     const requester = userMap[r.user_id];
+    const requesterName = requester ? requester.name : r.user_id;
     const shiftText = `${shiftLabel(r.target_shift_id)}${requestTimeLabel(r) ? ` (${requestTimeLabel(r)})` : ''}`;
-    const statusText = statusLabel[r.status] || r.status;
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${r.reason || ''}</td>`;
-    tbody.appendChild(row);
+    const base = { requesterName, shiftText, target: r.target_date, reason: r.reason || '' };
+    events.push({
+      time: r.created_at,
+      status: '신청',
+      rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>신청됨</td><td>${base.reason}</td>`
+    });
+    if (r.status === 'APPROVED' || r.status === 'REJECTED' || r.status === 'CANCELLED') {
+      const decidedAt = r.decided_at || r.created_at;
+      const statusText = r.status === 'APPROVED' ? '승인됨' : r.status === 'REJECTED' ? '거절됨' : r.cancelled_after_approval ? '승인 후 취소' : '취소됨';
+      events.push({
+        time: decidedAt,
+        status: statusText,
+        rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${base.reason}</td>`
+      });
+    }
   });
+  events
+    .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))
+    .slice(0, 50)
+    .forEach((ev) => {
+      const row = document.createElement('tr');
+      row.innerHTML = ev.rowHtml;
+      const timeCell = document.createElement('td');
+      timeCell.className = 'small muted';
+      timeCell.textContent = new Date(ev.time).toLocaleString();
+      row.appendChild(timeCell);
+      tbody.appendChild(row);
+    });
 }
 
 async function loadRequestUsers(current) {

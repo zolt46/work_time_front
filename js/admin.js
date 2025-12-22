@@ -16,6 +16,8 @@ const selectedAssignSlots = new Set();
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 const appliedRangeEl = () => document.getElementById('assign-current-range');
+const manualDateOverride = { from: false, to: false };
+let lastAssignUserId = null;
 
 function parseDateValue(dateStr) {
   if (!dateStr) return new Date();
@@ -346,6 +348,11 @@ async function refreshAssignedSlotsForUser() {
   assignGridCells.forEach((cell) => cell.classList.remove('assigned'));
   clearAssignSelection();
   const user_id = document.getElementById('assign-user')?.value;
+  if (user_id !== lastAssignUserId) {
+    manualDateOverride.from = false;
+    manualDateOverride.to = false;
+    lastAssignUserId = user_id;
+  }
   if (!user_id) return true;
   const fromInput = document.getElementById('assign-from')?.value || formatDateOnlyLocal(new Date());
   const params = new URLSearchParams({ start: weekStart(fromInput), user_id });
@@ -385,10 +392,10 @@ async function refreshAssignedSlotsForUser() {
         rangeEl.textContent = '적용 기간 정보가 없습니다.';
       }
     }
-    if (fromInputEl && minFrom) {
+    if (fromInputEl && minFrom && !manualDateOverride.from) {
       fromInputEl.value = formatDateOnlyLocal(minFrom);
     }
-    if (toInputEl) {
+    if (toInputEl && !manualDateOverride.to) {
       toInputEl.value = maxTo ? formatDateOnlyLocal(maxTo) : '';
     }
     updateAssignPreview();
@@ -475,4 +482,9 @@ function slotsToRanges(slotKeys) {
   return ranges;
 }
 
-export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser };
+function bindAssignDateInputs() {
+  document.getElementById('assign-from')?.addEventListener('input', () => { manualDateOverride.from = true; });
+  document.getElementById('assign-to')?.addEventListener('input', () => { manualDateOverride.to = true; });
+}
+
+export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs };

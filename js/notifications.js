@@ -40,31 +40,52 @@ function timeWindow(req, shift) {
   return `${start.slice(0, 5)}~${end.slice(0, 5)}`;
 }
 
-function describeRequest(req, userMap, shiftMap, viewerRole) {
-  const applicant = userMap[req.user_id]?.name || '알 수 없는 신청자';
-  const shift = shiftMap[req.target_shift_id];
-  const window = timeWindow(req, shift);
-  const kind = req.type === 'ABSENCE' ? '결근' : '추가 근무';
-  const base = `${req.target_date} ${window ? `${window} ` : ''}${kind}`;
-  if (req.status === 'PENDING') {
-    return {
-      text: viewerRole === 'MEMBER' ? `신청 접수됨: ${base}` : `${applicant}님 요청 대기: ${base}`,
-      meta: req.reason ? `사유: ${req.reason}` : null
-    };
-  }
-  if (req.status === 'APPROVED') {
-    return { text: `승인됨: ${base}`, meta: `신청자: ${applicant}` };
-  }
-  if (req.status === 'REJECTED') {
-    return { text: `거절됨: ${base}`, meta: req.reason ? `사유: ${req.reason}` : `신청자: ${applicant}` };
-  }
-  if (req.status === 'CANCELLED' && req.cancelled_after_approval) {
-    return { text: `승인 후 취소됨: ${base}`, meta: `신청자: ${applicant}` };
-  }
-  if (req.status === 'CANCELLED') {
-    return { text: `신청 취소됨: ${base}`, meta: `신청자: ${applicant}` };
-  }
-  return { text: `${base} · ${statusText[req.status] || req.status}`, meta: `신청자: ${applicant}` };
+function buildRequestEvents(requests, userMap, shiftMap, viewerRole) {
+  const events = [];
+  requests.forEach((req) => {
+    const applicant = userMap[req.user_id]?.name || '알 수 없는 신청자';
+    const shift = shiftMap[req.target_shift_id];
+    const window = timeWindow(req, shift);
+    const kind = req.type === 'ABSENCE' ? '결근' : '추가 근무';
+    const base = `${req.target_date} ${window ? `${window} ` : ''}${kind}`;
+    const submitText = viewerRole === 'MEMBER' ? `신청 완료: ${base}` : `${applicant} 요청: ${base}`;
+    events.push({
+      id: `${req.id}-submit`,
+      text: submitText,
+      meta: req.reason ? `사유: ${req.reason}` : null,
+      status: 'PENDING',
+      created_at: req.created_at
+    });
+    if (req.status === 'APPROVED' || req.status === 'REJECTED' || req.status === 'CANCELLED') {
+      const decidedAt = req.decided_at || req.created_at;
+      if (req.status === 'APPROVED') {
+        events.push({
+          id: `${req.id}-approved`,
+          text: `승인됨: ${base}`,
+          meta: `신청자: ${applicant}`,
+          status: 'APPROVED',
+          created_at: decidedAt
+        });
+      } else if (req.status === 'REJECTED') {
+        events.push({
+          id: `${req.id}-rejected`,
+          text: `거절됨: ${base}`,
+          meta: req.reason ? `사유: ${req.reason}` : `신청자: ${applicant}`,
+          status: 'REJECTED',
+          created_at: decidedAt
+        });
+      } else if (req.status === 'CANCELLED') {
+        events.push({
+          id: `${req.id}-cancelled`,
+          text: req.cancelled_after_approval ? `승인 후 취소됨: ${base}` : `신청 취소됨: ${base}`,
+          meta: `신청자: ${applicant}`,
+          status: 'CANCELLED',
+          created_at: decidedAt
+        });
+      }
+    }
+  });
+  return events.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
 async function fetchNotifications(user) {
@@ -72,19 +93,8 @@ async function fetchNotifications(user) {
   const { users, shifts } = await ensureMeta();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
   const shiftMap = Object.fromEntries(shifts.map((s) => [s.id, s]));
-  if (user.role === 'MEMBER') {
-    const mine = await apiRequest('/requests/my');
-    return mine
-      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-      .slice(0, 10)
-      .map((req) => ({ ...describeRequest(req, userMap, shiftMap, user.role), status: req.status, created_at: req.created_at }));
-  }
-  const feed = await apiRequest('/requests/feed');
-  return feed
-    .filter((req) => req.status === 'PENDING' || req.cancelled_after_approval || req.status === 'CANCELLED')
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-    .slice(0, 10)
-    .map((req) => ({ ...describeRequest(req, userMap, shiftMap, user.role), status: req.status, created_at: req.created_at }));
+  const source = user.role === 'MEMBER' ? await apiRequest('/requests/my') : await apiRequest('/requests/feed');
+  return buildRequestEvents(source, userMap, shiftMap, user.role).slice(0, 15);
 }
 
 export async function initNotifications(user) {
@@ -118,7 +128,7 @@ export async function initNotifications(user) {
     const lastSeen = parseInt(localStorage.getItem(lastSeenKey) || '0', 10);
     return items.filter((i) => {
       const created = i.created_at ? Date.parse(i.created_at) : 0;
-      return i.status === 'PENDING' && created > lastSeen;
+      return created > lastSeen;
     }).length;
   }
 
@@ -158,7 +168,8 @@ export async function initNotifications(user) {
     panel.classList.toggle('show', willShow);
     if (willShow) {
       refresh().then(() => {
-        localStorage.setItem(lastSeenKey, Date.now().toString());
+        const latestTime = latest.length ? Date.parse(latest[0].created_at || Date.now()) : Date.now();
+        localStorage.setItem(lastSeenKey, latestTime.toString());
         if (badgeEl) badgeEl.style.display = 'none';
       });
     }

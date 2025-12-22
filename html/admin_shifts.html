@@ -80,7 +80,7 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser } from '../js/admin.js';
+    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs } from '../js/admin.js';
 
     await initAppLayout('shifts');
     const today = new Date().toISOString().slice(0, 10);
@@ -88,6 +88,7 @@
     if (fromInput && !fromInput.value) fromInput.value = today;
     await loadUserOptions('assign-user');
     buildAssignSlotGrid();
+    bindAssignDateInputs();
     await refreshAssignedSlotsForUser();
     document.getElementById('assign-user').addEventListener('change', refreshAssignedSlotsForUser);
     document.getElementById('assign-from').addEventListener('change', refreshAssignedSlotsForUser);
