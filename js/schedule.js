@@ -173,6 +173,10 @@ function syncRowHeights(hours, timesEl, dayCols, minHeight = 44) {
 function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   const container = document.getElementById(targetId);
   if (!container) return;
+  if (container._timetableCleanup) {
+    container._timetableCleanup();
+    container._timetableCleanup = null;
+  }
   container.innerHTML = '';
   const normalized = normalizeEvents(assignments);
   if (!assignments || assignments.length === 0) {
@@ -196,7 +200,8 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
 
   const { times, dayCols } = createTimelineColumns(hours);
   placeAssignments(dayCols, hours, normalized);
-  syncRowHeights(hours, times, dayCols, hourHeight);
+  const recalcHeights = () => syncRowHeights(hours, times, dayCols, hourHeight);
+  recalcHeights();
 
   body.appendChild(times);
   dayCols.forEach((col) => body.appendChild(col));
@@ -204,6 +209,10 @@ function renderTimeline(assignments, targetId, { hourHeight = 44 } = {}) {
   wrapper.appendChild(header);
   wrapper.appendChild(body);
   container.appendChild(wrapper);
+
+  const resizeHandler = () => recalcHeights();
+  window.addEventListener('resize', resizeHandler);
+  container._timetableCleanup = () => window.removeEventListener('resize', resizeHandler);
 }
 
 async function loadGlobalSchedule(targetId = 'schedule-container', options = {}) {

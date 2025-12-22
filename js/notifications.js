@@ -14,27 +14,77 @@ const statusText = {
   CANCELLED: '취소됨',
 };
 
-function humanize(r) {
-  const kind = r.type === 'ABSENCE' ? '결근' : '추가 근무';
-  const status = r.status === 'CANCELLED' && r.cancelled_after_approval ? '승인 후 취소됨' : (statusText[r.status] || r.status);
-  return `${r.target_date} ${kind} · ${status}`;
-}
-
-function buildItem(text, status) {
+function buildItem(text, status, meta) {
   const li = document.createElement('li');
   li.className = `notif-item ${status ? status.toLowerCase() : ''}`;
-  li.textContent = text;
+  li.innerHTML = `<div>${text}</div>${meta ? `<div class="muted small">${meta}</div>` : ''}`;
   return li;
+}
+
+const cache = {
+  users: null,
+  shifts: null
+};
+
+async function ensureMeta() {
+  if (!cache.users) cache.users = apiRequest('/users');
+  if (!cache.shifts) cache.shifts = apiRequest('/schedule/shifts');
+  const [users, shifts] = await Promise.all([cache.users, cache.shifts]);
+  return { users, shifts };
+}
+
+function timeWindow(req, shift) {
+  const start = req.target_start_time || shift?.start_time;
+  const end = req.target_end_time || shift?.end_time;
+  if (!start || !end) return shift ? `${shift.start_time?.slice(0, 5)}~${shift.end_time?.slice(0, 5)}` : '';
+  return `${start.slice(0, 5)}~${end.slice(0, 5)}`;
+}
+
+function describeRequest(req, userMap, shiftMap, viewerRole) {
+  const applicant = userMap[req.user_id]?.name || '알 수 없는 신청자';
+  const shift = shiftMap[req.target_shift_id];
+  const window = timeWindow(req, shift);
+  const kind = req.type === 'ABSENCE' ? '결근' : '추가 근무';
+  const base = `${req.target_date} ${window ? `${window} ` : ''}${kind}`;
+  if (req.status === 'PENDING') {
+    return {
+      text: viewerRole === 'MEMBER' ? `신청 접수됨: ${base}` : `${applicant}님 요청 대기: ${base}`,
+      meta: req.reason ? `사유: ${req.reason}` : null
+    };
+  }
+  if (req.status === 'APPROVED') {
+    return { text: `승인됨: ${base}`, meta: `신청자: ${applicant}` };
+  }
+  if (req.status === 'REJECTED') {
+    return { text: `거절됨: ${base}`, meta: req.reason ? `사유: ${req.reason}` : `신청자: ${applicant}` };
+  }
+  if (req.status === 'CANCELLED' && req.cancelled_after_approval) {
+    return { text: `승인 후 취소됨: ${base}`, meta: `신청자: ${applicant}` };
+  }
+  if (req.status === 'CANCELLED') {
+    return { text: `신청 취소됨: ${base}`, meta: `신청자: ${applicant}` };
+  }
+  return { text: `${base} · ${statusText[req.status] || req.status}`, meta: `신청자: ${applicant}` };
 }
 
 async function fetchNotifications(user) {
   if (!user) return [];
+  const { users, shifts } = await ensureMeta();
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+  const shiftMap = Object.fromEntries(shifts.map((s) => [s.id, s]));
   if (user.role === 'MEMBER') {
     const mine = await apiRequest('/requests/my');
-    return mine.slice(0, 10);
+    return mine
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+      .slice(0, 10)
+      .map((req) => ({ ...describeRequest(req, userMap, shiftMap, user.role), status: req.status, created_at: req.created_at }));
   }
-  const pending = await apiRequest('/requests/pending');
-  return pending.slice(0, 15);
+  const feed = await apiRequest('/requests/feed');
+  return feed
+    .filter((req) => req.status === 'PENDING' || req.cancelled_after_approval || req.status === 'CANCELLED')
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 10)
+    .map((req) => ({ ...describeRequest(req, userMap, shiftMap, user.role), status: req.status, created_at: req.created_at }));
 }
 
 export async function initNotifications(user) {
@@ -61,6 +111,8 @@ export async function initNotifications(user) {
   const listEl = panel.querySelector('#notif-list');
   const badgeEl = document.getElementById('notif-badge');
   const lastSeenKey = 'notif_last_seen';
+  const maxItems = 10;
+  let latest = [];
 
   function computeUnread(items) {
     const lastSeen = parseInt(localStorage.getItem(lastSeenKey) || '0', 10);
@@ -75,11 +127,12 @@ export async function initNotifications(user) {
     listEl.innerHTML = '<li class="muted">불러오는 중...</li>';
     try {
       const items = await fetchNotifications(user);
+      latest = items;
       listEl.innerHTML = '';
       if (!items.length) {
         listEl.innerHTML = '<li class="muted">새 알림이 없습니다</li>';
       } else {
-        items.forEach((it) => listEl.appendChild(buildItem(humanize(it), it.status)));
+        items.slice(0, maxItems).forEach((it) => listEl.appendChild(buildItem(it.text, it.status, it.meta)));
       }
       const unread = computeUnread(items);
       if (badgeEl) {
@@ -97,6 +150,8 @@ export async function initNotifications(user) {
     refresh();
   });
 
+  window.addEventListener('notifications:refresh', () => refresh());
+
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     const willShow = !panel.classList.contains('show');
@@ -113,4 +168,9 @@ export async function initNotifications(user) {
   });
 
   await refresh();
+}
+
+export function triggerNotificationsRefresh() {
+  const evt = new Event('notifications:refresh');
+  window.dispatchEvent(evt);
 }
