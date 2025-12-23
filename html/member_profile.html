@@ -41,16 +41,16 @@
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="requests" href="request_center.html">근무 변경 신청</a>
+      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청</a>
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
-      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
+      <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
-        <div class="card">
+        <div class="card" id="profile-card">
           <div class="card-title">프로필 정보</div>
           <table class="table compact">
             <tbody>
@@ -63,7 +63,7 @@
             </tbody>
           </table>
         </div>
-        <div class="card">
+        <div class="card" id="account-card">
           <div class="card-title">로그인 ID / 비밀번호 변경</div>
           <form id="account-form" class="stack">
             <div class="input-with-toggle">
@@ -86,14 +86,14 @@
         </div>
       </div>
       <div class="grid two">
-        <div class="card">
+        <div class="card" id="visible-users-card">
           <div class="card-title">접근 가능한 계정 현황</div>
           <table class="table" id="visible-users">
             <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th></tr></thead>
             <tbody id="visible-users-body"></tbody>
           </table>
         </div>
-        <div class="card">
+        <div class="card" id="reset-card">
           <div class="card-title">데이터 초기화</div>
           <p class="muted">권한에 따라 선택지가 다르게 보입니다. 데이터만 초기화하며 스키마는 유지합니다.</p>
           <div class="stack">
@@ -104,7 +104,7 @@
           <div id="reset-result" class="muted small"></div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="assignments-card">
         <div class="card-title">내 배정 근무</div>
         <ul id="my-schedule"></ul>
       </div>
@@ -117,7 +117,9 @@
 
     const user = await initAppLayout('profile');
     await attachProfilePage(user);
-    await loadMySchedule();
+    if (user?.role !== 'OPERATOR') {
+      await loadMySchedule();
+    }
   </script>
 </body>
 </html>

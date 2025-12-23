@@ -255,8 +255,25 @@ function bindMemberEvents() {
   });
 }
 
+function restrictRoleOptions(role) {
+  const editRole = document.getElementById('edit-role');
+  const filterRole = document.getElementById('member-filter-role');
+  if (role === 'OPERATOR' && editRole) {
+    Array.from(editRole.options).forEach((opt) => {
+      if (opt.value !== 'MEMBER') opt.remove();
+    });
+    editRole.value = 'MEMBER';
+  }
+  if (role === 'OPERATOR' && filterRole) {
+    Array.from(filterRole.options).forEach((opt) => {
+      if (opt.value === 'MASTER') opt.remove();
+    });
+  }
+}
+
 async function initMemberManagement(user) {
   editorOptions.allowCredentialEdit = user?.role === 'MASTER';
+  restrictRoleOptions(user?.role);
   bindMemberEvents();
   clearEditForm();
   await loadMembers();

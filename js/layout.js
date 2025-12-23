@@ -37,22 +37,32 @@ function highlightNav(activePage) {
 
 const roleOrder = { MEMBER: 1, OPERATOR: 2, MASTER: 3 };
 
+function isLinkAllowed(link, role) {
+  const allowedRoles = (link.dataset.roles || '')
+    .split(',')
+    .map((r) => r.trim())
+    .filter(Boolean);
+  const minRole = link.dataset.minRole;
+  let visible = true;
+  if (allowedRoles.length) {
+    visible = allowedRoles.includes(role);
+  }
+  if (visible && minRole) {
+    visible = roleOrder[role] >= roleOrder[minRole];
+  }
+  return visible;
+}
+
 function applyNavVisibility(role) {
   document.querySelectorAll('.nav-link').forEach((link) => {
-    const allowedRoles = (link.dataset.roles || '')
-      .split(',')
-      .map((r) => r.trim())
-      .filter(Boolean);
-    const minRole = link.dataset.minRole;
-    let visible = true;
-    if (allowedRoles.length) {
-      visible = allowedRoles.includes(role);
-    }
-    if (visible && minRole) {
-      visible = roleOrder[role] >= roleOrder[minRole];
-    }
-    link.style.display = visible ? '' : 'none';
+    link.style.display = isLinkAllowed(link, role) ? '' : 'none';
   });
+}
+
+function enforcePageAccess(activePage, role) {
+  const activeLink = document.querySelector(`.nav-link[data-page="${activePage}"]`);
+  if (!activeLink) return true;
+  return isLinkAllowed(activeLink, role);
 }
 
 function wireCommonActions() {
@@ -72,7 +82,14 @@ export async function initAppLayout(activePage) {
   setupSidebar();
   wireCommonActions();
   const user = await loadUser();
-  if (user) applyNavVisibility(user.role);
+  if (user) {
+    applyNavVisibility(user.role);
+    if (!enforcePageAccess(activePage, user.role) && activePage !== 'dashboard') {
+      alert('해당 페이지에 대한 접근 권한이 없습니다. 대시보드로 이동합니다.');
+      window.location.href = 'dashboard.html';
+      return user;
+    }
+  }
   startSessionCountdown(
     document.getElementById('session-countdown'),
     document.getElementById('extend-session')

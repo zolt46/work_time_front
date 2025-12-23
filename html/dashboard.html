@@ -41,20 +41,20 @@
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
       <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="requests" href="request_center.html">근무 변경 신청</a>
+      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청</a>
       <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
       <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
-      <a class="nav-link" data-page="history" href="history.html">변동 이력</a>
+      <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변동 이력</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
-        <div class="card">
+        <div class="card" id="card-today">
           <div class="card-title">오늘 일정</div>
           <div id="today-info" class="muted">불러오는 중...</div>
         </div>
-        <div class="card">
+        <div class="card" id="card-pending">
           <div class="card-title">대기 중인 요청</div>
           <div id="pending-summary" class="stack tight">
             <div id="pending-count" class="muted">불러오는 중...</div>
@@ -62,7 +62,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="card-weekly">
         <div class="card-title">주간 근무 시간표</div>
         <div id="schedule-summary" class="loader">일정을 불러오는 중...</div>
       </div>
@@ -76,11 +76,32 @@
     const pendingInsights = document.getElementById('pending-insights');
     const user = await initAppLayout('dashboard');
 
-    try {
-      const mine = await apiRequest('/schedule/me');
-      document.getElementById('today-info').textContent = `${mine.length}개의 배정`;
-    } catch {
-      document.getElementById('today-info').textContent = '데이터 없음';
+    const todayCard = document.getElementById('card-today');
+    const pendingCard = document.getElementById('card-pending');
+
+    if (user?.role === 'OPERATOR') {
+      if (todayCard) todayCard.style.display = 'none';
+    }
+    if (user?.role === 'MEMBER') {
+      if (pendingCard) pendingCard.style.display = 'none';
+    }
+
+    if (user?.role !== 'OPERATOR' && todayCard) {
+      try {
+        const mine = await apiRequest('/schedule/me');
+        const today = new Date();
+        const todayCount = mine.filter((m) => {
+          const from = m.valid_from ? new Date(m.valid_from) : null;
+          const to = m.valid_to ? new Date(m.valid_to) : null;
+          if (!from) return false;
+          return from <= today && (!to || to >= today);
+        }).length;
+        document.getElementById('today-info').textContent = todayCount ? `${todayCount}개의 배정` : '오늘 배정 없음';
+      } catch {
+        document.getElementById('today-info').textContent = '데이터 없음';
+      }
+    } else if (todayCard) {
+      document.getElementById('today-info').textContent = '운영자 모드에서는 오늘 일정이 숨겨집니다.';
     }
 
     function renderPendingInsights(items, viewer) {
@@ -117,19 +138,15 @@
       }
     }
 
-    try {
-      if (user?.role === 'MEMBER') {
-        const myRequests = await apiRequest('/requests/my');
-        const relevant = myRequests.filter((r) => ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(r.status));
-        renderPendingInsights(relevant, 'MEMBER');
-      } else {
+    if (user?.role !== 'MEMBER' && pendingCard) {
+      try {
         const feed = await apiRequest('/requests/feed');
         const relevant = feed.filter((r) => ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(r.status));
         renderPendingInsights(relevant, 'OPERATOR');
+      } catch {
+        document.getElementById('pending-count').textContent = '확인 불가';
+        if (pendingInsights) pendingInsights.innerHTML = '<li class="error">요청 현황을 불러오지 못했습니다.</li>';
       }
-    } catch {
-      document.getElementById('pending-count').textContent = '확인 불가';
-      if (pendingInsights) pendingInsights.innerHTML = '<li class="error">요청 현황을 불러오지 못했습니다.</li>';
     }
 
     let assignments = [];

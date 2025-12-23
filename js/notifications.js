@@ -48,39 +48,78 @@ function buildRequestEvents(requests, userMap, shiftMap, viewerRole) {
     const window = timeWindow(req, shift);
     const kind = req.type === 'ABSENCE' ? '결근' : '추가 근무';
     const base = `${req.target_date} ${window ? `${window} ` : ''}${kind}`;
-    const submitText = viewerRole === 'MEMBER' ? `신청 완료: ${base}` : `${applicant} 요청: ${base}`;
-    events.push({
-      id: `${req.id}-submit`,
-      text: submitText,
-      meta: req.reason ? `사유: ${req.reason}` : null,
-      status: 'PENDING',
-      created_at: req.created_at
-    });
-    if (req.status === 'APPROVED' || req.status === 'REJECTED' || req.status === 'CANCELLED') {
-      const decidedAt = req.decided_at || req.created_at;
+    const reasonMeta = req.reason ? `사유: ${req.reason}` : null;
+
+    if (viewerRole === 'MEMBER') {
+      events.push({
+        id: `${req.id}-submit`,
+        text: `변경 요청이 접수되었습니다: ${base}`,
+        meta: reasonMeta,
+        status: 'PENDING',
+        created_at: req.created_at
+      });
       if (req.status === 'APPROVED') {
         events.push({
           id: `${req.id}-approved`,
-          text: `승인됨: ${base}`,
-          meta: `신청자: ${applicant}`,
+          text: `접수한 신청이 승인되었습니다: ${base}`,
+          meta: reasonMeta,
           status: 'APPROVED',
-          created_at: decidedAt
+          created_at: req.decided_at || req.created_at
         });
       } else if (req.status === 'REJECTED') {
         events.push({
           id: `${req.id}-rejected`,
-          text: `거절됨: ${base}`,
-          meta: req.reason ? `사유: ${req.reason}` : `신청자: ${applicant}`,
+          text: `접수한 신청이 거부되었습니다: ${base}`,
+          meta: reasonMeta || '거부됨',
           status: 'REJECTED',
-          created_at: decidedAt
+          created_at: req.decided_at || req.created_at
         });
       } else if (req.status === 'CANCELLED') {
+        const cancelledText = req.cancelled_after_approval
+          ? `승인된 신청을 정상적으로 취소하였습니다: ${base}`
+          : `접수하신 신청을 승인 전 취소하였습니다: ${base}`;
         events.push({
           id: `${req.id}-cancelled`,
-          text: req.cancelled_after_approval ? `승인 후 취소됨: ${base}` : `신청 취소됨: ${base}`,
-          meta: `신청자: ${applicant}`,
+          text: cancelledText,
+          meta: reasonMeta,
           status: 'CANCELLED',
-          created_at: decidedAt
+          created_at: req.decided_at || req.created_at
+        });
+      }
+    } else {
+      events.push({
+        id: `${req.id}-submit`,
+        text: `승인 대기 접수: ${applicant} - ${base}`,
+        meta: reasonMeta,
+        status: 'PENDING',
+        created_at: req.created_at
+      });
+      if (req.status === 'APPROVED') {
+        events.push({
+          id: `${req.id}-approved`,
+          text: `승인 완료: ${applicant} - ${base}`,
+          meta: reasonMeta,
+          status: 'APPROVED',
+          created_at: req.decided_at || req.created_at
+        });
+      } else if (req.status === 'REJECTED') {
+        events.push({
+          id: `${req.id}-rejected`,
+          text: `거부 처리됨: ${applicant} - ${base}`,
+          meta: reasonMeta || '거부됨',
+          status: 'REJECTED',
+          created_at: req.decided_at || req.created_at
+        });
+      } else if (req.status === 'CANCELLED') {
+        const cancelledText = req.cancelled_after_approval
+          ? `승인 후 취소되었습니다: ${applicant} - ${base}`
+          : `승인 전 취소 접수: ${applicant} - ${base}`;
+        events.push({
+          id: `${req.id}-cancelled`,
+          text: cancelledText,
+          meta: reasonMeta,
+          status: 'CANCELLED',
+          created_at: req.decided_at || req.created_at
         });
       }
     }
