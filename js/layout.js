@@ -65,7 +65,7 @@ function isPageAllowed(activePage, role) {
   return isLinkAllowed(activeLink, role);
 }
 
-function ensureShellLoader() {
+function showAppShellLoader() {
   let loader = document.getElementById('app-shell-loader');
   if (!loader) {
     loader = document.createElement('div');
@@ -77,7 +77,7 @@ function ensureShellLoader() {
   document.body.classList.add('app-loading');
 }
 
-function finishShellLoader() {
+function hideAppShellLoader() {
   document.body.classList.remove('app-loading');
 }
 
@@ -188,7 +188,7 @@ function wireCommonActions() {
 }
 
 export async function initAppLayout(activePage) {
-  ensureShellLoader();
+  showAppShellLoader();
   highlightNav(activePage);
   setupSidebar();
   wireCommonActions();
@@ -239,7 +239,7 @@ export async function initAppLayout(activePage) {
   try {
     await initNotifications(user);
   } finally {
-    finishShellLoader();
+    hideAppShellLoader();
   }
   showPasswordPrompt(user);
 
