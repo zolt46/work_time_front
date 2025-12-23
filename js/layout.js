@@ -1,5 +1,5 @@
 // File: /ui/js/layout.js
-import { loadUser, logout, startSessionCountdown, refreshSession } from './auth.js';
+import { loadUser, logout, startSessionCountdown, refreshSession, shouldShowPasswordUpdatePrompt, snoozePasswordUpdate, markPasswordUpdated } from './auth.js';
 import { checkSystemStatus } from './status.js';
 import { API_BASE_URL } from './api.js';
 import { initNotifications } from './notifications.js';
@@ -65,6 +65,61 @@ function enforcePageAccess(activePage, role) {
   return isLinkAllowed(activeLink, role);
 }
 
+function ensureShellLoader() {
+  let loader = document.getElementById('app-shell-loader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'app-shell-loader';
+    loader.className = 'app-shell-loader';
+    loader.innerHTML = `<div class="spinner" aria-label="로딩 중"></div><div class="muted">필요한 정보를 불러오는 중...</div>`;
+    document.body.appendChild(loader);
+  }
+  document.body.classList.add('app-loading');
+}
+
+function finishShellLoader() {
+  document.body.classList.remove('app-loading');
+}
+
+function showPasswordPrompt(user) {
+  if (!shouldShowPasswordUpdatePrompt()) return;
+  if (!user || (user.role !== 'OPERATOR' && user.role !== 'MEMBER')) return;
+  if (document.getElementById('password-warning-modal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'password-warning-modal';
+  modal.className = 'modal-backdrop';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>비밀번호를 안전하게 변경하세요</h3>
+      </div>
+      <div class="modal-body">
+        <p>임시 비밀번호로 추정되는 약한 비밀번호로 로그인했습니다. 보안을 위해 새 비밀번호로 변경하세요.</p>
+        <p class="muted small">규칙: 8자 이상, 숫자와 특수문자 각 1자 이상 포함</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="pw-change-now">지금 변경</button>
+        <button class="btn secondary" id="pw-change-later">다음에 변경</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('pw-change-now')?.addEventListener('click', () => {
+    markPasswordUpdated();
+    window.location.href = 'member_profile.html';
+  });
+  document.getElementById('pw-change-later')?.addEventListener('click', () => {
+    snoozePasswordUpdate(12);
+    modal.remove();
+  });
+}
+
+function enforcePageAccess(activePage, role) {
+  const activeLink = document.querySelector(`.nav-link[data-page="${activePage}"]`);
+  if (!activeLink) return true;
+  return isLinkAllowed(activeLink, role);
+}
+
 function wireCommonActions() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) logoutBtn.onclick = () => logout(true);
@@ -78,17 +133,23 @@ function wireCommonActions() {
 }
 
 export async function initAppLayout(activePage) {
+  ensureShellLoader();
   highlightNav(activePage);
   setupSidebar();
   wireCommonActions();
-  const user = await loadUser();
-  if (user) {
-    applyNavVisibility(user.role);
-    if (!enforcePageAccess(activePage, user.role) && activePage !== 'dashboard') {
-      alert('해당 페이지에 대한 접근 권한이 없습니다. 대시보드로 이동합니다.');
-      window.location.href = 'dashboard.html';
-      return user;
+  let user;
+  try {
+    user = await loadUser();
+    if (user) {
+      applyNavVisibility(user.role);
+      if (!enforcePageAccess(activePage, user.role) && activePage !== 'dashboard') {
+        alert('해당 페이지에 대한 접근 권한이 없습니다. 대시보드로 이동합니다.');
+        window.location.href = 'dashboard.html';
+        return user;
+      }
     }
+  } catch (e) {
+    console.error('사용자 정보를 불러오지 못했습니다.', e);
   }
   startSessionCountdown(
     document.getElementById('session-countdown'),
@@ -120,7 +181,12 @@ export async function initAppLayout(activePage) {
     { timeoutMs: 4000 }
   );
 
-  await initNotifications(user);
+  try {
+    await initNotifications(user);
+  } finally {
+    finishShellLoader();
+  }
+  showPasswordPrompt(user);
 
   // keep-alive ping to 줄여서 서버 지연 방지
   setInterval(() => {

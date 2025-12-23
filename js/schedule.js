@@ -236,11 +236,27 @@ function renderCompactSchedule(assignments, targetId = 'schedule-summary') {
 async function loadMySchedule() {
   const listEl = document.getElementById('my-schedule');
   if (!listEl) return;
-  const data = await apiRequest('/schedule/me');
+  const today = new Date();
+  const dayOffset = (today.getDay() + 6) % 7;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - dayOffset);
+  const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
+  const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
   listEl.innerHTML = '';
-  data.forEach(item => {
+  if (!events.length) {
     const li = document.createElement('li');
-    li.textContent = `${item.shift_id} | ${item.valid_from}${item.valid_to ? ' ~ '+item.valid_to : ''}`;
+    li.className = 'muted';
+    li.textContent = '이번 주 배정된 근무가 없습니다.';
+    listEl.appendChild(li);
+    return;
+  }
+  const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+  events.forEach((ev) => {
+    const dateObj = new Date(ev.date);
+    const weekday = dayNames[(dateObj.getDay() + 6) % 7];
+    const li = document.createElement('li');
+    const location = ev.location ? ` @${ev.location}` : '';
+    li.textContent = `${ev.date} (${weekday}) · ${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)} · ${ev.shift_name}${location}`;
     listEl.appendChild(li);
   });
 }

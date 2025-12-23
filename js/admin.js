@@ -9,6 +9,7 @@ const roleLabel = {
 
 let members = [];
 let selectedMember = null;
+let currentUserInfo = null;
 const editorOptions = { allowCredentialEdit: false };
 const assignGridCells = new Map();
 const assignedSlots = new Set();
@@ -170,7 +171,11 @@ function renderMembers() {
 
 async function loadMembers() {
   const data = await apiRequest('/users');
-  members = data || [];
+  let list = data || [];
+  if (currentUserInfo?.role === 'OPERATOR') {
+    list = list.filter((m) => m.role === 'MEMBER' || m.id === currentUserInfo.id);
+  }
+  members = list;
   const stillSelected = selectedMember ? members.find((m) => m.id === selectedMember.id) : null;
   if (stillSelected) {
     setEditForm(stillSelected);
@@ -272,6 +277,7 @@ function restrictRoleOptions(role) {
 }
 
 async function initMemberManagement(user) {
+  currentUserInfo = user;
   editorOptions.allowCredentialEdit = user?.role === 'MASTER';
   restrictRoleOptions(user?.role);
   bindMemberEvents();

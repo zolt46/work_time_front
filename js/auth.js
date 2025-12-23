@@ -2,6 +2,9 @@
 import { apiRequest, API_BASE_URL, clearToken, redirectToLogin, setToken, parseTokenExp } from './api.js';
 
 let countdownInterval;
+const PASSWORD_RULE = /^(?=.*[0-9])(?=.*[!@#$%^&*()_\-+=\[{\]}|;:'",.<>/?`~]).{8,}$/;
+const PASSWORD_FLAG_KEY = 'needs_password_update';
+const PASSWORD_SNOOZE_KEY = 'password_update_snooze_until';
 
 async function login(event) {
   event.preventDefault();
@@ -25,6 +28,13 @@ async function login(event) {
     if (!res.ok) throw new Error('로그인에 실패했습니다');
     const data = await res.json();
     setToken(data.access_token);
+    if (isWeakPassword(password)) {
+      localStorage.setItem(PASSWORD_FLAG_KEY, '1');
+      localStorage.removeItem(PASSWORD_SNOOZE_KEY);
+    } else {
+      localStorage.removeItem(PASSWORD_FLAG_KEY);
+      localStorage.removeItem(PASSWORD_SNOOZE_KEY);
+    }
     window.location.href = 'html/dashboard.html';
   } catch (err) {
     alert(err.message);
@@ -49,6 +59,30 @@ async function loadUser() {
 
 function logout() {
   redirectToLogin();
+}
+
+function isWeakPassword(pw) {
+  return !PASSWORD_RULE.test(pw);
+}
+
+function markPasswordUpdated() {
+  localStorage.removeItem(PASSWORD_FLAG_KEY);
+  localStorage.removeItem(PASSWORD_SNOOZE_KEY);
+}
+
+function needsPasswordUpdate() {
+  return localStorage.getItem(PASSWORD_FLAG_KEY) === '1';
+}
+
+function snoozePasswordUpdate(hours = 24) {
+  const until = Date.now() + hours * 60 * 60 * 1000;
+  localStorage.setItem(PASSWORD_SNOOZE_KEY, String(until));
+}
+
+function shouldShowPasswordUpdatePrompt() {
+  if (!needsPasswordUpdate()) return false;
+  const snoozeUntil = parseInt(localStorage.getItem(PASSWORD_SNOOZE_KEY) || '0', 10);
+  return !snoozeUntil || Date.now() > snoozeUntil;
 }
 
 async function refreshSession() {
@@ -100,4 +134,16 @@ function setupPasswordToggle(inputId, toggleId) {
   });
 }
 
-export { login, loadUser, logout, startSessionCountdown, setupPasswordToggle, refreshSession };
+export {
+  login,
+  loadUser,
+  logout,
+  startSessionCountdown,
+  setupPasswordToggle,
+  refreshSession,
+  isWeakPassword,
+  markPasswordUpdated,
+  needsPasswordUpdate,
+  snoozePasswordUpdate,
+  shouldShowPasswordUpdatePrompt
+};

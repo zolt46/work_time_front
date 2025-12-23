@@ -199,6 +199,29 @@ table.table tbody tr:hover { background: #f8fafc; }
 .badge.cancelled { background: #e2e8f0; color: #334155; }
 .timetable-pill.pill-extra { background: color-mix(in srgb, #0f766e 14%, #fff); border-color: color-mix(in srgb, #0f766e 40%, #fff); color: #064e3b; }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 16px;
+}
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  width: min(520px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+.modal-header h3 { margin: 0; }
+.modal-body { color: #0f172a; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
+
 .flex.wrap { flex-wrap: wrap; align-items: flex-end; }
 
 .member-layout {

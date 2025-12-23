@@ -86,7 +86,28 @@
       if (pendingCard) pendingCard.style.display = 'none';
     }
 
-    if (user?.role !== 'OPERATOR' && todayCard) {
+    if (user?.role === 'MEMBER' && todayCard) {
+      try {
+        const today = new Date();
+        const dayOffset = (today.getDay() + 6) % 7;
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - dayOffset);
+        const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
+        const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+        const todayStr = today.toISOString().slice(0, 10);
+        const todays = events.filter((ev) => ev.date === todayStr);
+        if (!todays.length) {
+          document.getElementById('today-info').textContent = '오늘 배정 없음';
+        } else {
+          const details = todays
+            .map((ev) => `${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)} ${ev.shift_name || ''}`.trim())
+            .join(', ');
+          document.getElementById('today-info').textContent = `오늘 ${todays.length}개 근무: ${details}`;
+        }
+      } catch {
+        document.getElementById('today-info').textContent = '데이터 없음';
+      }
+    } else if (user?.role === 'MASTER' && todayCard) {
       try {
         const mine = await apiRequest('/schedule/me');
         const today = new Date();
