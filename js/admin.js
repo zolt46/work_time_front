@@ -382,7 +382,7 @@ async function refreshAssignedSlotsForUser() {
   const rangeEl = appliedRangeEl();
   if (rangeEl) rangeEl.textContent = '배정 일자를 불러오는 중...';
   try {
-    const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+    const events = await apiRequest(`/schedule/weekly_base?${params.toString()}`);
     let minFrom = null;
     let maxTo = null;
     const fromInputEl = document.getElementById('assign-from');

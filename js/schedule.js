@@ -229,6 +229,14 @@ async function loadGlobalSchedule(targetId = 'schedule-container', options = {})
   return events;
 }
 
+async function loadBaseSchedule(targetId = 'schedule-container', options = {}) {
+  const start = getWeekStart();
+  const params = new URLSearchParams({ start });
+  const events = await apiRequest(`/schedule/weekly_base?${params.toString()}`);
+  renderTimeline(events, targetId, options);
+  return events;
+}
+
 function renderCompactSchedule(assignments, targetId = 'schedule-summary') {
   renderTimeline(assignments, targetId, { hourHeight: 38 });
 }
@@ -236,12 +244,13 @@ function renderCompactSchedule(assignments, targetId = 'schedule-summary') {
 async function loadMySchedule() {
   const listEl = document.getElementById('my-schedule');
   if (!listEl) return;
+  listEl.classList.add('schedule-list');
   const today = new Date();
   const dayOffset = (today.getDay() + 6) % 7;
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - dayOffset);
   const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
-  const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+  const events = await apiRequest(`/schedule/weekly_base?${params.toString()}`);
   listEl.innerHTML = '';
   if (!events.length) {
     const li = document.createElement('li');
@@ -255,10 +264,15 @@ async function loadMySchedule() {
     const dateObj = new Date(ev.date);
     const weekday = dayNames[(dateObj.getDay() + 6) % 7];
     const li = document.createElement('li');
-    const location = ev.location ? ` @${ev.location}` : '';
-    li.textContent = `${ev.date} (${weekday}) · ${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)} · ${ev.shift_name}${location}`;
+    li.className = 'schedule-item';
+    const dateText = `${ev.date} (${weekday})`;
+    const timeText = `${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)}`;
+    li.innerHTML = `
+      <span class="schedule-date">${dateText}</span>
+      <span class="schedule-time">${timeText}</span>
+    `;
     listEl.appendChild(li);
   });
 }
 
-export { loadGlobalSchedule, loadMySchedule, renderCompactSchedule };
+export { loadBaseSchedule, loadGlobalSchedule, loadMySchedule, renderCompactSchedule };

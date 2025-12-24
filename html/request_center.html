@@ -8,7 +8,11 @@
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
 </head>
-<body>
+<body class="app-loading">
+  <div id="app-shell-loader" class="app-shell-loader">
+    <div class="spinner" aria-label="로딩 중"></div>
+    <div class="muted">필요한 정보를 불러오는 중...</div>
+  </div>
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>

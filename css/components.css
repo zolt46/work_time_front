@@ -141,6 +141,62 @@ table.table tbody tr:hover { background: #f8fafc; }
   justify-content: center;
 }
 
+.time-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.today-summary {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.today-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.schedule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 13px;
+}
+
+.schedule-date {
+  color: #475569;
+  font-weight: 600;
+}
+
+.schedule-time {
+  color: #1e293b;
+  font-weight: 700;
+}
+
 .input-with-toggle { position: relative; }
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {

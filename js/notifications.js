@@ -159,7 +159,7 @@ export async function initNotifications(user) {
 
   const listEl = panel.querySelector('#notif-list');
   const badgeEl = document.getElementById('notif-badge');
-  const lastSeenKey = 'notif_last_seen';
+  const lastSeenKey = user ? `notif_last_seen_${user.id}` : 'notif_last_seen';
   const maxItems = 10;
   let latest = [];
 

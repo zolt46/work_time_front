@@ -8,7 +8,11 @@
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
 </head>
-<body>
+<body class="app-loading">
+  <div id="app-shell-loader" class="app-shell-loader">
+    <div class="spinner" aria-label="로딩 중"></div>
+    <div class="muted">필요한 정보를 불러오는 중...</div>
+  </div>
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
@@ -96,13 +100,15 @@
         const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
         const todayStr = today.toISOString().slice(0, 10);
         const todays = events.filter((ev) => ev.date === todayStr);
+        const todayInfo = document.getElementById('today-info');
         if (!todays.length) {
-          document.getElementById('today-info').textContent = '오늘 배정 없음';
+          todayInfo.textContent = '오늘 배정 없음';
         } else {
-          const details = todays
-            .map((ev) => `${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)} ${ev.shift_name || ''}`.trim())
-            .join(', ');
-          document.getElementById('today-info').textContent = `오늘 ${todays.length}개 근무: ${details}`;
+          const times = todays.map((ev) => `${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)}`);
+          todayInfo.innerHTML = `
+            <div class="today-summary">오늘 ${times.join(', ')} 근무입니다.</div>
+            <div class="today-times">${times.map((time) => `<span class="time-chip">${time}</span>`).join('')}</div>
+          `;
         }
       } catch {
         document.getElementById('today-info').textContent = '데이터 없음';
