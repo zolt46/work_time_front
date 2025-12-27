@@ -6,6 +6,27 @@ const PASSWORD_RULE = /^(?=.*[0-9])(?=.*[!@#$%^&*()_\-+=\[{\]}|;:'",.<>/?`~]).{8
 const PASSWORD_FLAG_KEY = 'needs_password_update';
 const PASSWORD_SNOOZE_KEY = 'password_update_snooze_until';
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function warmupBackend({ retries = 2, delayMs = 600, timeoutMs = 6000 } = {}) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store', signal: controller.signal });
+      if (!resp.ok) throw new Error('health_failed');
+      return;
+    } catch (err) {
+      if (attempt >= retries) throw err;
+      await wait(delayMs * (attempt + 1));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function login(event) {
   event.preventDefault();
   const login_id = document.getElementById('login_id').value;
@@ -15,12 +36,14 @@ async function login(event) {
   const statusText = document.getElementById('login-progress');
   if (button) button.disabled = true;
   if (loadingBar) loadingBar.classList.add('show');
-  if (statusText) statusText.textContent = '서버 응답 대기 중...';
+  if (statusText) statusText.textContent = '서버 깨우는 중...';
   const form = new FormData();
   form.append('username', login_id);
   form.append('password', password);
 
   try {
+    await warmupBackend();
+    if (statusText) statusText.textContent = '로그인 처리 중...';
     const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       body: form
