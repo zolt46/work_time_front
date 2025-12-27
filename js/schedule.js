@@ -29,30 +29,62 @@ function getWeekStart(dateStr) {
   return formatDateOnly(start);
 }
 
+function nextWeekdayOnOrAfter(date, weekday) {
+  const candidate = new Date(date);
+  const delta = (weekday - candidate.getDay() + 7) % 7;
+  candidate.setDate(candidate.getDate() + delta);
+  return candidate;
+}
+
+function previousWeekdayOnOrBefore(date, weekday) {
+  const candidate = new Date(date);
+  const delta = (candidate.getDay() - weekday + 7) % 7;
+  candidate.setDate(candidate.getDate() - delta);
+  return candidate;
+}
+
+function getOccurrenceOnOrAfter(assignment, referenceDate) {
+  if (!assignment?.valid_from || assignment.shift?.weekday === undefined) return null;
+  const fromDate = parseDateValue(assignment.valid_from);
+  const toDate = assignment.valid_to ? parseDateValue(assignment.valid_to) : null;
+  const weekday = assignment.shift.weekday;
+  const startDate = referenceDate > fromDate ? referenceDate : fromDate;
+  const candidate = nextWeekdayOnOrAfter(startDate, weekday);
+  if (toDate && candidate > toDate) return null;
+  return candidate;
+}
+
+function getOccurrenceOnOrBefore(assignment, referenceDate) {
+  if (!assignment?.valid_from || assignment.shift?.weekday === undefined) return null;
+  const fromDate = parseDateValue(assignment.valid_from);
+  const toDate = assignment.valid_to ? parseDateValue(assignment.valid_to) : null;
+  const weekday = assignment.shift.weekday;
+  const endDate = toDate && toDate < referenceDate ? toDate : referenceDate;
+  const candidate = previousWeekdayOnOrBefore(endDate, weekday);
+  if (candidate < fromDate) return null;
+  return candidate;
+}
+
 function pickRelevantWeekStart(assignments = []) {
   if (!assignments.length) return null;
   const today = new Date();
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  let nextStart = null;
-  let latestPast = null;
+  let nextOccurrence = null;
+  let lastOccurrence = null;
 
   assignments.forEach((assignment) => {
-    const fromDate = assignment.valid_from ? parseDateValue(assignment.valid_from) : null;
-    const toDate = assignment.valid_to ? parseDateValue(assignment.valid_to) : null;
-    if (fromDate && fromDate <= todayOnly && (!toDate || toDate >= todayOnly)) {
-      latestPast = todayOnly;
-      return;
+    const upcoming = getOccurrenceOnOrAfter(assignment, todayOnly);
+    if (upcoming && (!nextOccurrence || upcoming < nextOccurrence)) {
+      nextOccurrence = upcoming;
     }
-    if (fromDate && fromDate > todayOnly && (!nextStart || fromDate < nextStart)) {
-      nextStart = fromDate;
-    }
-    if (toDate && toDate < todayOnly && (!latestPast || toDate > latestPast)) {
-      latestPast = toDate;
+    const previous = getOccurrenceOnOrBefore(assignment, todayOnly);
+    if (previous && (!lastOccurrence || previous > lastOccurrence)) {
+      lastOccurrence = previous;
     }
   });
 
-  if (latestPast) return getWeekStart(formatDateOnly(latestPast));
-  if (nextStart) return getWeekStart(formatDateOnly(nextStart));
+  const chosen = nextOccurrence || lastOccurrence;
+  if (chosen) return getWeekStart(formatDateOnly(chosen));
   const fallback = assignments.find((assignment) => assignment.valid_from);
   return fallback ? getWeekStart(fallback.valid_from) : null;
 }
