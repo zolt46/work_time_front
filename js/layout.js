@@ -3,6 +3,7 @@ import { loadUser, logout, startSessionCountdown, refreshSession, shouldShowPass
 import { checkSystemStatus } from './status.js';
 import { API_BASE_URL } from './api.js';
 import { initNotifications } from './notifications.js';
+import { initNoticeOverlays } from './notices.js';
 
 // 중복 로드 시에도 동일 인스턴스를 재사용하도록 전역에 저장
 if (!globalThis.__worktimeLayout) {
@@ -171,6 +172,7 @@ if (!globalThis.__worktimeLayout) {
 
     try {
       await initNotifications(user);
+      await initNoticeOverlays(user);
     } finally {
       hideAppShellLoader();
     }

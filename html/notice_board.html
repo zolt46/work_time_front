@@ -1,9 +1,9 @@
-<!-- File: /ui/html/history.html -->
+<!-- File: /ui/html/notice_board.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>변동 이력</title>
+  <title>공지사항 - 다산 근무 관리자</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -16,7 +16,7 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 변동 이력</div>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 공지사항</div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
@@ -56,25 +56,12 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="card">
-        <div class="card-title">최근 이력 (최근 30일 · 최대 50건)</div>
-        <div id="history-status" class="muted">불러오는 중...</div>
-        <table class="table" id="history-table">
-          <thead>
-            <tr><th>시간</th><th>동작</th><th>신청자</th><th>대상자</th><th>신청 ID</th><th>세부</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="card-title">공지사항 게시판</div>
+        <div id="notice-empty" class="muted" style="display:none;">현재 등록된 공지가 없습니다.</div>
+        <div id="notice-list" class="notice-board"></div>
       </div>
     </main>
   </div>
-  <script type="module">
-    import { initAppLayout } from '../js/layout.js';
-    import { loadHistory } from '../js/history.js';
-
-    const user = await initAppLayout('history');
-    if (user?.role === 'MASTER') {
-      await loadHistory(user);
-    }
-  </script>
+  <script type="module" src="../js/notice_board.js"></script>
 </body>
 </html>

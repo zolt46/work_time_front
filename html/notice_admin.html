@@ -1,9 +1,9 @@
-<!-- File: /ui/html/request_center.html -->
+<!-- File: /ui/html/notice_admin.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>근무 변경 신청</title>
+  <title>공지 관리 - 다산 근무 관리자</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -16,7 +16,7 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 근무 변경 신청</div>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 공지 관리</div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
@@ -57,40 +57,70 @@
     <main class="content">
       <div class="grid two">
         <div class="card">
-          <div class="card-title">결근 / 추가 근무 신청</div>
-          <form id="request-form" class="stack">
-            <select id="req-type">
-              <option value="ABSENCE">결근</option>
-              <option value="EXTRA">추가 근무</option>
-            </select>
-            <div id="req-user-wrapper" class="stack" style="display:none;">
-              <label for="req-user">신청 대상 멤버 선택</label>
-              <select id="req-user"></select>
+          <div class="card-title">공지 등록/수정</div>
+          <form id="notice-form" class="form">
+            <label>제목
+              <input type="text" name="title" required />
+            </label>
+            <label>내용
+              <textarea name="body" rows="5" required></textarea>
+            </label>
+            <div class="grid two">
+              <label>공지 유형
+                <select name="type" required>
+                  <option value="DB_MAINTENANCE">DB 점검</option>
+                  <option value="SYSTEM_MAINTENANCE">시스템 점검</option>
+                  <option value="WORK_SPECIAL">근무 특별 공지</option>
+                  <option value="GENERAL">일반 공지</option>
+                </select>
+              </label>
+              <label>채널
+                <select name="channel" required>
+                  <option value="POPUP">팝업</option>
+                  <option value="BANNER">배너</option>
+                  <option value="BOARD">게시판</option>
+                </select>
+              </label>
             </div>
-            <input id="req-date" type="date" required />
-            <label>09~18시 범위에서 여러 슬롯 선택 (연속 구간은 함께 처리됩니다)</label>
-            <div id="req-slot-grid" class="slot-grid table-like"></div>
-            <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
-            <textarea id="req-reason" placeholder="사유를 입력하세요 (필수)" rows="3" required></textarea>
-            <button class="btn" type="submit">신청 제출</button>
+            <div class="grid two">
+              <label>대상 범위
+                <select name="scope" id="notice-scope">
+                  <option value="ALL">전체</option>
+                  <option value="ROLE">역할별</option>
+                  <option value="USER">개별 사용자</option>
+                </select>
+              </label>
+              <label>우선순위
+                <input type="number" name="priority" value="0" />
+              </label>
+            </div>
+            <div id="notice-role-targets" class="notice-targets"></div>
+            <div id="notice-user-targets" class="notice-targets"></div>
+            <div class="grid two">
+              <label>시작 시각
+                <input type="datetime-local" name="start_at" />
+              </label>
+              <label>종료 시각
+                <input type="datetime-local" name="end_at" />
+              </label>
+            </div>
+            <label class="inline">
+              <input type="checkbox" name="is_active" checked /> 활성화
+            </label>
+            <div class="form-actions">
+              <button class="btn" id="notice-submit" type="submit">공지 등록</button>
+              <button class="btn secondary" id="notice-cancel-edit" type="button" style="display:none;">편집 취소</button>
+            </div>
           </form>
         </div>
         <div class="card">
-          <div class="card-title">내 신청 현황</div>
-          <ul id="my-requests" class="stack"></ul>
+          <div class="card-title">공지 목록</div>
+          <div id="notice-admin-empty" class="muted" style="display:none;">등록된 공지가 없습니다.</div>
+          <div id="notice-admin-list" class="notice-admin-list"></div>
         </div>
       </div>
     </main>
   </div>
-  <script type="module">
-    import { initAppLayout } from '../js/layout.js';
-    import { initRequestPage } from '../js/requests.js';
-
-    const user = await initAppLayout('requests');
-    const today = new Date().toISOString().slice(0, 10);
-    const dateInput = document.getElementById('req-date');
-    if (dateInput && !dateInput.value) dateInput.value = today;
-    await initRequestPage(user);
-  </script>
+  <script type="module" src="../js/notice_admin.js"></script>
 </body>
 </html>

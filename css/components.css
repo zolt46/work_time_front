@@ -198,6 +198,138 @@ table.table tbody tr:hover { background: #f8fafc; }
 }
 
 .input-with-toggle { position: relative; }
+
+.notice-banner-container {
+  display: grid;
+  gap: 10px;
+  margin: 16px 24px 0;
+}
+
+.notice-banner {
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  display: grid;
+  gap: 8px;
+}
+
+.notice-banner-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.notice-banner-body {
+  color: #7c2d12;
+  font-size: 14px;
+}
+
+.notice-banner-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.notice-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #0f172a;
+}
+
+.notice-popup-backdrop .notice-popup {
+  max-width: 520px;
+}
+
+.notice-popup-title {
+  display: grid;
+  gap: 6px;
+}
+
+.notice-board {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.notice-card {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.notice-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notice-card-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.notice-card-body {
+  color: #1f2937;
+  white-space: pre-wrap;
+}
+
+.notice-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.notice-admin-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.notice-admin-row {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notice-admin-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notice-admin-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.notice-status {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {
   position: absolute;
