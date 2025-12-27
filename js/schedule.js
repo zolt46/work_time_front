@@ -29,16 +29,32 @@ function getWeekStart(dateStr) {
   return formatDateOnly(start);
 }
 
-function pickFallbackWeekStart(assignments = []) {
+function pickRelevantWeekStart(assignments = []) {
   if (!assignments.length) return null;
-  let earliest = null;
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let nextStart = null;
+  let latestPast = null;
+
   assignments.forEach((assignment) => {
-    if (!assignment.valid_from) return;
-    const date = parseDateValue(assignment.valid_from);
-    if (!earliest || date < earliest) earliest = date;
+    const fromDate = assignment.valid_from ? parseDateValue(assignment.valid_from) : null;
+    const toDate = assignment.valid_to ? parseDateValue(assignment.valid_to) : null;
+    if (fromDate && fromDate <= todayOnly && (!toDate || toDate >= todayOnly)) {
+      latestPast = todayOnly;
+      return;
+    }
+    if (fromDate && fromDate > todayOnly && (!nextStart || fromDate < nextStart)) {
+      nextStart = fromDate;
+    }
+    if (toDate && toDate < todayOnly && (!latestPast || toDate > latestPast)) {
+      latestPast = toDate;
+    }
   });
-  if (!earliest) return null;
-  return getWeekStart(formatDateOnly(earliest));
+
+  if (latestPast) return getWeekStart(formatDateOnly(latestPast));
+  if (nextStart) return getWeekStart(formatDateOnly(nextStart));
+  const fallback = assignments.find((assignment) => assignment.valid_from);
+  return fallback ? getWeekStart(fallback.valid_from) : null;
 }
 
 function normalizeEvents(assignments = []) {
@@ -240,7 +256,7 @@ async function loadGlobalSchedule(targetId = 'schedule-container', options = {})
   if (!events.length) {
     const snapshot = await apiRequest('/schedule/global');
     const assignments = snapshot?.assignments || [];
-    const fallbackStart = pickFallbackWeekStart(assignments);
+    const fallbackStart = pickRelevantWeekStart(assignments);
     if (fallbackStart && fallbackStart !== start) {
       const fallbackParams = new URLSearchParams({ start: fallbackStart });
       events = await apiRequest(`/schedule/weekly_view?${fallbackParams.toString()}`);
@@ -257,7 +273,7 @@ async function loadBaseSchedule(targetId = 'schedule-container', options = {}) {
   if (!events.length) {
     const snapshot = await apiRequest('/schedule/global');
     const assignments = snapshot?.assignments || [];
-    const fallbackStart = pickFallbackWeekStart(assignments);
+    const fallbackStart = pickRelevantWeekStart(assignments);
     if (fallbackStart && fallbackStart !== start) {
       const fallbackParams = new URLSearchParams({ start: fallbackStart });
       events = await apiRequest(`/schedule/weekly_base?${fallbackParams.toString()}`);

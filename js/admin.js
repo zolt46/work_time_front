@@ -366,6 +366,16 @@ function updateAssignPreview() {
   preview.textContent = `${selectedTexts.length}개 구간 선택: ${selectedTexts.join(', ')}`;
 }
 
+function markAssignedSlotRange(weekday, startHour, endHour) {
+  for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {
+    const key = `${weekday}-${h}`;
+    assignedSlots.add(key);
+    const cell = assignGridCells.get(key);
+    if (cell) cell.classList.add('assigned', 'selected');
+    selectedAssignSlots.add(key);
+  }
+}
+
 async function refreshAssignedSlotsForUser() {
   assignedSlots.clear();
   assignGridCells.forEach((cell) => cell.classList.remove('assigned'));
@@ -382,11 +392,24 @@ async function refreshAssignedSlotsForUser() {
   const rangeEl = appliedRangeEl();
   if (rangeEl) rangeEl.textContent = '배정 일자를 불러오는 중...';
   try {
-    const events = await apiRequest(`/schedule/weekly_base?${params.toString()}`);
+    let events = await apiRequest(`/schedule/weekly_base?${params.toString()}`);
     let minFrom = null;
     let maxTo = null;
     const fromInputEl = document.getElementById('assign-from');
     const toInputEl = document.getElementById('assign-to');
+    if (!events.length) {
+      const snapshot = await apiRequest('/schedule/global');
+      const assignments = (snapshot?.assignments || []).filter((assignment) => assignment.user?.id === user_id);
+      events = assignments.map((assignment) => ({
+        date: assignment.valid_from,
+        start_time: assignment.shift?.start_time,
+        end_time: assignment.shift?.end_time,
+        valid_from: assignment.valid_from,
+        valid_to: assignment.valid_to,
+        shift: assignment.shift,
+        source: 'BASE'
+      }));
+    }
     events.forEach((ev) => {
       if (ev.source === 'BASE') {
         const fromDate = ev.valid_from ? new Date(ev.valid_from) : null;
@@ -394,17 +417,17 @@ async function refreshAssignedSlotsForUser() {
         if (fromDate && (!minFrom || fromDate < minFrom)) minFrom = fromDate;
         if (toDate && (!maxTo || toDate > maxTo)) maxTo = toDate;
       }
+      if (ev.shift) {
+        const startHour = parseInt(ev.shift.start_time.split(':')[0], 10);
+        const endHour = parseInt(ev.shift.end_time.split(':')[0], 10);
+        markAssignedSlotRange(ev.shift.weekday, startHour, endHour);
+        return;
+      }
       const dateObj = parseDateValue(ev.date);
       const weekday = (dateObj.getDay() + 6) % 7;
       const startHour = parseInt(ev.start_time.split(':')[0], 10);
       const endHour = parseInt(ev.end_time.split(':')[0], 10);
-      for (let h = Math.max(9, startHour); h < Math.min(18, endHour); h++) {
-        const key = `${weekday}-${h}`;
-        assignedSlots.add(key);
-        const cell = assignGridCells.get(key);
-        if (cell) cell.classList.add('assigned', 'selected');
-        selectedAssignSlots.add(key);
-      }
+      markAssignedSlotRange(weekday, startHour, endHour);
     });
     if (rangeEl) {
       if (minFrom || maxTo) {
