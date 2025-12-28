@@ -34,6 +34,10 @@ function buildRoleOptions() {
 
 function buildUserOptions() {
   if (!userTargets) return;
+  if (!usersCache.length) {
+    userTargets.innerHTML = '<div class="muted small">사용자 목록을 불러올 수 없습니다.</div>';
+    return;
+  }
   userTargets.innerHTML = usersCache
     .map((user) => `<label><input type="checkbox" value="${user.id}" /> ${user.name} (${user.role})</label>`)
     .join('');

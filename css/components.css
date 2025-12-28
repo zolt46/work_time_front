@@ -330,6 +330,58 @@ table.table tbody tr:hover { background: #f8fafc; }
   border-radius: 999px;
   background: #e2e8f0;
 }
+
+.notice-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  display: grid;
+  gap: 12px;
+}
+
+.section-header h4 {
+  margin: 0 0 4px;
+}
+
+.section-header p {
+  margin: 0;
+}
+
+.field-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.notice-targets {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.notice-targets--roles::before,
+.notice-targets--users::before {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.notice-targets--roles::before {
+  content: "역할 대상 선택";
+}
+
+.notice-targets--users::before {
+  content: "개별 사용자 선택";
+}
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {
   position: absolute;
