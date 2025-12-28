@@ -68,17 +68,19 @@ export async function initNoticeOverlays() {
       bannerContainer.innerHTML = '';
       const banner = document.createElement('div');
       banner.className = 'notice-banner';
-      const meta = document.createElement('div');
-      meta.className = 'notice-banner-meta';
-      meta.appendChild(buildNoticeTag(notice));
-      const title = document.createElement('strong');
-      title.textContent = notice.title;
-      meta.appendChild(title);
-      banner.appendChild(meta);
-      const body = document.createElement('div');
-      body.className = 'notice-banner-body';
-      body.textContent = notice.body;
-      banner.appendChild(body);
+
+      const content = document.createElement('div');
+      content.className = 'notice-banner-content';
+
+      const tag = buildNoticeTag(notice);
+      tag.classList.add('notice-banner-tag');
+      content.appendChild(tag);
+
+      const text = document.createElement('div');
+      text.className = 'notice-banner-text';
+      text.innerHTML = `<strong>${notice.title}</strong><span class="notice-banner-body">${notice.body}</span>`;
+      content.appendChild(text);
+
       const action = document.createElement('div');
       action.className = 'notice-banner-actions';
       const link = document.createElement('a');
@@ -90,6 +92,8 @@ export async function initNoticeOverlays() {
       counter.className = 'notice-banner-count';
       counter.textContent = `${bannerIndex + 1} / ${bannerNotices.length}`;
       action.appendChild(counter);
+
+      banner.appendChild(content);
       banner.appendChild(action);
       bannerContainer.appendChild(banner);
       bannerIndex = (bannerIndex + 1) % bannerNotices.length;
@@ -121,20 +125,20 @@ export async function initNoticeOverlays() {
     modal.className = 'modal-backdrop notice-popup-backdrop';
     modal.innerHTML = `
       <div class="modal notice-popup">
-        <div class="modal-header">
+        <div class="modal-header notice-popup-header">
           <div class="notice-popup-title">
             <span class="notice-tag">${typeLabels[notice.type] || notice.type}</span>
             <h3>${notice.title}</h3>
           </div>
-          <div class="muted small">${notice.start_at ? formatDate(notice.start_at) : ''}</div>
+          <div class="muted small">${notice.start_at ? formatDate(notice.start_at) : '공지사항'}</div>
         </div>
-        <div class="modal-body">
+        <div class="modal-body notice-popup-body">
           <p>${notice.body}</p>
           <label class="inline notice-snooze">
             <input type="checkbox" id="notice-popup-snooze" /> 오늘 하루 보지 않기
           </label>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer notice-popup-footer">
           <a class="btn secondary" href="notice_board.html">공지사항 보기</a>
           <button class="btn" id="notice-popup-confirm">확인</button>
         </div>

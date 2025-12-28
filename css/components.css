@@ -206,40 +206,63 @@ table.table tbody tr:hover { background: #f8fafc; }
 }
 
 .notice-banner {
-  border-radius: 14px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #fff7cc 0%, #fde68a 100%);
-  border: 1px solid #fbbf24;
-  display: grid;
-  gap: 8px;
+  border-radius: 12px;
+  padding: 8px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.notice-banner-meta {
+.notice-banner-content {
   display: flex;
-  gap: 10px;
   align-items: center;
-  font-weight: 700;
+  gap: 10px;
+  min-width: 0;
+}
+
+.notice-banner-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: #7c2d12;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notice-banner-text strong {
+  font-weight: 700;
 }
 
 .notice-banner-body {
-  color: #7c2d12;
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 13px;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .notice-banner-actions {
   display: flex;
   gap: 8px;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .notice-banner-count {
   font-size: 12px;
-  color: #9a3412;
+  color: #c2410c;
   font-weight: 600;
+}
+
+.notice-banner-tag {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #fed7aa;
 }
 
 .notice-tag {
@@ -250,8 +273,8 @@ table.table tbody tr:hover { background: #f8fafc; }
   font-size: 12px;
   font-weight: 600;
   background: #fff;
-  color: #7c2d12;
-  border: 1px solid #fcd34d;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
 .notice-popup-backdrop .notice-popup {
@@ -264,14 +287,45 @@ table.table tbody tr:hover { background: #f8fafc; }
 }
 
 .notice-popup-backdrop .modal {
-  border: 1px solid #fde68a;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.notice-popup-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.notice-popup-body {
+  display: grid;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.notice-popup-footer {
+  border-top: 1px solid var(--border);
 }
 
 .notice-board {
   display: grid;
   gap: 12px;
   margin-top: 12px;
+}
+
+.notice-board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notice-board-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
 }
 
 .notice-card {

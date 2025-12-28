@@ -56,8 +56,8 @@ function buildUserOptions() {
     return;
   }
   const filtered = currentUser?.role === 'OPERATOR'
-    ? usersCache.filter((user) => user.role !== 'MASTER')
-    : usersCache;
+    ? usersCache.filter((user) => user.role === 'MEMBER' && user.id !== currentUser?.id)
+    : usersCache.filter((user) => user.id !== currentUser?.id);
   userTargets.innerHTML = filtered
     .map((user) => `<label><input type="checkbox" value="${user.id}" /> ${user.name} (${user.role})</label>`)
     .join('');
