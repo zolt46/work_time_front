@@ -77,24 +77,11 @@ export async function initNoticeOverlays() {
       banner.appendChild(body);
       const action = document.createElement('div');
       action.className = 'notice-banner-actions';
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn tiny secondary';
-      closeBtn.textContent = '닫기';
-      closeBtn.addEventListener('click', async (event) => {
-        event.stopPropagation();
-        banner.remove();
-        try {
-          await dismissNotice(notice.id, 'BANNER');
-        } catch (e) {
-          console.warn('배너 닫기 기록 실패', e);
-        }
-      });
       const link = document.createElement('a');
       link.className = 'btn tiny';
       link.href = 'notice_board.html';
       link.textContent = '공지사항 보기';
       action.appendChild(link);
-      action.appendChild(closeBtn);
       banner.appendChild(action);
       bannerContainer.appendChild(banner);
     });
@@ -128,6 +115,9 @@ export async function initNoticeOverlays() {
         </div>
         <div class="modal-body">
           <p>${notice.body}</p>
+          <label class="inline notice-snooze">
+            <input type="checkbox" id="notice-popup-snooze" /> 오늘 하루 보지 않기
+          </label>
         </div>
         <div class="modal-footer">
           <a class="btn secondary" href="notice_board.html">공지사항 보기</a>
@@ -137,10 +127,16 @@ export async function initNoticeOverlays() {
     `;
     document.body.appendChild(modal);
     document.getElementById('notice-popup-confirm')?.addEventListener('click', async () => {
+      const snooze = document.getElementById('notice-popup-snooze');
+      const snoozeChecked = snooze && snooze.checked;
       try {
-        await dismissNotice(notice.id, 'POPUP');
+        if (snoozeChecked) {
+          await dismissNotice(notice.id, 'POPUP');
+        } else {
+          await markNoticeRead(notice.id, 'POPUP');
+        }
       } catch (e) {
-        console.warn('팝업 닫기 기록 실패', e);
+        console.warn('팝업 기록 실패', e);
       }
       modal.remove();
       popupIndex += 1;

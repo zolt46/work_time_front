@@ -14,7 +14,7 @@ const cancelEditBtn = document.getElementById('notice-cancel-edit');
 let usersCache = [];
 let editingId = null;
 
-await initAppLayout('notice_admin');
+const currentUser = await initAppLayout('notice_admin');
 
 async function loadUsers() {
   try {
@@ -30,6 +30,21 @@ function buildRoleOptions() {
   roleTargets.innerHTML = roles
     .map((role) => `<label><input type="checkbox" value="${role}" /> ${role}</label>`)
     .join('');
+}
+
+function restrictTypeOptions() {
+  if (!form || !currentUser) return;
+  if (currentUser.role !== 'OPERATOR') return;
+  const select = form.querySelector('select[name="type"]');
+  if (!select) return;
+  Array.from(select.options).forEach((option) => {
+    if (['DB_MAINTENANCE', 'SYSTEM_MAINTENANCE'].includes(option.value)) {
+      option.disabled = true;
+    }
+  });
+  if (['DB_MAINTENANCE', 'SYSTEM_MAINTENANCE'].includes(select.value)) {
+    select.value = 'WORK_SPECIAL';
+  }
 }
 
 function buildUserOptions() {
@@ -81,7 +96,17 @@ function renderNotices(notices) {
     return;
   }
   if (emptyEl) emptyEl.style.display = 'none';
+  const channelLabels = {
+    POPUP: '팝업',
+    BANNER: '배너',
+    POPUP_BANNER: '팝업+배너',
+    NONE: '추가 노출 없음',
+    BOARD: '추가 노출 없음'
+  };
   notices.forEach((notice) => {
+    const isMasterNotice = notice.creator_role === 'MASTER';
+    const isOperator = currentUser?.role === 'OPERATOR';
+    const disableActions = isOperator && isMasterNotice;
     const row = document.createElement('div');
     row.className = 'notice-admin-row';
     row.innerHTML = `
@@ -91,17 +116,23 @@ function renderNotices(notices) {
           <strong>${notice.title}</strong>
           ${notice.is_active ? '' : '<span class="notice-status muted">비활성</span>'}
         </div>
-        <div class="muted small">채널: ${notice.channel} · 범위: ${notice.scope} · 시작: ${notice.start_at ? formatNoticeDate(notice.start_at) : '즉시'}</div>
+        <div class="muted small">채널: ${channelLabels[notice.channel] || notice.channel} · 범위: ${notice.scope} · 시작: ${notice.start_at ? formatNoticeDate(notice.start_at) : '즉시'}</div>
       </div>
       <div class="notice-admin-actions">
-        <button class="btn tiny" data-action="edit">수정</button>
-        <button class="btn tiny secondary" data-action="toggle">${notice.is_active ? '비활성화' : '활성화'}</button>
-        <button class="btn tiny danger" data-action="delete">삭제</button>
+        <button class="btn tiny" data-action="edit" ${disableActions ? 'disabled' : ''}>수정</button>
+        <button class="btn tiny secondary" data-action="toggle" ${disableActions ? 'disabled' : ''}>${notice.is_active ? '비활성화' : '활성화'}</button>
+        <button class="btn tiny danger" data-action="delete" ${disableActions ? 'disabled' : ''}>삭제</button>
       </div>
     `;
-    row.querySelector('[data-action="edit"]').addEventListener('click', () => populateForm(notice));
-    row.querySelector('[data-action="toggle"]').addEventListener('click', () => toggleNotice(notice));
-    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteNotice(notice));
+    row.querySelector('[data-action="edit"]').addEventListener('click', () => {
+      if (!disableActions) populateForm(notice);
+    });
+    row.querySelector('[data-action="toggle"]').addEventListener('click', () => {
+      if (!disableActions) toggleNotice(notice);
+    });
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => {
+      if (!disableActions) deleteNotice(notice);
+    });
     listEl.appendChild(row);
   });
 }
@@ -112,7 +143,17 @@ function populateForm(notice) {
   form.title.value = notice.title;
   form.body.value = notice.body;
   form.type.value = notice.type;
-  form.channel.value = notice.channel;
+  const channels = {
+    POPUP: ['popup'],
+    BANNER: ['banner'],
+    POPUP_BANNER: ['popup', 'banner'],
+    NONE: [],
+    BOARD: []
+  };
+  const selected = channels[notice.channel] || [];
+  form.querySelectorAll('input[name="channels"]').forEach((input) => {
+    input.checked = selected.includes(input.value);
+  });
   form.scope.value = notice.scope;
   form.priority.value = notice.priority ?? 0;
   form.is_active.checked = notice.is_active;
@@ -157,11 +198,20 @@ async function deleteNotice(notice) {
 async function submitForm(event) {
   event.preventDefault();
   if (!form) return;
+  const selectedChannels = Array.from(form.querySelectorAll('input[name="channels"]:checked')).map((input) => input.value);
+  const channelValue = selectedChannels.includes('popup') && selectedChannels.includes('banner')
+    ? 'POPUP_BANNER'
+    : selectedChannels.includes('popup')
+      ? 'POPUP'
+      : selectedChannels.includes('banner')
+        ? 'BANNER'
+        : 'NONE';
+
   const payload = {
     title: form.title.value.trim(),
     body: form.body.value.trim(),
     type: form.type.value,
-    channel: form.channel.value,
+    channel: channelValue,
     scope: form.scope.value,
     priority: Number(form.priority.value || 0),
     is_active: form.is_active.checked
@@ -197,4 +247,5 @@ await loadUsers();
 buildRoleOptions();
 buildUserOptions();
 setScopeVisibility();
+restrictTypeOptions();
 loadNotices();

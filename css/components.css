@@ -382,6 +382,19 @@ table.table tbody tr:hover { background: #f8fafc; }
 .notice-targets--users::before {
   content: "개별 사용자 선택";
 }
+
+.channel-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.notice-snooze {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {
   position: absolute;

@@ -80,13 +80,12 @@
                   </select>
                   <span class="field-help">권한에 따라 선택 가능한 유형이 제한됩니다.</span>
                 </label>
-                <label>채널
-                  <select name="channel" required>
-                    <option value="POPUP">팝업 (강조)</option>
-                    <option value="BANNER">배너 (상단 노출)</option>
-                    <option value="BOARD">게시판 (목록 노출)</option>
-                  </select>
-                  <span class="field-help">팝업은 확인 시 사라지고, 배너는 상단에 표시됩니다.</span>
+                <label>노출 채널
+                  <div class="channel-toggle">
+                    <label class="inline"><input type="checkbox" name="channels" value="popup" /> 팝업</label>
+                    <label class="inline"><input type="checkbox" name="channels" value="banner" /> 배너</label>
+                  </div>
+                  <span class="field-help">게시판에는 항상 등록됩니다. 팝업/배너를 선택하면 추가 노출됩니다.</span>
                 </label>
               </div>
             </div>
