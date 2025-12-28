@@ -26,7 +26,9 @@ async function loadUsers() {
 
 function buildRoleOptions() {
   if (!roleTargets) return;
-  const roles = ['MASTER', 'OPERATOR', 'MEMBER'];
+  const roles = currentUser?.role === 'OPERATOR'
+    ? ['OPERATOR', 'MEMBER']
+    : ['MASTER', 'OPERATOR', 'MEMBER'];
   roleTargets.innerHTML = roles
     .map((role) => `<label><input type="checkbox" value="${role}" /> ${role}</label>`)
     .join('');
@@ -53,7 +55,10 @@ function buildUserOptions() {
     userTargets.innerHTML = '<div class="muted small">사용자 목록을 불러올 수 없습니다.</div>';
     return;
   }
-  userTargets.innerHTML = usersCache
+  const filtered = currentUser?.role === 'OPERATOR'
+    ? usersCache.filter((user) => user.role !== 'MASTER')
+    : usersCache;
+  userTargets.innerHTML = filtered
     .map((user) => `<label><input type="checkbox" value="${user.id}" /> ${user.name} (${user.role})</label>`)
     .join('');
 }
@@ -216,9 +221,14 @@ async function submitForm(event) {
     priority: Number(form.priority.value || 0),
     is_active: form.is_active.checked
   };
+  const operatorAllScope = currentUser?.role === 'OPERATOR' && payload.scope === 'ALL';
+  if (operatorAllScope) {
+    payload.scope = 'ROLE';
+    payload.target_roles = ['OPERATOR', 'MEMBER'];
+  }
   if (form.start_at.value) payload.start_at = new Date(form.start_at.value).toISOString();
   if (form.end_at.value) payload.end_at = new Date(form.end_at.value).toISOString();
-  if (payload.scope === 'ROLE') {
+  if (payload.scope === 'ROLE' && !operatorAllScope) {
     payload.target_roles = getSelectedValues(roleTargets);
   }
   if (payload.scope === 'USER') {

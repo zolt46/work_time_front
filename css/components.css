@@ -208,7 +208,7 @@ table.table tbody tr:hover { background: #f8fafc; }
 .notice-banner {
   border-radius: 12px;
   padding: 12px 16px;
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   border: 1px solid #fbbf24;
   display: grid;
   gap: 8px;
@@ -230,8 +230,15 @@ table.table tbody tr:hover { background: #f8fafc; }
 .notice-banner-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.notice-banner-count {
+  font-size: 12px;
+  color: #9a3412;
+  font-weight: 600;
 }
 
 .notice-tag {
@@ -252,6 +259,11 @@ table.table tbody tr:hover { background: #f8fafc; }
 .notice-popup-title {
   display: grid;
   gap: 6px;
+}
+
+.notice-popup-backdrop .modal {
+  border: 1px solid #fde68a;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
 }
 
 .notice-board {

@@ -81,6 +81,7 @@ async function loadUser() {
 }
 
 function logout() {
+  sessionStorage.removeItem('notice_popup_seen');
   redirectToLogin();
 }
 

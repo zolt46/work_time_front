@@ -61,7 +61,11 @@ export async function initNoticeOverlays() {
 
   bannerContainer.innerHTML = '';
   if (bannerNotices.length) {
-    bannerNotices.slice(0, 2).forEach((notice) => {
+    let bannerIndex = 0;
+    const renderBanner = () => {
+      const notice = bannerNotices[bannerIndex];
+      if (!notice) return;
+      bannerContainer.innerHTML = '';
       const banner = document.createElement('div');
       banner.className = 'notice-banner';
       const meta = document.createElement('div');
@@ -82,9 +86,20 @@ export async function initNoticeOverlays() {
       link.href = 'notice_board.html';
       link.textContent = '공지사항 보기';
       action.appendChild(link);
+      const counter = document.createElement('span');
+      counter.className = 'notice-banner-count';
+      counter.textContent = `${bannerIndex + 1} / ${bannerNotices.length}`;
+      action.appendChild(counter);
       banner.appendChild(action);
       bannerContainer.appendChild(banner);
-    });
+      bannerIndex = (bannerIndex + 1) % bannerNotices.length;
+    };
+    renderBanner();
+    setInterval(renderBanner, 8000);
+  }
+
+  if (sessionStorage.getItem('notice_popup_seen') === 'true') {
+    return;
   }
 
   let popupNotices = [];
@@ -126,6 +141,7 @@ export async function initNoticeOverlays() {
       </div>
     `;
     document.body.appendChild(modal);
+    sessionStorage.setItem('notice_popup_seen', 'true');
     document.getElementById('notice-popup-confirm')?.addEventListener('click', async () => {
       const snooze = document.getElementById('notice-popup-snooze');
       const snoozeChecked = snooze && snooze.checked;
