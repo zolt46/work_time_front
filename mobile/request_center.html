@@ -23,9 +23,13 @@
     <div class="mobile-top">
       <div class="mobile-top-left">
         <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+      </div>
+      <div class="mobile-top-center">
         <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 변경 신청</div>
       </div>
-      <button class="btn tiny muted" id="logout-btn">로그아웃</button>
+      <div class="mobile-top-right mobile-actions">
+        <button class="btn tiny muted" id="logout-btn">로그아웃</button>
+      </div>
     </div>
     <div class="mobile-status-row">
       <div class="mobile-status-line">
@@ -110,7 +114,7 @@
           </div>
           <input id="req-date" type="date" required />
           <label>09~18시 범위에서 여러 슬롯 선택 (연속 구간은 함께 처리됩니다)</label>
-          <div class="mobile-scroll">
+          <div class="slot-grid-shell mobile-scroll">
             <div id="req-slot-grid" class="slot-grid table-like"></div>
           </div>
           <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>

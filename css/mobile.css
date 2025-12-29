@@ -61,10 +61,10 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-header .mobile-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 12px;
   position: relative;
 }
 
@@ -72,6 +72,19 @@ body.app-loading .mobile-nav {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.mobile-top-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.mobile-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mobile-top .icon-btn {
@@ -84,6 +97,7 @@ body.app-loading .mobile-nav {
   gap: 10px;
   font-weight: 700;
   font-size: 18px;
+  white-space: nowrap;
 }
 
 .mobile-brand img {
@@ -292,6 +306,13 @@ body.app-loading .mobile-nav {
 
 .mobile-scroll .slot-grid.table-like {
   min-width: 520px;
+}
+
+.slot-grid-shell {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
 }
 
 .request-card-list {
