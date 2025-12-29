@@ -8,6 +8,8 @@
   --card: #ffffff;
   --border: #e2e8f0;
   --header-height: 72px;
+  --content-max-width: 1200px;
+  --content-gutter: clamp(16px, 3vw, 28px);
 }
 * { box-sizing: border-box; }
 body {

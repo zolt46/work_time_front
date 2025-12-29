@@ -13,8 +13,17 @@
 .icon-btn { border: none; background: transparent; font-size: 22px; cursor: pointer; color: #1f2937; padding: 6px; border-radius: 6px; transition: transform 0.2s ease, background 0.2s ease; }
 .icon-btn:hover { background: #e2e8f0; }
 .icon-btn.active { transform: rotate(90deg); background: #e2e8f0; }
-.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-.header-left { display: flex; align-items: center; gap: 12px; }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
+  max-width: 100%;
+  justify-self: end;
+}
+.header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .session-timer { font-size: 13px; color: #1f2937; }
 .loading-bar { height: 4px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 10px 0; display: none; }
 .loading-bar.show { display: block; }

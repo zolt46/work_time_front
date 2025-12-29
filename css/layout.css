@@ -2,10 +2,13 @@
 .header {
   position: sticky;
   top: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 8px;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 12px var(--content-gutter);
   background: #fff;
   border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -93,12 +96,15 @@ body.app-loading .page {
 }
 .sidebar-overlay.show { opacity: 1; pointer-events: all; }
 .content {
-  padding: 20px;
+  padding: 24px var(--content-gutter) 32px;
   display: grid;
   gap: 16px;
+  align-content: start;
+  width: min(100%, var(--content-max-width));
+  margin: 0 auto;
 }
-.grid { display: grid; gap: 12px; }
-.grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.grid { display: grid; gap: 12px; align-items: start; }
+.grid.two { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .grid.two .full { grid-column: 1 / -1; }
 .schedule-grid {
   display: grid;
@@ -114,6 +120,8 @@ body.app-loading .page {
 .schedule-grid .header { background: #edf2f7; font-weight: 600; }
 @media (max-width: 900px) {
   .sidebar { width: 78vw; }
+  .header { grid-template-columns: 1fr; align-items: flex-start; }
+  .header-right { justify-self: start; }
 }
 
 .login-shell {
