@@ -22,6 +22,17 @@ if (!globalThis.__worktimeLayout) {
       if (page) page.classList.add('sidebar-closed');
       toggle.classList.remove('active');
     };
+    document.querySelectorAll('.nav-toggle').forEach((button) => {
+      button.addEventListener('click', () => {
+        const group = button.dataset.group;
+        const panel = document.querySelector(`.nav-sub[data-group="${group}"]`);
+        if (!panel) return;
+        const willOpen = !panel.classList.contains('open');
+        panel.classList.toggle('open', willOpen);
+        button.classList.toggle('open', willOpen);
+        button.setAttribute('aria-expanded', String(willOpen));
+      });
+    });
     toggle.addEventListener('click', () => {
       const willOpen = !sidebar.classList.contains('open');
       sidebar.classList.toggle('open', willOpen);
@@ -35,6 +46,21 @@ if (!globalThis.__worktimeLayout) {
   function highlightNav(activePage) {
     document.querySelectorAll('.nav-link').forEach((link) => {
       if (link.dataset.page === activePage) link.classList.add('active');
+    });
+    document.querySelectorAll('.nav-toggle').forEach((toggle) => {
+      if (toggle.dataset.page === activePage) toggle.classList.add('active');
+    });
+    document.querySelectorAll('.nav-sub').forEach((sub) => {
+      const activeLink = sub.querySelector('.nav-link.active');
+      if (activeLink) {
+        sub.classList.add('open');
+        const group = sub.dataset.group;
+        const toggle = document.querySelector(`.nav-toggle[data-group="${group}"]`);
+        if (toggle) {
+          toggle.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      }
     });
   }
 
@@ -51,7 +77,7 @@ if (!globalThis.__worktimeLayout) {
   }
 
   function applyNavVisibility(role) {
-    document.querySelectorAll('.nav-link').forEach((link) => {
+    document.querySelectorAll('.nav-link, .nav-toggle').forEach((link) => {
       link.style.display = isLinkAllowed(link, role) ? '' : 'none';
     });
   }

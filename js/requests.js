@@ -598,4 +598,33 @@ async function initRequestPage(current) {
   if (form) form.addEventListener('submit', submitRequest);
 }
 
-export { submitRequest, loadMyRequests, loadPendingRequests, renderRequestFeed, initRequestPage, setShiftCache, requestTimeLabel };
+async function initRequestForm(current) {
+  currentUser = current;
+  await ensureShifts();
+  initSlotSelection();
+  await refreshAssignedSlots();
+  if (currentUser && currentUser.role !== 'MEMBER') {
+    await loadRequestUsers(currentUser);
+  }
+  bindFormEvents();
+  const form = document.getElementById('request-form');
+  if (form) form.addEventListener('submit', submitRequest);
+}
+
+async function initRequestStatus(current) {
+  currentUser = current;
+  await ensureShifts();
+  await loadMyRequests();
+}
+
+export {
+  submitRequest,
+  loadMyRequests,
+  loadPendingRequests,
+  renderRequestFeed,
+  initRequestPage,
+  initRequestForm,
+  initRequestStatus,
+  setShiftCache,
+  requestTimeLabel
+};

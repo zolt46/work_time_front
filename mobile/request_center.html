@@ -56,9 +56,39 @@
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
-      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청</a>
-      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
+      <div class="nav-group">
+        <button class="nav-toggle" type="button" data-group="profile" data-page="profile" aria-expanded="false">
+          <span>내 프로필</span>
+          <span class="nav-plus">+</span>
+        </button>
+        <div class="nav-sub" data-group="profile">
+          <a class="nav-link" data-page="profile-info" href="member_profile.html">프로필 정보</a>
+          <a class="nav-link" data-page="profile-assignments" href="profile_assignments.html">내 배정 근무</a>
+          <a class="nav-link" data-page="profile-visible" href="profile_visible_users.html">접근 가능한 계정 현황</a>
+          <a class="nav-link" data-page="profile-account" href="profile_account.html">로그인 ID/비밀번호 변경</a>
+          <a class="nav-link" data-page="profile-reset" href="profile_reset.html">데이터 초기화</a>
+        </div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-toggle" type="button" data-group="requests" data-page="requests" data-roles="MASTER,MEMBER" aria-expanded="false">
+          <span>근무 변경 신청</span>
+          <span class="nav-plus">+</span>
+        </button>
+        <div class="nav-sub" data-group="requests">
+          <a class="nav-link" data-page="request-form" data-roles="MASTER,MEMBER" href="request_center.html">결근/추가 근무 신청</a>
+          <a class="nav-link" data-page="request-status" data-roles="MASTER,MEMBER" href="request_status.html">내 신청 현황</a>
+        </div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-toggle" type="button" data-group="approvals" data-page="approvals" data-roles="MASTER,OPERATOR" aria-expanded="false">
+          <span>변경 승인함</span>
+          <span class="nav-plus">+</span>
+        </button>
+        <div class="nav-sub" data-group="approvals">
+          <a class="nav-link" data-page="approvals-pending" data-roles="MASTER,OPERATOR" href="request_approvals.html">대기 중인 근무 변경 요청</a>
+          <a class="nav-link" data-page="approvals-recent" data-roles="MASTER,OPERATOR" href="approvals_recent.html">최근 요청 흐름</a>
+        </div>
+      </div>
       <a class="nav-link" data-page="notices" href="notice_board.html">공지사항</a>
       <a class="nav-link" data-page="notice_admin" data-min-role="OPERATOR" href="notice_admin.html">공지 관리</a>
       <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
@@ -86,21 +116,17 @@
           <button class="btn" type="submit">신청 제출</button>
         </form>
       </section>
-      <section class="card">
-        <div class="card-title">내 신청 현황</div>
-        <ul id="my-requests" class="stack"></ul>
-      </section>
     </main>
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { initRequestPage } from '../js/requests.js';
+    import { initRequestForm } from '../js/requests.js';
 
-    const user = await initAppLayout('requests');
+    const user = await initAppLayout('request-form');
     const today = new Date().toISOString().slice(0, 10);
     const dateInput = document.getElementById('req-date');
     if (dateInput && !dateInput.value) dateInput.value = today;
-    await initRequestPage(user);
+    await initRequestForm(user);
   </script>
 </body>
 </html>

@@ -157,11 +157,31 @@ function applyMemberFilters(list) {
 
 function renderMembers() {
   const tbody = document.getElementById('member-table-body');
+  const cardList = document.getElementById('member-card-list');
   const count = document.getElementById('member-count');
-  if (!tbody) return;
-  tbody.innerHTML = '';
+  if (!tbody && !cardList) return;
+  if (tbody) tbody.innerHTML = '';
+  if (cardList) cardList.innerHTML = '';
   const filtered = applyMemberFilters(members);
   filtered.forEach((m) => {
+    if (cardList) {
+      const card = document.createElement('div');
+      card.className = 'member-card-item';
+      if (selectedMember?.id === m.id) card.classList.add('selected');
+      card.innerHTML = `
+        <div class="member-card-title">
+          <strong>${m.name}</strong>
+          <span class="badge role">${roleLabel[m.role] || m.role}</span>
+        </div>
+        <div class="member-card-meta">개인 ID: ${m.identifier || '-'}</div>
+        <div class="member-card-meta">로그인 ID: ${m.auth_account?.login_id || '-'}</div>
+        <div class="member-card-meta">상태: ${m.active ? '활성' : '비활성'}</div>
+        <div class="member-card-meta">최근 로그인: ${formatDateTimeLocal(m.auth_account?.last_login_at)}</div>
+      `;
+      card.addEventListener('click', () => setEditForm(m));
+      cardList.appendChild(card);
+      return;
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${m.name}</td><td>${roleLabel[m.role] || m.role}</td><td>${m.identifier || '-'}</td><td>${m.auth_account?.login_id || '-'}</td><td>${m.active ? '활성' : '비활성'}</td><td>${formatDateTimeLocal(m.auth_account?.last_login_at)}</td>`;
     if (selectedMember?.id === m.id) tr.classList.add('selected');
