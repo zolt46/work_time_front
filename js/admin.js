@@ -106,6 +106,7 @@ function setEditForm(member) {
       비밀번호는 해시로 저장되어 조회할 수 없습니다. 필요 시 새 임시 비밀번호로 재설정해 전달하세요.
     `;
   }
+  renderMembers();
   updateSaveButtonState();
 }
 
@@ -132,6 +133,7 @@ function clearEditForm() {
   const modeLabel = document.getElementById('member-form-mode');
   if (modeLabel) modeLabel.textContent = '신규 구성원을 추가하거나 목록에서 선택해 수정하세요.';
   if (detail) detail.textContent = '테이블에서 구성원을 선택하면 상세 정보가 표시됩니다.';
+  renderMembers();
 }
 
 function applyMemberFilters(list) {
@@ -192,6 +194,7 @@ async function deleteMember(member) {
 
 async function saveMember(event) {
   event.preventDefault();
+  const isEditing = Boolean(selectedMember);
   const submitBtn = document.getElementById('edit-save');
   setButtonLoading(submitBtn, true, '저장 중...');
   const identifierInput = document.getElementById('edit-identifier');
@@ -239,7 +242,11 @@ async function saveMember(event) {
     }
     await loadMembers();
     const latest = members.find((m) => m.id === saved.id);
-    if (latest) setEditForm(latest);
+    if (isEditing && latest) {
+      setEditForm(latest);
+    } else {
+      clearEditForm();
+    }
   } catch (e) {
     alert(e.message || '처리에 실패했습니다.');
   } finally {

@@ -63,6 +63,10 @@
 table.table tbody tr.selected { background: #eef2ff; }
 table.table tbody tr:hover { background: #f8fafc; }
 .table-wrap { overflow-x: auto; }
+.table-scroll {
+  max-height: 320px;
+  overflow: auto;
+}
 .table-compact,
 table.table.compact {
   font-size: 13px;
@@ -72,6 +76,10 @@ table.table.compact {
 table.table.compact th,
 table.table.compact td {
   padding: 6px 8px;
+}
+table.table tbody tr.selected td {
+  background: #eef2ff;
+  font-weight: 600;
 }
 .table-wide { min-width: 640px; }
 .table-wider { min-width: 760px; }
@@ -513,15 +521,15 @@ table.table.compact td {
   gap: 4px;
 }
 .slot-grid.compact {
-  grid-template-columns: 52px repeat(7, minmax(52px, 1fr));
-  gap: 3px;
+  grid-template-columns: 44px repeat(7, minmax(44px, 1fr));
+  gap: 2px;
 }
 .slot-grid .slot-header { font-weight: 700; text-align: center; color: #475569; font-size: 13px; }
 .slot-grid.compact .slot-header { font-size: 12px; }
 .slot-cell {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  height: 42px;
+  height: 34px;
   background: #f8fafc;
   cursor: pointer;
   box-shadow: none;
@@ -530,7 +538,7 @@ table.table.compact td {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
 }
 .slot-cell:hover { background: #eef2ff; }
 .slot-cell.selected { border-color: var(--primary); background: #e0ecff; }
@@ -592,6 +600,7 @@ table.table.compact td {
 .member-card .member-filters { gap: 8px; }
 .member-card .member-filters > * { flex: 1 1 180px; min-width: 160px; }
 .member-table-foot { align-items: flex-start; }
+.member-card .table-wrap.table-tall { max-height: 520px; }
 
 .member-form-grid {
   display: grid;
@@ -615,6 +624,27 @@ table.table.compact td {
   max-width: 980px;
   margin: 0 auto;
   width: 100%;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.profile-column {
+  display: grid;
+  gap: 16px;
+}
+
+.approvals-layout {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .profile-layout { grid-template-columns: 1fr; }
 }
 
 .header-right { position: relative; }
