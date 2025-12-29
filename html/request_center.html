@@ -3,7 +3,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>근무 변경 신청</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
@@ -70,25 +69,6 @@
             </div>
             <input id="req-date" type="date" required />
             <label>09~18시 범위에서 여러 슬롯 선택 (연속 구간은 함께 처리됩니다)</label>
-            <div class="slot-quick mobile-only" aria-label="모바일 간편 시간 선택">
-              <div class="slot-quick-row">
-                <label for="req-day">요일</label>
-                <select id="req-day"></select>
-              </div>
-              <div class="slot-quick-row">
-                <label for="req-start">시작 시간</label>
-                <select id="req-start"></select>
-              </div>
-              <div class="slot-quick-row">
-                <label for="req-end">종료 시간</label>
-                <select id="req-end"></select>
-              </div>
-              <div class="slot-quick-actions">
-                <button type="button" class="btn tiny secondary" id="req-add-range">구간 추가</button>
-                <button type="button" class="btn tiny muted" id="req-clear-range">선택 초기화</button>
-              </div>
-              <div class="muted small">날짜를 선택하면 해당 요일만 활성화됩니다.</div>
-            </div>
             <div id="req-slot-grid" class="slot-grid table-like"></div>
             <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
             <textarea id="req-reason" placeholder="사유를 입력하세요 (필수)" rows="3" required></textarea>

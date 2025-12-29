@@ -19,7 +19,6 @@ const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 const appliedRangeEl = () => document.getElementById('assign-current-range');
 const manualDateOverride = { from: false, to: false };
 let lastAssignUserId = null;
-let assignGridEl = null;
 
 function parseDateValue(dateStr) {
   if (!dateStr) return new Date();
@@ -318,34 +317,29 @@ function buildAssignSlotGrid() {
   const grid = document.getElementById('assign-slot-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  assignGridEl = grid;
   assignGridCells.clear();
   assignedSlots.clear();
   selectedAssignSlots.clear();
 
   const headerBlank = document.createElement('div');
-  headerBlank.className = 'slot-header corner';
-  headerBlank.dataset.weekday = 'time';
+  headerBlank.className = 'slot-header';
   grid.appendChild(headerBlank);
-  days.forEach((day, weekday) => {
+  days.forEach((day) => {
     const h = document.createElement('div');
     h.className = 'slot-header';
     h.textContent = day;
-    h.dataset.weekday = String(weekday);
     grid.appendChild(h);
   });
   hours.forEach((hour) => {
     const label = document.createElement('div');
     label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
-    label.dataset.weekday = 'time';
     grid.appendChild(label);
     days.forEach((_, weekday) => {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
-      cell.dataset.weekday = String(weekday);
       cell.addEventListener('click', () => {
         if (selectedAssignSlots.has(key)) {
           selectedAssignSlots.delete(key);
@@ -365,82 +359,6 @@ function buildAssignSlotGrid() {
   updateAssignPreview();
   const rangeEl = appliedRangeEl();
   if (rangeEl) rangeEl.textContent = '';
-}
-
-function updateAssignActiveDay(dayIndex) {
-  if (assignGridEl) {
-    assignGridEl.dataset.activeDay = dayIndex !== null ? String(dayIndex) : '';
-  }
-}
-
-function setupAssignQuickRangeSelectors() {
-  const daySelect = document.getElementById('assign-day');
-  const startSelect = document.getElementById('assign-start');
-  const endSelect = document.getElementById('assign-end');
-  const addBtn = document.getElementById('assign-add-range');
-  const clearBtn = document.getElementById('assign-clear-range');
-  if (!daySelect || !startSelect || !endSelect || !addBtn || !clearBtn) return;
-
-  daySelect.innerHTML = '';
-  days.forEach((day, idx) => {
-    const opt = document.createElement('option');
-    opt.value = String(idx);
-    opt.textContent = day;
-    daySelect.appendChild(opt);
-  });
-
-  const startHours = hours.map((h) => h);
-  const endHours = hours.map((h) => h + 1);
-  const fillOptions = (select, values) => {
-    select.innerHTML = '';
-    values.forEach((value) => {
-      const opt = document.createElement('option');
-      opt.value = String(value);
-      opt.textContent = `${String(value).padStart(2, '0')}:00`;
-      select.appendChild(opt);
-    });
-  };
-  fillOptions(startSelect, startHours);
-
-  const updateEndOptions = () => {
-    const startHour = Number(startSelect.value);
-    const endValues = endHours.filter((h) => h > startHour);
-    fillOptions(endSelect, endValues);
-  };
-  updateEndOptions();
-  startSelect.addEventListener('change', updateEndOptions);
-
-  const defaultDay = (new Date().getDay() + 6) % 7;
-  daySelect.value = String(defaultDay);
-  updateAssignActiveDay(defaultDay);
-
-  daySelect.addEventListener('change', () => {
-    updateAssignActiveDay(Number(daySelect.value));
-  });
-
-  addBtn.addEventListener('click', () => {
-    const weekday = Number(daySelect.value);
-    const startHour = Number(startSelect.value);
-    const endHour = Number(endSelect.value);
-    if (Number.isNaN(weekday) || Number.isNaN(startHour) || Number.isNaN(endHour) || startHour >= endHour) {
-      alert('시작/종료 시간을 올바르게 선택하세요.');
-      return;
-    }
-    for (let hour = startHour; hour < endHour; hour++) {
-      const key = `${weekday}-${hour}`;
-      selectedAssignSlots.add(key);
-      const cell = assignGridCells.get(key);
-      if (cell) {
-        cell.classList.add('selected');
-        if (assignedSlots.has(key)) cell.classList.add('assigned');
-      }
-    }
-    updateAssignPreview();
-  });
-
-  clearBtn.addEventListener('click', () => {
-    clearAssignSelection();
-  });
 }
 
 function updateAssignPreview() {
@@ -622,4 +540,4 @@ function bindAssignDateInputs() {
   document.getElementById('assign-to')?.addEventListener('input', () => { manualDateOverride.to = true; });
 }
 
-export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs, setupAssignQuickRangeSelectors };
+export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs };

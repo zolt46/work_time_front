@@ -68,18 +68,3 @@ input, select, textarea {
 .stack { display: flex; flex-direction: column; gap: 8px; }
 .small { font-size: 12px; }
 .loading-text { color: var(--muted); font-size: 13px; }
-
-@media (max-width: 720px) {
-  :root {
-    --header-height: 64px;
-    --content-gutter: 16px;
-  }
-  body { font-size: 14px; }
-  .btn { padding: 10px 14px; }
-  input, select, textarea { padding: 9px; }
-}
-
-@media (max-width: 480px) {
-  body { font-size: 13.5px; }
-  .btn { padding: 9px 12px; }
-}

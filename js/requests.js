@@ -46,7 +46,6 @@ let selectedSlots = new Set();
 let assignedSlots = new Set();
 let slotShiftMap = new Map();
 let currentUser = null;
-let slotGridEl = null;
 
 const statusLabel = {
   PENDING: '대기',
@@ -164,9 +163,6 @@ function updatePreview() {
 function applyDayDisable() {
   const dateStr = document.getElementById('req-date').value;
   const activeWeekday = dateStr ? (parseDateValue(dateStr).getDay() + 6) % 7 : null;
-  if (slotGridEl) {
-    slotGridEl.dataset.activeDay = activeWeekday !== null ? String(activeWeekday) : '';
-  }
   slotCells.forEach((cell, key) => {
     const weekday = Number(key.split('-')[0]);
     const disabled = activeWeekday !== null && weekday !== activeWeekday;
@@ -201,150 +197,36 @@ function onCellClick(key) {
   updatePreview();
 }
 
-function canSelectSlot(key, type) {
-  const cell = slotCells.get(key);
-  if (!cell) return '선택한 슬롯을 찾을 수 없습니다.';
-  if (cell.classList.contains('disabled')) {
-    return '선택한 날짜와 요일이 일치하는 칸만 선택할 수 있습니다.';
-  }
-  const isAssigned = assignedSlots.has(key);
-  if (type === 'ABSENCE' && !isAssigned) {
-    return '결근 신청은 현재 배정된 시간에서만 가능합니다.';
-  }
-  if (type === 'EXTRA' && isAssigned) {
-    return '이미 배정된 시간은 추가 근무로 신청할 수 없습니다.';
-  }
-  return '';
-}
-
-function setSlotSelected(key, shouldSelect) {
-  const cell = slotCells.get(key);
-  if (!cell) return;
-  if (shouldSelect) {
-    selectedSlots.add(key);
-    cell.classList.add('selected');
-  } else {
-    selectedSlots.delete(key);
-    cell.classList.remove('selected');
-  }
-}
-
-function selectSlotRange(weekday, startHour, endHour) {
-  const type = document.getElementById('req-type').value;
-  for (let hour = startHour; hour < endHour; hour++) {
-    const key = `${weekday}-${hour}`;
-    const error = canSelectSlot(key, type);
-    if (error) {
-      alert(error);
-      return false;
-    }
-  }
-  for (let hour = startHour; hour < endHour; hour++) {
-    const key = `${weekday}-${hour}`;
-    setSlotSelected(key, true);
-  }
-  updatePreview();
-  return true;
-}
-
 function createSlotGrid(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = '';
-  slotGridEl = container;
   slotCells = new Map();
   const headerBlank = document.createElement('div');
-  headerBlank.className = 'slot-header corner';
-  headerBlank.dataset.weekday = 'time';
+  headerBlank.className = 'slot-header';
   container.appendChild(headerBlank);
-  days.forEach((day, weekday) => {
+  days.forEach((day) => {
     const h = document.createElement('div');
     h.className = 'slot-header';
     h.textContent = day;
-    h.dataset.weekday = String(weekday);
     container.appendChild(h);
   });
   hours.forEach((hour) => {
     const label = document.createElement('div');
     label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
-    label.dataset.weekday = 'time';
     container.appendChild(label);
     days.forEach((_, weekday) => {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
-      cell.dataset.weekday = String(weekday);
       cell.addEventListener('click', () => onCellClick(key));
       slotCells.set(key, cell);
       container.appendChild(cell);
     });
   });
   applyDayDisable();
-}
-
-function setupQuickRangeSelectors() {
-  const daySelect = document.getElementById('req-day');
-  const startSelect = document.getElementById('req-start');
-  const endSelect = document.getElementById('req-end');
-  const addBtn = document.getElementById('req-add-range');
-  const clearBtn = document.getElementById('req-clear-range');
-  if (!daySelect || !startSelect || !endSelect || !addBtn || !clearBtn) return;
-
-  daySelect.innerHTML = '';
-  days.forEach((day, idx) => {
-    const opt = document.createElement('option');
-    opt.value = String(idx);
-    opt.textContent = day;
-    daySelect.appendChild(opt);
-  });
-  daySelect.disabled = true;
-
-  const startHours = hours.map((h) => h);
-  const endHours = hours.map((h) => h + 1);
-  const fillOptions = (select, values) => {
-    select.innerHTML = '';
-    values.forEach((value) => {
-      const opt = document.createElement('option');
-      opt.value = String(value);
-      opt.textContent = `${String(value).padStart(2, '0')}:00`;
-      select.appendChild(opt);
-    });
-  };
-  fillOptions(startSelect, startHours);
-  const updateEndOptions = () => {
-    const startHour = Number(startSelect.value);
-    const endValues = endHours.filter((h) => h > startHour);
-    fillOptions(endSelect, endValues);
-  };
-  updateEndOptions();
-
-  const syncDayFromDate = () => {
-    const dateStr = document.getElementById('req-date')?.value;
-    if (!dateStr) return;
-    const weekday = (parseDateValue(dateStr).getDay() + 6) % 7;
-    daySelect.value = String(weekday);
-  };
-  syncDayFromDate();
-
-  startSelect.addEventListener('change', updateEndOptions);
-  document.getElementById('req-date')?.addEventListener('change', syncDayFromDate);
-
-  addBtn.addEventListener('click', () => {
-    const weekday = Number(daySelect.value);
-    const startHour = Number(startSelect.value);
-    const endHour = Number(endSelect.value);
-    if (Number.isNaN(weekday) || Number.isNaN(startHour) || Number.isNaN(endHour) || startHour >= endHour) {
-      alert('시작/종료 시간을 올바르게 선택하세요.');
-      return;
-    }
-    selectSlotRange(weekday, startHour, endHour);
-  });
-
-  clearBtn.addEventListener('click', () => {
-    resetSelection();
-  });
 }
 
 async function ensureSlotRange(weekday, startHour, endHour) {
@@ -706,7 +588,6 @@ async function initRequestPage(current) {
   currentUser = current;
   await ensureShifts();
   initSlotSelection();
-  setupQuickRangeSelectors();
   await refreshAssignedSlots();
   if (currentUser && currentUser.role !== 'MEMBER') {
     await loadRequestUsers(currentUser);

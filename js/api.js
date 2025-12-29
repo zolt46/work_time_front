@@ -23,11 +23,6 @@ function setToken(token) {
 
 function buildLoginUrl() {
   const path = window.location.pathname;
-  if (path.includes('/mobile/')) {
-    const base = path.split('/mobile/')[0];
-    const normalized = base.endsWith('/') ? base : `${base}/`;
-    return `${window.location.origin}${normalized}mobile/index.html`;
-  }
   const base = path.includes('/html/')
     ? path.split('/html/')[0]
     : path.replace(/\/[^/]*$/, '/');
