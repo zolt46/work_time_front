@@ -94,10 +94,12 @@
       <div class="grid two">
         <div class="card" id="visible-users-card">
           <div class="card-title">접근 가능한 계정 현황</div>
-          <table class="table" id="visible-users">
-            <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th></tr></thead>
-            <tbody id="visible-users-body"></tbody>
-          </table>
+          <div class="table-wrap">
+            <table class="table table-compact table-wide" id="visible-users">
+              <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th></tr></thead>
+              <tbody id="visible-users-body"></tbody>
+            </table>
+          </div>
         </div>
         <div class="card" id="reset-card">
           <div class="card-title">데이터 초기화</div>

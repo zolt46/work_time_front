@@ -58,21 +58,25 @@
       <div class="grid two">
         <div class="card">
           <div class="card-title">대기 중인 근무 변경 요청</div>
-          <table class="table" id="pending-requests">
-            <thead>
-              <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
-            </thead>
-            <tbody id="pending-requests-body"></tbody>
-          </table>
+          <div class="table-wrap">
+            <table class="table table-compact table-wider" id="pending-requests">
+              <thead>
+                <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
+              </thead>
+              <tbody id="pending-requests-body"></tbody>
+            </table>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">최근 요청 흐름</div>
-          <table class="table">
-            <thead>
-              <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>상태</th><th>사유</th><th>발생 시각</th></tr>
-            </thead>
-            <tbody id="request-feed-body"></tbody>
-          </table>
+          <div class="table-wrap">
+            <table class="table table-compact table-wider">
+              <thead>
+                <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>상태</th><th>사유</th><th>발생 시각</th></tr>
+              </thead>
+              <tbody id="request-feed-body"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
