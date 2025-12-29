@@ -58,7 +58,8 @@ async function login(event) {
       localStorage.removeItem(PASSWORD_FLAG_KEY);
       localStorage.removeItem(PASSWORD_SNOOZE_KEY);
     }
-    window.location.href = 'html/dashboard.html';
+    const isMobile = window.location.pathname.includes('/mobile/');
+    window.location.href = isMobile ? 'dashboard.html' : 'html/dashboard.html';
   } catch (err) {
     alert(err.message);
     if (statusText) statusText.textContent = '로그인에 실패했습니다. 다시 시도해주세요.';

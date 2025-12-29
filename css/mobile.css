@@ -1,0 +1,111 @@
+/* File: /ui/css/mobile.css */
+body.mobile-ui {
+  font-size: 14px;
+}
+
+body.mobile-ui .header {
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px var(--content-gutter);
+}
+
+body.mobile-ui .header-right {
+  width: 100%;
+  justify-self: start;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.mobile-ui .content {
+  width: 100%;
+  padding: 18px var(--content-gutter) 24px;
+}
+
+body.mobile-ui .grid.two {
+  grid-template-columns: 1fr;
+}
+
+body.mobile-ui .card {
+  width: 100%;
+}
+
+body.mobile-ui .app-shell-loader {
+  text-align: center;
+  padding: 24px var(--content-gutter);
+}
+
+body.mobile-ui .app-shell-loader .spinner {
+  margin: 0 auto;
+}
+
+body.mobile-ui .mobile-only { display: block; }
+body.mobile-ui .desktop-only { display: none; }
+
+body.mobile-ui .slot-quick {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  display: grid;
+  gap: 10px;
+}
+
+body.mobile-ui .slot-quick-row {
+  display: grid;
+  gap: 6px;
+}
+
+body.mobile-ui .slot-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.mobile-ui .slot-grid,
+body.mobile-ui .slot-grid.table-like,
+body.mobile-ui .slot-grid.compact {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+body.mobile-ui .slot-cell {
+  height: 40px;
+  font-size: 12px;
+  touch-action: manipulation;
+}
+
+body.mobile-ui .slot-grid[data-active-day="0"] [data-weekday]:not([data-weekday="0"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="1"] [data-weekday]:not([data-weekday="1"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="2"] [data-weekday]:not([data-weekday="2"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="3"] [data-weekday]:not([data-weekday="3"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="4"] [data-weekday]:not([data-weekday="4"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="5"] [data-weekday]:not([data-weekday="5"]):not([data-weekday="time"]) { display: none; }
+body.mobile-ui .slot-grid[data-active-day="6"] [data-weekday]:not([data-weekday="6"]):not([data-weekday="time"]) { display: none; }
+
+body.mobile-ui .table-wrap {
+  overflow-x: auto;
+}
+
+body.mobile-ui .member-filters {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+body.mobile-ui .member-filters > * {
+  width: 100%;
+}
+
+body.mobile-ui .member-table-foot {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+body.mobile-ui .member-form-actions {
+  width: 100%;
+}
+
+body.mobile-ui .member-form-actions .btn {
+  flex: 1 1 140px;
+}

@@ -8,6 +8,61 @@ import { initNoticeOverlays } from './notices.js';
 // 중복 로드 시에도 동일 인스턴스를 재사용하도록 전역에 저장
 if (!globalThis.__worktimeLayout) {
   const roleOrder = { MEMBER: 1, OPERATOR: 2, MASTER: 3 };
+  const MOBILE_BREAKPOINT = 720;
+
+  function getViewOverride() {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'mobile' || view === 'desktop') return view;
+    return null;
+  }
+
+  function isMobilePath() {
+    return window.location.pathname.includes('/mobile/');
+  }
+
+  function withSearchAndHash(targetPath) {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('view');
+    const search = params.toString();
+    const query = search ? `?${search}` : '';
+    return `${targetPath}${query}${window.location.hash || ''}`;
+  }
+
+  function toMobilePath(pathname) {
+    if (pathname.includes('/html/')) {
+      return pathname.replace('/html/', '/mobile/');
+    }
+    if (pathname.endsWith('/index.html')) {
+      return pathname.replace(/\/index\.html$/, '/mobile/index.html');
+    }
+    return `${pathname.replace(/\/[^/]*$/, '')}/mobile/index.html`;
+  }
+
+  function toDesktopPath(pathname) {
+    if (pathname.endsWith('/mobile/index.html')) {
+      return pathname.replace('/mobile/index.html', '/index.html');
+    }
+    if (pathname.includes('/mobile/')) {
+      return pathname.replace('/mobile/', '/html/');
+    }
+    return pathname;
+  }
+
+  function redirectByViewport() {
+    const override = getViewOverride();
+    if (override) return false;
+    const isMobileViewport = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+    if (isMobileViewport && !isMobilePath()) {
+      window.location.replace(withSearchAndHash(toMobilePath(window.location.pathname)));
+      return true;
+    }
+    if (!isMobileViewport && isMobilePath()) {
+      window.location.replace(withSearchAndHash(toDesktopPath(window.location.pathname)));
+      return true;
+    }
+    return false;
+  }
 
   function setupSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -122,6 +177,7 @@ if (!globalThis.__worktimeLayout) {
   }
 
   async function initAppLayout(activePage) {
+    if (redirectByViewport()) return null;
     showAppShellLoader();
     highlightNav(activePage);
     setupSidebar();
@@ -185,6 +241,7 @@ if (!globalThis.__worktimeLayout) {
   }
 
   async function initLoginShell() {
+    if (redirectByViewport()) return;
     setupSidebar();
     const loginProgress = document.getElementById('login-progress');
     checkSystemStatus(
