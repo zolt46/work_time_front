@@ -19,6 +19,7 @@ const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 const appliedRangeEl = () => document.getElementById('assign-current-range');
 const manualDateOverride = { from: false, to: false };
 let lastAssignUserId = null;
+let assignGridEl = null;
 
 function parseDateValue(dateStr) {
   if (!dateStr) return new Date();
@@ -317,29 +318,34 @@ function buildAssignSlotGrid() {
   const grid = document.getElementById('assign-slot-grid');
   if (!grid) return;
   grid.innerHTML = '';
+  assignGridEl = grid;
   assignGridCells.clear();
   assignedSlots.clear();
   selectedAssignSlots.clear();
 
   const headerBlank = document.createElement('div');
   headerBlank.className = 'slot-header corner';
+  headerBlank.dataset.weekday = 'time';
   grid.appendChild(headerBlank);
-  days.forEach((day) => {
+  days.forEach((day, weekday) => {
     const h = document.createElement('div');
     h.className = 'slot-header';
     h.textContent = day;
+    h.dataset.weekday = String(weekday);
     grid.appendChild(h);
   });
   hours.forEach((hour) => {
     const label = document.createElement('div');
     label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
+    label.dataset.weekday = 'time';
     grid.appendChild(label);
     days.forEach((_, weekday) => {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
+      cell.dataset.weekday = String(weekday);
       cell.addEventListener('click', () => {
         if (selectedAssignSlots.has(key)) {
           selectedAssignSlots.delete(key);
@@ -361,6 +367,12 @@ function buildAssignSlotGrid() {
   if (rangeEl) rangeEl.textContent = '';
 }
 
+function updateAssignActiveDay(dayIndex) {
+  if (assignGridEl) {
+    assignGridEl.dataset.activeDay = dayIndex !== null ? String(dayIndex) : '';
+  }
+}
+
 function setupAssignQuickRangeSelectors() {
   const daySelect = document.getElementById('assign-day');
   const startSelect = document.getElementById('assign-start');
@@ -377,6 +389,8 @@ function setupAssignQuickRangeSelectors() {
     daySelect.appendChild(opt);
   });
 
+  const startHours = hours.map((h) => h);
+  const endHours = hours.map((h) => h + 1);
   const fillOptions = (select, values) => {
     select.innerHTML = '';
     values.forEach((value) => {
@@ -386,9 +400,6 @@ function setupAssignQuickRangeSelectors() {
       select.appendChild(opt);
     });
   };
-
-  const startHours = hours.map((h) => h);
-  const endHours = hours.map((h) => h + 1);
   fillOptions(startSelect, startHours);
 
   const updateEndOptions = () => {
@@ -398,6 +409,14 @@ function setupAssignQuickRangeSelectors() {
   };
   updateEndOptions();
   startSelect.addEventListener('change', updateEndOptions);
+
+  const defaultDay = (new Date().getDay() + 6) % 7;
+  daySelect.value = String(defaultDay);
+  updateAssignActiveDay(defaultDay);
+
+  daySelect.addEventListener('change', () => {
+    updateAssignActiveDay(Number(daySelect.value));
+  });
 
   addBtn.addEventListener('click', () => {
     const weekday = Number(daySelect.value);

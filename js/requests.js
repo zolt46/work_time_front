@@ -46,6 +46,7 @@ let selectedSlots = new Set();
 let assignedSlots = new Set();
 let slotShiftMap = new Map();
 let currentUser = null;
+let slotGridEl = null;
 
 const statusLabel = {
   PENDING: '대기',
@@ -163,6 +164,9 @@ function updatePreview() {
 function applyDayDisable() {
   const dateStr = document.getElementById('req-date').value;
   const activeWeekday = dateStr ? (parseDateValue(dateStr).getDay() + 6) % 7 : null;
+  if (slotGridEl) {
+    slotGridEl.dataset.activeDay = activeWeekday !== null ? String(activeWeekday) : '';
+  }
   slotCells.forEach((cell, key) => {
     const weekday = Number(key.split('-')[0]);
     const disabled = activeWeekday !== null && weekday !== activeWeekday;
@@ -247,26 +251,31 @@ function createSlotGrid(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = '';
+  slotGridEl = container;
   slotCells = new Map();
   const headerBlank = document.createElement('div');
   headerBlank.className = 'slot-header corner';
+  headerBlank.dataset.weekday = 'time';
   container.appendChild(headerBlank);
-  days.forEach((day) => {
+  days.forEach((day, weekday) => {
     const h = document.createElement('div');
     h.className = 'slot-header';
     h.textContent = day;
+    h.dataset.weekday = String(weekday);
     container.appendChild(h);
   });
   hours.forEach((hour) => {
     const label = document.createElement('div');
     label.className = 'slot-header slot-header-time';
     label.textContent = `${hour}:00`;
+    label.dataset.weekday = 'time';
     container.appendChild(label);
     days.forEach((_, weekday) => {
       const key = `${weekday}-${hour}`;
       const cell = document.createElement('div');
       cell.className = 'slot-cell';
       cell.title = `${days[weekday]} ${hour}:00-${hour + 1}:00`;
+      cell.dataset.weekday = String(weekday);
       cell.addEventListener('click', () => onCellClick(key));
       slotCells.set(key, cell);
       container.appendChild(cell);
