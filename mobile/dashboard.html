@@ -61,28 +61,7 @@
       <div class="card-title">주간 근무 시간표</div>
       <div id="schedule-summary" class="loader">일정을 불러오는 중...</div>
     </section>
-    <section class="card">
-      <div class="card-title">전체 메뉴</div>
-      <div class="mobile-menu-grid">
-        <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표<span>주간 일정 확인</span></a>
-        <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필<span>계정 · 비밀번호</span></a>
-        <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청<span>결근/추가 요청</span></a>
-        <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함<span>대기 요청 처리</span></a>
-        <a class="nav-link" data-page="notices" href="notice_board.html">공지사항<span>전체 공지 확인</span></a>
-        <a class="nav-link" data-page="notice_admin" data-min-role="OPERATOR" href="notice_admin.html">공지 관리<span>공지 등록/수정</span></a>
-        <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리<span>멤버 권한 설정</span></a>
-        <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리<span>근무 배정</span></a>
-        <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변동 이력<span>로그 확인</span></a>
-      </div>
-    </section>
   </main>
-  <nav class="mobile-nav">
-    <a class="nav-link" data-page="dashboard" href="dashboard.html"><span class="nav-icon">🏠</span><span>홈</span></a>
-    <a class="nav-link" data-page="overview" href="schedule_overview.html"><span class="nav-icon">📅</span><span>시간표</span></a>
-    <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html"><span class="nav-icon">📝</span><span>신청</span></a>
-    <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html"><span class="nav-icon">✅</span><span>승인</span></a>
-    <a class="nav-link" data-page="notices" href="notice_board.html"><span class="nav-icon">📣</span><span>공지</span></a>
-  </nav>
   <script type="module">
     import { apiRequest } from '../js/api.js';
     import { initAppLayout } from '../js/layout.js';

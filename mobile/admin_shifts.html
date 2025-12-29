@@ -72,13 +72,6 @@
       </form>
     </section>
   </main>
-  <nav class="mobile-nav">
-    <a class="nav-link" data-page="dashboard" href="dashboard.html"><span class="nav-icon">🏠</span><span>홈</span></a>
-    <a class="nav-link" data-page="overview" href="schedule_overview.html"><span class="nav-icon">📅</span><span>시간표</span></a>
-    <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html"><span class="nav-icon">📝</span><span>신청</span></a>
-    <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html"><span class="nav-icon">✅</span><span>승인</span></a>
-    <a class="nav-link" data-page="notices" href="notice_board.html"><span class="nav-icon">📣</span><span>공지</span></a>
-  </nav>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
     import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs } from '../js/admin.js';

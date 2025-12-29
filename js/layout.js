@@ -114,7 +114,7 @@ if (!globalThis.__worktimeLayout) {
   function wireCommonActions() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.onclick = () => logout(true);
-    const home = document.querySelector('.logo');
+    const home = document.querySelector('.logo, .mobile-brand');
     if (home) {
       home.style.cursor = 'pointer';
       home.addEventListener('click', () => { window.location.href = 'dashboard.html'; });

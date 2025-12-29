@@ -1,7 +1,7 @@
 /* File: /ui/css/mobile.css */
 :root {
   --mobile-header-height: 76px;
-  --mobile-nav-height: 70px;
+  --mobile-nav-height: 16px;
 }
 
 body.mobile-app {
@@ -55,7 +55,7 @@ body.app-loading .mobile-nav {
   top: 0;
   z-index: 10;
   background: #f5f7fb;
-  padding: 12px 16px 8px;
+  padding: 8px 16px 6px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -82,11 +82,25 @@ body.app-loading .mobile-nav {
 .mobile-status-row {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .mobile-header .system-status-badge {
-  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fff;
+}
+
+.mobile-header .system-status-badge .status-label,
+.mobile-header .system-status-badge .status-meta {
+  display: none;
+}
+
+.mobile-header .system-status-badge .system-status {
+  justify-content: flex-start;
 }
 
 .mobile-session {
