@@ -35,6 +35,8 @@
   flex-direction: column;
   gap: 12px;
   color: #0f172a;
+  text-align: center;
+  padding: var(--content-gutter);
 }
 .app-shell-loader .spinner {
   width: 42px;

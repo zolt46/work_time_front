@@ -108,6 +108,12 @@ table.table tbody tr.selected td {
   border-bottom: 1px solid var(--border);
   min-width: 720px;
 }
+.timetable-header .day-label:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #f8fafc;
+}
 .timetable-header .day-label {
   padding: 12px 10px;
   font-weight: 700;
@@ -125,6 +131,9 @@ table.table tbody tr.selected td {
   grid-template-rows: repeat(var(--hour-rows, 12), minmax(var(--hour-height, 44px), auto));
   background: #f8fafc;
   border-right: 1px solid var(--border);
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 .timetable-times .time-label {
   padding: 6px 10px;
@@ -503,6 +512,25 @@ table.table tbody tr.selected td {
   font-size: 13px;
   color: var(--muted);
 }
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+.slot-quick {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  display: grid;
+  gap: 10px;
+}
+.slot-quick-row {
+  display: grid;
+  gap: 6px;
+}
+.slot-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {
   position: absolute;
@@ -522,6 +550,20 @@ table.table tbody tr.selected td {
   min-width: 640px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.slot-grid > * { scroll-snap-align: start; }
+.slot-grid .slot-header { background: #f8fafc; }
+.slot-grid .slot-header.corner,
+.slot-grid .slot-header.time,
+.slot-grid .slot-header-time {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+.slot-grid .slot-header.corner {
+  z-index: 3;
 }
 .slot-grid.table-like {
   grid-template-columns: 64px repeat(7, minmax(64px, 1fr));
@@ -546,6 +588,7 @@ table.table tbody tr.selected td {
   align-items: center;
   justify-content: center;
   font-size: 11px;
+  touch-action: manipulation;
 }
 .slot-cell:hover { background: #eef2ff; }
 .slot-cell.selected { border-color: var(--primary); background: #e0ecff; }
@@ -731,13 +774,51 @@ table.table tbody tr.selected td {
   .modal {
     padding: 16px;
   }
+  .mobile-only { display: block; }
+  .desktop-only { display: none; }
+  .slot-cell {
+    height: 40px;
+    font-size: 12px;
+  }
+  .slot-grid {
+    grid-template-columns: 64px repeat(7, minmax(80px, 1fr));
+    min-width: 680px;
+  }
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    background: #fff;
+  }
+  .table-compact,
+  table.table.compact {
+    font-size: 12px;
+  }
+  .member-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .member-filters > * {
+    width: 100%;
+  }
+  .member-table-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .member-form-actions {
+    width: 100%;
+  }
+  .member-form-actions .btn {
+    flex: 1 1 140px;
+  }
 }
 
 @media (max-width: 520px) {
   .status-chip { font-size: 12px; }
   .slot-grid {
-    grid-template-columns: 52px repeat(7, minmax(72px, 1fr));
-    min-width: 600px;
+    grid-template-columns: 60px repeat(7, minmax(84px, 1fr));
+    min-width: 720px;
   }
   .timetable-header,
   .timetable-body {

@@ -322,7 +322,7 @@ function buildAssignSlotGrid() {
   selectedAssignSlots.clear();
 
   const headerBlank = document.createElement('div');
-  headerBlank.className = 'slot-header';
+  headerBlank.className = 'slot-header corner';
   grid.appendChild(headerBlank);
   days.forEach((day) => {
     const h = document.createElement('div');
@@ -359,6 +359,69 @@ function buildAssignSlotGrid() {
   updateAssignPreview();
   const rangeEl = appliedRangeEl();
   if (rangeEl) rangeEl.textContent = '';
+}
+
+function setupAssignQuickRangeSelectors() {
+  const daySelect = document.getElementById('assign-day');
+  const startSelect = document.getElementById('assign-start');
+  const endSelect = document.getElementById('assign-end');
+  const addBtn = document.getElementById('assign-add-range');
+  const clearBtn = document.getElementById('assign-clear-range');
+  if (!daySelect || !startSelect || !endSelect || !addBtn || !clearBtn) return;
+
+  daySelect.innerHTML = '';
+  days.forEach((day, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = day;
+    daySelect.appendChild(opt);
+  });
+
+  const fillOptions = (select, values) => {
+    select.innerHTML = '';
+    values.forEach((value) => {
+      const opt = document.createElement('option');
+      opt.value = String(value);
+      opt.textContent = `${String(value).padStart(2, '0')}:00`;
+      select.appendChild(opt);
+    });
+  };
+
+  const startHours = hours.map((h) => h);
+  const endHours = hours.map((h) => h + 1);
+  fillOptions(startSelect, startHours);
+
+  const updateEndOptions = () => {
+    const startHour = Number(startSelect.value);
+    const endValues = endHours.filter((h) => h > startHour);
+    fillOptions(endSelect, endValues);
+  };
+  updateEndOptions();
+  startSelect.addEventListener('change', updateEndOptions);
+
+  addBtn.addEventListener('click', () => {
+    const weekday = Number(daySelect.value);
+    const startHour = Number(startSelect.value);
+    const endHour = Number(endSelect.value);
+    if (Number.isNaN(weekday) || Number.isNaN(startHour) || Number.isNaN(endHour) || startHour >= endHour) {
+      alert('시작/종료 시간을 올바르게 선택하세요.');
+      return;
+    }
+    for (let hour = startHour; hour < endHour; hour++) {
+      const key = `${weekday}-${hour}`;
+      selectedAssignSlots.add(key);
+      const cell = assignGridCells.get(key);
+      if (cell) {
+        cell.classList.add('selected');
+        if (assignedSlots.has(key)) cell.classList.add('assigned');
+      }
+    }
+    updateAssignPreview();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    clearAssignSelection();
+  });
 }
 
 function updateAssignPreview() {
@@ -540,4 +603,4 @@ function bindAssignDateInputs() {
   document.getElementById('assign-to')?.addEventListener('input', () => { manualDateOverride.to = true; });
 }
 
-export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs };
+export { initMemberManagement, assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs, setupAssignQuickRangeSelectors };

@@ -76,6 +76,25 @@
           </div>
           <div class="stack">
             <label>시간표에서 슬롯 선택</label>
+            <div class="slot-quick mobile-only" aria-label="모바일 간편 시간 선택">
+              <div class="slot-quick-row">
+                <label for="assign-day">요일</label>
+                <select id="assign-day"></select>
+              </div>
+              <div class="slot-quick-row">
+                <label for="assign-start">시작 시간</label>
+                <select id="assign-start"></select>
+              </div>
+              <div class="slot-quick-row">
+                <label for="assign-end">종료 시간</label>
+                <select id="assign-end"></select>
+              </div>
+              <div class="slot-quick-actions">
+                <button type="button" class="btn tiny secondary" id="assign-add-range">구간 추가</button>
+                <button type="button" class="btn tiny muted" id="assign-clear-range">선택 초기화</button>
+              </div>
+              <div class="muted small">모바일에서는 간편 선택으로 구간을 추가할 수 있습니다.</div>
+            </div>
             <div id="assign-slot-grid" class="slot-grid table-like compact"></div>
             <div id="assign-slot-preview" class="muted">요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.</div>
             <div id="assign-current-range" class="muted small"></div>
@@ -87,7 +106,7 @@
   </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
-    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs } from '../js/admin.js';
+    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs, setupAssignQuickRangeSelectors } from '../js/admin.js';
 
     await initAppLayout('shifts');
     const today = new Date().toISOString().slice(0, 10);
@@ -95,6 +114,7 @@
     if (fromInput && !fromInput.value) fromInput.value = today;
     await loadUserOptions('assign-user');
     buildAssignSlotGrid();
+    setupAssignQuickRangeSelectors();
     bindAssignDateInputs();
     await refreshAssignedSlotsForUser();
     document.getElementById('assign-user').addEventListener('change', refreshAssignedSlotsForUser);
