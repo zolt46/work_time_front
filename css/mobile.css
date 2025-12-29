@@ -65,6 +65,7 @@ body.app-loading .mobile-nav {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  position: relative;
 }
 
 .mobile-top-left {
@@ -259,6 +260,38 @@ body.app-loading .mobile-nav {
 .member-card-meta {
   font-size: 12px;
   color: #1f2937;
+}
+
+.profile-info-list {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+}
+
+.profile-label {
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.profile-value {
+  font-size: 13px;
+  color: #0f172a;
+  text-align: right;
+  word-break: break-word;
+}
+
+.mobile-scroll .slot-grid.table-like {
+  min-width: 520px;
 }
 
 .request-card-list {

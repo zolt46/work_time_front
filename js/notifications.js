@@ -137,7 +137,7 @@ async function fetchNotifications(user) {
 }
 
 export async function initNotifications(user) {
-  const container = document.querySelector('.header-right');
+  const container = document.querySelector('.header-right') || document.querySelector('.mobile-top');
   if (!container) return;
   let panel = document.getElementById('notif-panel');
   let btn = document.getElementById('notif-btn');
