@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>근무 변경 신청 - 모바일</title>
   <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
   <link rel="stylesheet" href="../css/mobile.css" />
   <script type="module">
@@ -20,56 +21,77 @@
   </div>
   <header class="mobile-header">
     <div class="mobile-top">
-      <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 변경 신청</div>
+      <div class="mobile-top-left">
+        <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+        <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 변경 신청</div>
+      </div>
       <button class="btn tiny muted" id="logout-btn">로그아웃</button>
     </div>
     <div class="mobile-status-row">
-      <div class="system-status-badge">
-        <div class="status-label">연결 상태</div>
-        <div class="system-status">
-          <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
-            <span class="status-dot"></span>
-            <span class="status-text">서버 확인 중</span>
-          </span>
-          <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
-            <span class="status-dot"></span>
-            <span class="status-text">DB 확인 중</span>
-          </span>
+      <div class="mobile-status-line">
+        <div class="system-status-badge">
+          <div class="status-label">연결 상태</div>
+          <div class="system-status">
+            <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
+              <span class="status-dot"></span>
+              <span class="status-text">서버 확인 중</span>
+            </span>
+            <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
+              <span class="status-dot"></span>
+              <span class="status-text">DB 확인 중</span>
+            </span>
+          </div>
+          <div class="status-meta" id="status-meta">상태 체크 중...</div>
         </div>
-        <div class="status-meta" id="status-meta">상태 체크 중...</div>
+        <span id="session-countdown" class="status-chip session-timer"></span>
       </div>
       <div class="mobile-session">
-        <span id="session-countdown" class="status-chip session-timer"></span>
         <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
         <span class="mobile-user">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</span>
       </div>
     </div>
   </header>
-  <main class="mobile-content">
-    <section class="card">
-      <div class="card-title">결근 / 추가 근무 신청</div>
-      <form id="request-form" class="stack">
-        <select id="req-type">
-          <option value="ABSENCE">결근</option>
-          <option value="EXTRA">추가 근무</option>
-        </select>
-        <div id="req-user-wrapper" class="stack" style="display:none;">
-          <label for="req-user">신청 대상 멤버 선택</label>
-          <select id="req-user"></select>
-        </div>
-        <input id="req-date" type="date" required />
-        <label>09~18시 범위에서 여러 슬롯 선택 (연속 구간은 함께 처리됩니다)</label>
-        <div id="req-slot-grid" class="slot-grid table-like"></div>
-        <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
-        <textarea id="req-reason" placeholder="사유를 입력하세요 (필수)" rows="3" required></textarea>
-        <button class="btn" type="submit">신청 제출</button>
-      </form>
-    </section>
-    <section class="card">
-      <div class="card-title">내 신청 현황</div>
-      <ul id="my-requests" class="stack"></ul>
-    </section>
-  </main>
+  <div class="page">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-title">탐색</div>
+      <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
+      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
+      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청</a>
+      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
+      <a class="nav-link" data-page="notices" href="notice_board.html">공지사항</a>
+      <a class="nav-link" data-page="notice_admin" data-min-role="OPERATOR" href="notice_admin.html">공지 관리</a>
+      <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
+      <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
+      <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변동 이력</a>
+    </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <main class="mobile-content">
+      <section class="card">
+        <div class="card-title">결근 / 추가 근무 신청</div>
+        <form id="request-form" class="stack">
+          <select id="req-type">
+            <option value="ABSENCE">결근</option>
+            <option value="EXTRA">추가 근무</option>
+          </select>
+          <div id="req-user-wrapper" class="stack" style="display:none;">
+            <label for="req-user">신청 대상 멤버 선택</label>
+            <select id="req-user"></select>
+          </div>
+          <input id="req-date" type="date" required />
+          <label>09~18시 범위에서 여러 슬롯 선택 (연속 구간은 함께 처리됩니다)</label>
+          <div id="req-slot-grid" class="slot-grid table-like"></div>
+          <div id="req-slot-preview" class="muted">요일·시간을 클릭해 슬롯을 선택하세요.</div>
+          <textarea id="req-reason" placeholder="사유를 입력하세요 (필수)" rows="3" required></textarea>
+          <button class="btn" type="submit">신청 제출</button>
+        </form>
+      </section>
+      <section class="card">
+        <div class="card-title">내 신청 현황</div>
+        <ul id="my-requests" class="stack"></ul>
+      </section>
+    </main>
+  </div>
   <script type="module">
     import { initAppLayout } from '../js/layout.js';
     import { initRequestPage } from '../js/requests.js';
