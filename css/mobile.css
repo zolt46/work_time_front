@@ -52,8 +52,7 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-header {
-  position: sticky;
-  top: 0;
+  position: static;
   z-index: 10;
   background: #f5f7fb;
   padding: 8px 16px 6px;
@@ -305,7 +304,7 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-scroll .slot-grid.table-like {
-  min-width: 520px;
+  min-width: 0;
 }
 
 .slot-grid-shell {
@@ -313,6 +312,33 @@ body.app-loading .mobile-nav {
   border-radius: 12px;
   padding: 10px;
   background: #fff;
+}
+
+.mobile-app .slot-grid.table-like {
+  grid-template-columns: 48px repeat(7, minmax(44px, 1fr));
+}
+
+.mobile-app .slot-cell {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+.mobile-app .slot-header {
+  font-size: 12px;
+}
+
+.mobile-app .slot-header-time {
+  font-size: 11px;
+}
+
+.mobile-app .sidebar {
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.mobile-app .sidebar-overlay {
+  inset: 0;
 }
 
 .request-card-list {
