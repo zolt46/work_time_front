@@ -10,6 +10,18 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildDashboardUrl() {
+  const path = window.location.pathname;
+  if (path.includes('/mobile/')) {
+    const base = path.split('/mobile/')[0];
+    return `${window.location.origin}${base}/mobile/dashboard.html`;
+  }
+  const base = path.includes('/html/')
+    ? path.split('/html/')[0]
+    : path.replace(/\/[^/]*$/, '');
+  return `${window.location.origin}${base}/html/dashboard.html`;
+}
+
 async function warmupBackend({ retries = 2, delayMs = 600, timeoutMs = 6000 } = {}) {
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
@@ -58,11 +70,7 @@ async function login(event) {
       localStorage.removeItem(PASSWORD_FLAG_KEY);
       localStorage.removeItem(PASSWORD_SNOOZE_KEY);
     }
-    if (window.location.pathname.includes('/mobile/')) {
-      window.location.href = 'dashboard.html';
-    } else {
-      window.location.href = 'html/dashboard.html';
-    }
+    window.location.href = buildDashboardUrl();
   } catch (err) {
     alert(err.message);
     if (statusText) statusText.textContent = '로그인에 실패했습니다. 다시 시도해주세요.';
