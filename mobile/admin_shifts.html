@@ -1,0 +1,99 @@
+<!-- File: /ui/mobile/admin_shifts.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>근무 관리 - 모바일</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <script type="module">
+    import { redirectToDesktopIfNeeded } from '../js/mobile.js';
+    redirectToDesktopIfNeeded('../html/admin_shifts.html');
+  </script>
+</head>
+<body class="mobile-app app-loading">
+  <div id="app-shell-loader" class="app-shell-loader">
+    <div class="spinner" aria-label="로딩 중"></div>
+    <div class="muted">필요한 정보를 불러오는 중...</div>
+  </div>
+  <header class="mobile-header">
+    <div class="mobile-top">
+      <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 관리</div>
+      <button class="btn tiny muted" id="logout-btn">로그아웃</button>
+    </div>
+    <div class="mobile-status-row">
+      <div class="system-status-badge">
+        <div class="status-label">연결 상태</div>
+        <div class="system-status">
+          <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
+            <span class="status-dot"></span>
+            <span class="status-text">서버 확인 중</span>
+          </span>
+          <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
+            <span class="status-dot"></span>
+            <span class="status-text">DB 확인 중</span>
+          </span>
+        </div>
+        <div class="status-meta" id="status-meta">상태 체크 중...</div>
+      </div>
+      <div class="mobile-session">
+        <span id="session-countdown" class="status-chip session-timer"></span>
+        <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
+        <span class="mobile-user">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</span>
+      </div>
+    </div>
+  </header>
+  <main class="mobile-content">
+    <section class="card shift-card">
+      <div class="card-title">근무 배정 시간표</div>
+      <p class="muted">09~18시만 표시됩니다. 구성원을 선택하면 기존 배정이 자동으로 하이라이트되어 바로 수정할 수 있습니다.</p>
+      <form id="assign-form" class="stack">
+        <div class="stack">
+          <label>대상 구성원</label>
+          <select id="assign-user" required></select>
+        </div>
+        <div class="stack">
+          <label>적용 시작일</label>
+          <input id="assign-from" type="date" required />
+        </div>
+        <div class="stack">
+          <label>종료일(선택, 미입력 시 계속 적용)</label>
+          <input id="assign-to" type="date" placeholder="종료일(선택)" />
+        </div>
+        <div class="stack">
+          <label>시간표에서 슬롯 선택</label>
+          <div id="assign-slot-grid" class="slot-grid table-like compact"></div>
+          <div id="assign-slot-preview" class="muted">요일·시간 칸을 터치하여 배정할 슬롯을 선택하세요.</div>
+          <div id="assign-current-range" class="muted small"></div>
+        </div>
+        <button class="btn secondary" type="submit">선택 슬롯 배정</button>
+      </form>
+    </section>
+  </main>
+  <nav class="mobile-nav">
+    <a class="nav-link" data-page="dashboard" href="dashboard.html"><span class="nav-icon">🏠</span><span>홈</span></a>
+    <a class="nav-link" data-page="overview" href="schedule_overview.html"><span class="nav-icon">📅</span><span>시간표</span></a>
+    <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html"><span class="nav-icon">📝</span><span>신청</span></a>
+    <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html"><span class="nav-icon">✅</span><span>승인</span></a>
+    <a class="nav-link" data-page="notices" href="notice_board.html"><span class="nav-icon">📣</span><span>공지</span></a>
+  </nav>
+  <script type="module">
+    import { initAppLayout } from '../js/layout.js';
+    import { assignShift, loadUserOptions, buildAssignSlotGrid, refreshAssignedSlotsForUser, bindAssignDateInputs } from '../js/admin.js';
+
+    await initAppLayout('shifts');
+    const today = new Date().toISOString().slice(0, 10);
+    const fromInput = document.getElementById('assign-from');
+    if (fromInput && !fromInput.value) fromInput.value = today;
+    await loadUserOptions('assign-user');
+    buildAssignSlotGrid();
+    bindAssignDateInputs();
+    await refreshAssignedSlotsForUser();
+    document.getElementById('assign-user').addEventListener('change', refreshAssignedSlotsForUser);
+    document.getElementById('assign-from').addEventListener('change', refreshAssignedSlotsForUser);
+    document.getElementById('assign-form').addEventListener('submit', assignShift);
+  </script>
+</body>
+</html>
