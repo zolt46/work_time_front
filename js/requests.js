@@ -453,28 +453,29 @@ async function loadMyRequests() {
 
 async function loadPendingRequests() {
   const tbody = document.getElementById('pending-requests-body');
-  if (!tbody) return;
+  const cardList = document.getElementById('pending-requests-list');
+  if (!tbody && !cardList) return;
   const [data, users] = await Promise.all([
     apiRequest('/requests/pending'),
     apiRequest('/users')
   ]);
   await ensureShifts();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
-  tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '';
+  if (cardList) cardList.innerHTML = '';
   data
     .filter((r) => r.status === 'PENDING')
     .forEach((r) => {
     const requester = userMap[r.user_id];
     const timeLabel = requestTimeLabel(r);
-    const tr = document.createElement('tr');
     const timeText = requestTimeLabel(r);
     const shiftText = `${shiftLabel(r.target_shift_id)}${timeText ? ` (${timeText})` : ''}`;
     const statusText = r.status === 'REJECTED' ? '거절/취소' : (statusLabel[r.status] || r.status);
-    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusText}</td>`;
-    const tdAction = document.createElement('td');
+    const actions = document.createElement('div');
+    actions.className = 'request-card-actions';
     if (r.status === 'CANCELLED') {
-      tdAction.textContent = '승인된 후 취소됨';
-      tdAction.className = 'muted small';
+      actions.textContent = '승인된 후 취소됨';
+      actions.className = 'muted small';
     } else {
       const approve = document.createElement('button');
       approve.textContent = '승인';
@@ -484,9 +485,30 @@ async function loadPendingRequests() {
       reject.textContent = '거절';
       reject.className = 'btn muted tiny';
       reject.onclick = () => act(r.id, 'reject');
-      tdAction.appendChild(approve);
-      tdAction.appendChild(reject);
+      actions.appendChild(approve);
+      actions.appendChild(reject);
     }
+    if (cardList) {
+      const card = document.createElement('div');
+      card.className = 'request-card';
+      card.innerHTML = `
+        <div class="request-card-title">
+          <strong>${requester ? requester.name : r.user_id}</strong>
+          <span class="badge ${r.status.toLowerCase()}">${statusText}</span>
+        </div>
+        <div class="request-card-meta">유형: ${typeLabel(r.type)}</div>
+        <div class="request-card-meta">날짜: ${r.target_date}</div>
+        <div class="request-card-meta">근무: ${shiftText}</div>
+        <div class="request-card-meta">사유: ${r.reason || '-'}</div>
+      `;
+      card.appendChild(actions);
+      cardList.appendChild(card);
+      return;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${requester ? requester.name : r.user_id}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${r.reason || ''}</td><td>${statusText}</td>`;
+    const tdAction = document.createElement('td');
+    tdAction.appendChild(actions);
     tr.appendChild(tdAction);
     tbody.appendChild(tr);
   });
@@ -501,14 +523,16 @@ async function act(id, action) {
 
 async function renderRequestFeed() {
   const tbody = document.getElementById('request-feed-body');
-  if (!tbody) return;
+  const list = document.getElementById('request-feed-list');
+  if (!tbody && !list) return;
   const [feed, users] = await Promise.all([
     apiRequest('/requests/feed'),
     apiRequest('/users')
   ]);
   await ensureShifts();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
-  tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '';
+  if (list) list.innerHTML = '';
   const events = [];
   feed.forEach((r) => {
     const requester = userMap[r.user_id];
@@ -534,6 +558,21 @@ async function renderRequestFeed() {
     .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))
     .slice(0, 50)
     .forEach((ev) => {
+      if (list) {
+        const card = document.createElement('div');
+        card.className = 'request-card';
+        card.innerHTML = `
+          <div class="request-card-title">
+            <strong>${ev.status}</strong>
+            <span class="muted small">${new Date(ev.time).toLocaleString()}</span>
+          </div>
+          <div class="request-card-meta">${ev.requesterName} · ${ev.shiftText}</div>
+          <div class="request-card-meta">날짜: ${ev.target}</div>
+          <div class="request-card-meta">사유: ${ev.reason || '-'}</div>
+        `;
+        list.appendChild(card);
+        return;
+      }
       const row = document.createElement('tr');
       row.innerHTML = ev.rowHtml;
       const timeCell = document.createElement('td');

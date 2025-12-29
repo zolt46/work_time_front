@@ -31,10 +31,27 @@ function showAccountWarning(message, tips = []) {
 
 async function loadVisibleUsers() {
   const tbody = document.getElementById('visible-users-body');
-  if (!tbody) return;
+  const cardList = document.getElementById('visible-users-list');
+  if (!tbody && !cardList) return;
   const users = await apiRequest('/users');
-  tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '';
+  if (cardList) cardList.innerHTML = '';
   users.forEach((u) => {
+    if (cardList) {
+      const card = document.createElement('div');
+      card.className = 'member-card-item';
+      card.innerHTML = `
+        <div class="member-card-title">
+          <strong>${u.name}</strong>
+          <span class="badge role">${roleLabel[u.role] || u.role}</span>
+        </div>
+        <div class="member-card-meta">개인 ID: ${u.identifier || '-'}</div>
+        <div class="member-card-meta">로그인 ID: ${u.auth_account?.login_id || '-'}</div>
+        <div class="member-card-meta">상태: ${u.active ? '활성' : '비활성'}</div>
+      `;
+      cardList.appendChild(card);
+      return;
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${u.name}</td><td>${roleLabel[u.role] || u.role}</td><td>${u.identifier || ''}</td><td>${u.auth_account?.login_id || ''}</td><td>${u.active ? '활성' : '비활성'}</td>`;
     tbody.appendChild(tr);
