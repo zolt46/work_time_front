@@ -110,6 +110,9 @@ body.app-loading .page {
   display: grid;
   grid-template-columns: 100px repeat(7, 1fr);
   border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 .schedule-grid .cell {
   border-left: 1px solid var(--border);
@@ -122,6 +125,29 @@ body.app-loading .page {
   .sidebar { width: 78vw; }
   .header { grid-template-columns: 1fr; align-items: flex-start; }
   .header-right { justify-self: start; }
+}
+
+@media (max-width: 720px) {
+  .header {
+    row-gap: 12px;
+    padding: 10px var(--content-gutter);
+  }
+  .content {
+    padding: 18px var(--content-gutter) 24px;
+    width: 100%;
+  }
+  .schedule-grid {
+    grid-template-columns: 72px repeat(7, minmax(88px, 1fr));
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding: 8px var(--content-gutter);
+  }
+  .sidebar { width: 86vw; }
+  .login-shell { padding: 16px; }
 }
 
 .login-shell {
