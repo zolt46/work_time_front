@@ -9,7 +9,7 @@ body.mobile-app {
   min-height: 100vh;
   padding-bottom: calc(var(--mobile-nav-height) + 16px);
   --header-height: 64px;
-  --mobile-gutter: 24px;
+  --mobile-gutter: 30px;
 }
 
 .app-shell-loader {
@@ -503,11 +503,11 @@ body.app-loading .mobile-nav {
 
 .mobile-content .card {
   border-radius: 14px;
-  padding: 12px;
+  padding: 8px;
 }
 
 .mobile-content .timetable-card {
-  padding: 8px;
+  padding: 6px;
 }
 
 .mobile-grid {
