@@ -324,17 +324,11 @@ async function loadMySchedule(user) {
   const listEl = document.getElementById('my-schedule');
   if (!listEl) return;
   listEl.classList.add('schedule-list');
-  const today = new Date();
-  const dayOffset = (today.getDay() + 6) % 7;
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - dayOffset);
-  const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
-  if (user?.id) {
-    params.set('user_id', user.id);
-  }
-  const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
+  const data = await apiRequest('/schedule/global');
+  const assignments = data?.assignments || [];
+  const mine = assignments.filter((assignment) => assignment.user?.id === user?.id);
   listEl.innerHTML = '';
-  if (!events.length) {
+  if (!mine.length) {
     const li = document.createElement('li');
     li.className = 'muted';
     li.textContent = '이번 주 배정된 근무가 없습니다.';
@@ -343,10 +337,10 @@ async function loadMySchedule(user) {
   }
   const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
   const items = [];
-  events.forEach((ev) => {
-    const dateObj = new Date(ev.date);
-    const weekday = dayNames[(dateObj.getDay() + 6) % 7];
-    const timeText = `${ev.start_time.slice(0, 5)}~${ev.end_time.slice(0, 5)}`;
+  mine.forEach((assignment) => {
+    if (!assignment.shift) return;
+    const weekday = dayNames[assignment.shift.weekday] || '-';
+    const timeText = `${assignment.shift.start_time.slice(0, 5)}~${assignment.shift.end_time.slice(0, 5)}`;
     items.push({ key: `${weekday}-${timeText}`, weekday, timeText });
   });
   const seen = new Set();
