@@ -9,7 +9,7 @@ body.mobile-app {
   min-height: 100vh;
   padding-bottom: calc(var(--mobile-nav-height) + 16px);
   --header-height: 64px;
-  --mobile-gutter: 34px;
+  --mobile-gutter: 28px;
 }
 
 .app-shell-loader {
