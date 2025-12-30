@@ -315,8 +315,9 @@ async function loadBaseSchedule(targetId = 'schedule-container', options = {}) {
   return events;
 }
 
-function renderCompactSchedule(assignments, targetId = 'schedule-summary') {
-  renderTimeline(assignments, targetId, { hourHeight: 38 });
+function renderCompactSchedule(assignments, targetId = 'schedule-summary', options = {}) {
+  const { hourHeight = 38 } = options;
+  renderTimeline(assignments, targetId, { hourHeight });
 }
 
 async function loadMySchedule() {

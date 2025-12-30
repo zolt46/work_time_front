@@ -21,6 +21,7 @@ if (!globalThis.__worktimeLayout) {
       overlay.classList.remove('show');
       if (page) page.classList.add('sidebar-closed');
       toggle.classList.remove('active');
+      document.body.classList.remove('sidebar-open');
     };
     document.querySelectorAll('.nav-toggle').forEach((button) => {
       button.addEventListener('click', () => {
@@ -39,6 +40,7 @@ if (!globalThis.__worktimeLayout) {
       overlay.classList.toggle('show', willOpen);
       if (page) page.classList.toggle('sidebar-closed', !willOpen);
       toggle.classList.toggle('active', willOpen);
+      document.body.classList.toggle('sidebar-open', willOpen);
     });
     overlay.addEventListener('click', close);
   }
@@ -162,9 +164,14 @@ if (!globalThis.__worktimeLayout) {
           window.location.href = 'dashboard.html';
           return user;
         }
+      } else {
+        logout(true);
+        return null;
       }
     } catch (e) {
       console.error('사용자 정보를 불러오지 못했습니다.', e);
+      logout(true);
+      return null;
     }
     startSessionCountdown(
       document.getElementById('session-countdown'),
@@ -213,24 +220,35 @@ if (!globalThis.__worktimeLayout) {
   async function initLoginShell() {
     setupSidebar();
     const loginProgress = document.getElementById('login-progress');
-    checkSystemStatus(
-      document.getElementById('server-status'),
-      document.getElementById('db-status'),
-      document.getElementById('status-meta'),
-      {
-        autoRetry: true,
-        maxRetries: Infinity,
-        retryDelay: 900,
-        timeoutMs: 3500,
-        onRecover: () => window.location.reload(),
-        onRetry: (nextAttempt, maxRetries) => {
-          if (loginProgress) {
-            const attemptLabel = Number.isFinite(maxRetries) ? `${nextAttempt}/${maxRetries}회` : `${nextAttempt}회째`;
-            loginProgress.textContent = `서버 준비 중... 자동 재시도 (${attemptLabel})`;
+    const retryBtn = document.getElementById('login-retry');
+    const runStatusCheck = () => {
+      if (loginProgress) loginProgress.textContent = '서버 상태를 다시 확인하는 중...';
+      checkSystemStatus(
+        document.getElementById('server-status'),
+        document.getElementById('db-status'),
+        document.getElementById('status-meta'),
+        {
+          autoRetry: true,
+          maxRetries: Infinity,
+          retryDelay: 900,
+          timeoutMs: 3500,
+          onRecover: () => window.location.reload(),
+          onRetry: (nextAttempt, maxRetries) => {
+            if (loginProgress) {
+              const attemptLabel = Number.isFinite(maxRetries) ? `${nextAttempt}/${maxRetries}회` : `${nextAttempt}회째`;
+              loginProgress.textContent = `서버 준비 중... 자동 재시도 (${attemptLabel})`;
+            }
           }
         }
-      }
-    );
+      );
+    };
+    runStatusCheck();
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => runStatusCheck());
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') runStatusCheck();
+    });
     if (loginProgress) loginProgress.textContent = '로그인 정보를 입력하세요';
   }
 

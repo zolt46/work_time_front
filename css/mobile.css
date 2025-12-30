@@ -315,30 +315,80 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-app .slot-grid.table-like {
-  grid-template-columns: 48px repeat(7, minmax(44px, 1fr));
+  grid-template-columns: 40px repeat(7, minmax(32px, 1fr));
 }
 
 .mobile-app .slot-cell {
-  min-height: 36px;
-  font-size: 12px;
+  min-height: 44px;
+  font-size: 11px;
 }
 
 .mobile-app .slot-header {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .mobile-app .slot-header-time {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .mobile-app .sidebar {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px);
 }
 
 .mobile-app .sidebar-overlay {
   inset: 0;
+}
+
+.sidebar-open {
+  overflow: hidden;
+}
+
+.mobile-app .page {
+  min-height: auto;
+}
+
+.mobile-app .timetable {
+  border-radius: 10px;
+}
+
+.mobile-app .timetable-header {
+  grid-template-columns: 52px repeat(5, minmax(48px, 1fr));
+}
+
+.mobile-app .timetable-body {
+  grid-template-columns: 52px repeat(5, minmax(48px, 1fr));
+}
+
+.mobile-app .timetable-header .day-label {
+  font-size: 12px;
+  padding: 8px 6px;
+}
+
+.mobile-app .timetable-header .day-label:nth-last-child(-n+2) {
+  display: none;
+}
+
+.mobile-app .timetable-column:nth-last-child(-n+2) {
+  display: none;
+}
+
+.mobile-app .timetable-times .time-label {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.mobile-app .timetable-cell {
+  padding: 4px 6px;
+  gap: 4px;
+  min-height: calc(var(--hour-height, 34px) - 2px);
+}
+
+.mobile-app .timetable-pill {
+  font-size: 11px;
+  padding: 2px 6px;
 }
 
 .request-card-list {
