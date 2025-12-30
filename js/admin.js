@@ -14,7 +14,7 @@ const editorOptions = { allowCredentialEdit: false };
 const assignGridCells = new Map();
 const assignedSlots = new Set();
 const selectedAssignSlots = new Set();
-const days = ['월', '화', '수', '목', '금', '토', '일'];
+const days = ['월', '화', '수', '목', '금'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 const appliedRangeEl = () => document.getElementById('assign-current-range');
 const manualDateOverride = { from: false, to: false };
