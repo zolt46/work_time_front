@@ -9,7 +9,7 @@ body.mobile-app {
   min-height: 100vh;
   padding-bottom: calc(var(--mobile-nav-height) + 16px);
   --header-height: 64px;
-  --mobile-gutter: 30px;
+  --mobile-gutter: 34px;
 }
 
 .app-shell-loader {
@@ -499,15 +499,22 @@ body.app-loading .mobile-nav {
   display: grid;
   gap: 14px;
   padding: 8px var(--mobile-gutter) 0;
+  justify-items: center;
 }
 
 .mobile-content .card {
   border-radius: 14px;
   padding: 8px;
+  width: 100%;
+  max-width: calc(100vw - (var(--mobile-gutter) * 2));
+  box-sizing: border-box;
 }
 
 .mobile-content .timetable-card {
   padding: 6px;
+  width: 100%;
+  max-width: calc(100vw - (var(--mobile-gutter) * 2));
+  box-sizing: border-box;
 }
 
 .mobile-grid {
