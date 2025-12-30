@@ -320,7 +320,7 @@ function renderCompactSchedule(assignments, targetId = 'schedule-summary', optio
   renderTimeline(assignments, targetId, { hourHeight });
 }
 
-async function loadMySchedule() {
+async function loadMySchedule(user) {
   const listEl = document.getElementById('my-schedule');
   if (!listEl) return;
   listEl.classList.add('schedule-list');
@@ -329,6 +329,9 @@ async function loadMySchedule() {
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - dayOffset);
   const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
+  if (user?.id) {
+    params.set('user_id', user.id);
+  }
   const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
   listEl.innerHTML = '';
   if (!events.length) {

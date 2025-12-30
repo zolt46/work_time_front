@@ -100,8 +100,8 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-brand img {
-  width: 34px;
-  height: 34px;
+  width: 52px;
+  height: 52px;
 }
 
 .mobile-status-row {
@@ -355,11 +355,11 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-app .timetable-header {
-  grid-template-columns: 48px repeat(5, minmax(48px, 1fr));
+  grid-template-columns: 54px repeat(5, minmax(54px, 1fr));
 }
 
 .mobile-app .timetable-body {
-  grid-template-columns: 48px repeat(5, minmax(48px, 1fr));
+  grid-template-columns: 54px repeat(5, minmax(54px, 1fr));
 }
 
 .mobile-app .timetable-header .day-label {
@@ -401,10 +401,18 @@ body.app-loading .mobile-nav {
   gap: 14px;
 }
 
+.mobile-app .notice-popup-body .notice-snooze {
+  justify-content: flex-start;
+}
+
 .mobile-app .notice-popup-footer {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+}
+
+.mobile-app .notice-popup-footer .btn {
+  text-align: center;
 }
 
 .mobile-app .notice-popup-backdrop .modal {
@@ -418,7 +426,13 @@ body.app-loading .mobile-nav {
 
 .mobile-app .notice-banner-text {
   font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-app .notice-banner-marquee {
   animation: bannerScroll 14s linear infinite;
+  will-change: transform;
 }
 
 .mobile-app .notice-banner-body {
@@ -429,9 +443,15 @@ body.app-loading .mobile-nav {
   gap: 6px;
 }
 
+.mobile-app .notice-banner-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
 @keyframes bannerScroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-40%); }
+  100% { transform: translateX(-100%); }
 }
 
 .request-card-title {
@@ -450,6 +470,22 @@ body.app-loading .mobile-nav {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.mobile-app .request-card-list {
+  justify-items: start;
+}
+
+.mobile-app .request-card {
+  width: 100%;
+}
+
+.mobile-app #my-requests {
+  width: 100%;
+}
+
+.mobile-app .request-row {
+  width: 100%;
 }
 
 .mobile-content {
@@ -574,8 +610,8 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-login .logo img {
-  width: 42px;
-  height: 42px;
+  width: 63px;
+  height: 63px;
 }
 
 .mobile-panel {

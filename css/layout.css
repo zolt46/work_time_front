@@ -21,6 +21,10 @@
   gap: 10px;
   font-weight: 700;
 }
+.logo img {
+  width: 64px;
+  height: 64px;
+}
 .page {
   min-height: 100vh;
 }
@@ -138,5 +142,9 @@ body.app-loading .page {
 }
 
 .login-logo { justify-content: center; margin-bottom: 12px; }
+.login-logo img {
+  width: 80px;
+  height: 80px;
+}
 
 .login-form { display: flex; flex-direction: column; gap: 4px; }

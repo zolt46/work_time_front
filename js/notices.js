@@ -78,7 +78,12 @@ export async function initNoticeOverlays() {
 
       const text = document.createElement('div');
       text.className = 'notice-banner-text';
-      text.innerHTML = `<strong>${notice.title}</strong><span class="notice-banner-body">${notice.body}</span>`;
+      text.innerHTML = `
+        <div class="notice-banner-marquee">
+          <strong>${notice.title}</strong>
+          <span class="notice-banner-body">${notice.body}</span>
+        </div>
+      `;
       content.appendChild(text);
 
       const action = document.createElement('div');

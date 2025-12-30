@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>근무 시간표 - 모바일</title>
+  <title>근무 배정표 - 모바일</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -25,7 +25,7 @@
         <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
       </div>
       <div class="mobile-top-center">
-        <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 시간표</div>
+        <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />근무 배정표</div>
       </div>
       <div class="mobile-top-right mobile-actions">
         <button class="btn tiny muted" id="logout-btn">로그아웃</button>
@@ -59,7 +59,7 @@
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
-      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 배정표</a>
       <div class="nav-group">
         <button class="nav-toggle" type="button" data-group="profile" data-page="profile" aria-expanded="false">
           <span>내 프로필</span>
@@ -102,7 +102,7 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="mobile-content">
       <section class="card">
-        <div class="card-title">주간 근무 시간표</div>
+        <div class="card-title">주간 근무 배정표</div>
         <div id="schedule-container" class="loader mobile-scroll">일정을 불러오는 중...</div>
       </section>
     </main>
@@ -112,7 +112,7 @@
     import { initAppLayout } from '../js/layout.js';
 
     await initAppLayout('overview');
-    await loadBaseSchedule('schedule-container', { hourHeight: 32 });
+    await loadBaseSchedule('schedule-container', { hourHeight: 64 });
   </script>
 </body>
 </html>

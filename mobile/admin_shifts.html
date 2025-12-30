@@ -59,7 +59,7 @@
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
-      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 시간표</a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 배정표</a>
       <div class="nav-group">
         <button class="nav-toggle" type="button" data-group="profile" data-page="profile" aria-expanded="false">
           <span>내 프로필</span>
@@ -102,7 +102,7 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="mobile-content">
       <section class="card shift-card">
-        <div class="card-title">근무 배정 시간표</div>
+        <div class="card-title">근무 배정표</div>
         <p class="muted">09~18시만 표시됩니다. 구성원을 선택하면 기존 배정이 자동으로 하이라이트되어 바로 수정할 수 있습니다.</p>
         <form id="assign-form" class="stack">
           <div class="stack">
@@ -118,7 +118,7 @@
             <input id="assign-to" type="date" placeholder="종료일(선택)" />
           </div>
           <div class="stack">
-            <label>시간표에서 슬롯 선택</label>
+            <label>배정표에서 슬롯 선택</label>
             <div class="slot-grid-shell">
               <div id="assign-slot-grid" class="slot-grid table-like compact"></div>
             </div>

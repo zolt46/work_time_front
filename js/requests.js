@@ -424,8 +424,16 @@ async function loadMyRequests() {
     header.className = 'request-header';
     const timeText = requestTimeLabel(r);
     const shiftText = shiftLabel(r.target_shift_id);
-    header.innerHTML = `<strong>${typeLabel(r.type)}</strong> · ${r.target_date} · ${shiftText}${timeText ? ` (${timeText})` : ''}`;
+    header.innerHTML = `<strong>${typeLabel(r.type)}</strong>`;
     header.appendChild(badge);
+
+    const metaList = document.createElement('div');
+    metaList.className = 'request-meta-list';
+    metaList.innerHTML = `
+      <div class="request-meta"><span class="meta-label">일자</span><span class="meta-value">${r.target_date || '-'}</span></div>
+      <div class="request-meta"><span class="meta-label">시간</span><span class="meta-value">${timeText || '-'}</span></div>
+      <div class="request-meta"><span class="meta-label">근무</span><span class="meta-value">${shiftText || '-'}</span></div>
+    `;
 
     const reason = document.createElement('div');
     reason.className = 'small muted';
@@ -435,6 +443,7 @@ async function loadMyRequests() {
     const noteText = notes.length ? ` (${notes.join(', ')})` : '';
     reason.textContent = `사유: ${r.reason || '-'}${noteText}`;
     container.appendChild(header);
+    container.appendChild(metaList);
     container.appendChild(reason);
 
     if (r.status === 'PENDING' || r.status === 'APPROVED') {
@@ -544,6 +553,10 @@ async function renderRequestFeed() {
     events.push({
       time: r.created_at,
       status: '신청',
+      requesterName: base.requesterName,
+      shiftText: base.shiftText,
+      target: base.target,
+      reason: base.reason,
       rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>신청됨</td><td>${base.reason}</td>`
     });
     if (r.status === 'APPROVED' || r.status === 'REJECTED' || r.status === 'CANCELLED') {
@@ -552,6 +565,10 @@ async function renderRequestFeed() {
       events.push({
         time: decidedAt,
         status: statusText,
+        requesterName: base.requesterName,
+        shiftText: base.shiftText,
+        target: base.target,
+        reason: base.reason,
         rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${base.reason}</td>`
       });
     }
