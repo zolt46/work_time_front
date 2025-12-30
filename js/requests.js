@@ -469,7 +469,8 @@ async function loadPendingRequests() {
     const requester = userMap[r.user_id];
     const timeLabel = requestTimeLabel(r);
     const timeText = requestTimeLabel(r);
-    const shiftText = `${shiftLabel(r.target_shift_id)}${timeText ? ` (${timeText})` : ''}`;
+    const baseShiftLabel = r.target_shift_id ? shiftLabel(r.target_shift_id) : '근무 정보 없음';
+    const shiftText = `${baseShiftLabel}${timeText ? ` (${timeText})` : ''}`;
     const statusText = r.status === 'REJECTED' ? '거절/취소' : (statusLabel[r.status] || r.status);
     const actions = document.createElement('div');
     actions.className = 'request-card-actions';
@@ -537,8 +538,9 @@ async function renderRequestFeed() {
   feed.forEach((r) => {
     const requester = userMap[r.user_id];
     const requesterName = requester ? requester.name : r.user_id;
-    const shiftText = `${shiftLabel(r.target_shift_id)}${requestTimeLabel(r) ? ` (${requestTimeLabel(r)})` : ''}`;
-    const base = { requesterName, shiftText, target: r.target_date, reason: r.reason || '' };
+    const baseShiftLabel = r.target_shift_id ? shiftLabel(r.target_shift_id) : '근무 정보 없음';
+    const shiftText = `${baseShiftLabel}${requestTimeLabel(r) ? ` (${requestTimeLabel(r)})` : ''}`;
+    const base = { requesterName, shiftText, target: r.target_date || '-', reason: r.reason || '-' };
     events.push({
       time: r.created_at,
       status: '신청',
@@ -567,7 +569,7 @@ async function renderRequestFeed() {
             <span class="muted small">${new Date(ev.time).toLocaleString()}</span>
           </div>
           <div class="request-card-meta">${ev.requesterName} · ${ev.shiftText}</div>
-          <div class="request-card-meta">날짜: ${ev.target}</div>
+          <div class="request-card-meta">날짜: ${ev.target || '-'}</div>
           <div class="request-card-meta">사유: ${ev.reason || '-'}</div>
         `;
         list.appendChild(card);

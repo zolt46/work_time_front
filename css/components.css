@@ -498,6 +498,13 @@ table.table tbody tr.selected td {
   margin-top: 12px;
   font-size: 13px;
   color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notice-snooze input {
+  margin: 0;
 }
 .input-with-toggle input { padding-right: 48px; }
 .toggle-visibility {

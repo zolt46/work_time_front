@@ -221,8 +221,28 @@ if (!globalThis.__worktimeLayout) {
     setupSidebar();
     const loginProgress = document.getElementById('login-progress');
     const retryBtn = document.getElementById('login-retry');
+    let lastCheck = 0;
+    let cooldownTimer = null;
+    const cooldownMs = 5000;
     const runStatusCheck = () => {
+      const now = Date.now();
+      if (now - lastCheck < cooldownMs) {
+        if (loginProgress) loginProgress.textContent = '잠시 후 다시 시도하세요.';
+        return;
+      }
+      lastCheck = now;
       if (loginProgress) loginProgress.textContent = '서버 상태를 다시 확인하는 중...';
+      if (retryBtn) {
+        retryBtn.disabled = true;
+        retryBtn.textContent = '확인 중...';
+      }
+      if (cooldownTimer) clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => {
+        if (retryBtn) {
+          retryBtn.disabled = false;
+          retryBtn.textContent = '연결 다시 확인';
+        }
+      }, cooldownMs);
       checkSystemStatus(
         document.getElementById('server-status'),
         document.getElementById('db-status'),

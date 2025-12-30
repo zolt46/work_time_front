@@ -315,11 +315,11 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-app .slot-grid.table-like {
-  grid-template-columns: 36px repeat(5, minmax(28px, 1fr));
+  grid-template-columns: 36px repeat(5, minmax(36px, 1fr));
 }
 
 .mobile-app .slot-cell {
-  min-height: 52px;
+  min-height: 60px;
   font-size: 11px;
 }
 
@@ -335,7 +335,7 @@ body.app-loading .mobile-nav {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 220px);
 }
 
 .mobile-app .sidebar-overlay {
@@ -355,32 +355,32 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-app .timetable-header {
-  grid-template-columns: 44px repeat(5, minmax(40px, 1fr));
+  grid-template-columns: 48px repeat(5, minmax(48px, 1fr));
 }
 
 .mobile-app .timetable-body {
-  grid-template-columns: 44px repeat(5, minmax(40px, 1fr));
+  grid-template-columns: 48px repeat(5, minmax(48px, 1fr));
 }
 
 .mobile-app .timetable-header .day-label {
-  font-size: 11px;
+  font-size: 12px;
   padding: 6px 4px;
 }
 
 .mobile-app .timetable-times .time-label {
-  font-size: 10px;
+  font-size: 11px;
   padding: 4px 4px;
 }
 
 .mobile-app .timetable-cell {
-  padding: 3px 4px;
-  gap: 3px;
-  min-height: calc(var(--hour-height, 28px) - 2px);
+  padding: 4px 4px;
+  gap: 4px;
+  min-height: calc(var(--hour-height, 32px) - 2px);
 }
 
 .mobile-app .timetable-pill {
-  font-size: 10px;
-  padding: 2px 5px;
+  font-size: 11px;
+  padding: 2px 6px;
 }
 
 .request-card-list {
@@ -391,10 +391,47 @@ body.app-loading .mobile-nav {
 .request-card {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
   background: #f8fafc;
   display: grid;
   gap: 6px;
+}
+
+.mobile-app .notice-popup-body {
+  gap: 14px;
+}
+
+.mobile-app .notice-popup-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.mobile-app .notice-popup-backdrop .modal {
+  padding: 16px;
+}
+
+.mobile-app .notice-banner {
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.mobile-app .notice-banner-text {
+  font-size: 12px;
+  animation: bannerScroll 14s linear infinite;
+}
+
+.mobile-app .notice-banner-body {
+  font-size: 12px;
+}
+
+.mobile-app .notice-banner-actions {
+  gap: 6px;
+}
+
+@keyframes bannerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-40%); }
 }
 
 .request-card-title {

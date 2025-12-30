@@ -67,10 +67,10 @@
         </button>
         <div class="nav-sub" data-group="profile">
           <a class="nav-link" data-page="profile-info" href="member_profile.html">프로필 정보</a>
-          <a class="nav-link" data-page="profile-assignments" href="profile_assignments.html">내 배정 근무</a>
-          <a class="nav-link" data-page="profile-visible" href="profile_visible_users.html">접근 가능한 계정 현황</a>
+          <a class="nav-link" data-page="profile-assignments" href="profile_assignments.html" data-roles="MASTER,MEMBER">내 배정 근무</a>
+          <a class="nav-link" data-page="profile-visible" href="profile_visible_users.html" data-roles="MASTER,OPERATOR">접근 가능한 계정 현황</a>
           <a class="nav-link" data-page="profile-account" href="profile_account.html">로그인 ID/비밀번호 변경</a>
-          <a class="nav-link" data-page="profile-reset" href="profile_reset.html">데이터 초기화</a>
+          <a class="nav-link" data-page="profile-reset" href="profile_reset.html" data-roles="MASTER,OPERATOR">데이터 초기화</a>
         </div>
       </div>
       <div class="nav-group">
@@ -105,7 +105,7 @@
         <div class="card-title">데이터 초기화</div>
         <p class="muted">권한에 따라 선택지가 다르게 보입니다. 데이터만 초기화하며 스키마는 유지합니다.</p>
         <div class="stack">
-          <button class="btn secondary" data-reset-scope="members">구성원 DB만 초기화</button>
+          <button class="btn secondary" data-reset-scope="members">구성원 DB 초기화</button>
           <button class="btn secondary" data-reset-scope="operators_members">운영자+구성원 DB 초기화</button>
           <button class="btn danger" data-reset-scope="all">전체 초기화 (마스터 계정 재생성)</button>
         </div>
