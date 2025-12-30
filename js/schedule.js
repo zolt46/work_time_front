@@ -1,7 +1,7 @@
 // File: /ui/js/schedule.js
 import { apiRequest } from './api.js';
 
-const days = ['월', '화', '수', '목', '금', '토', '일'];
+const days = ['월', '화', '수', '목', '금'];
 
 function parseDateValue(dateStr) {
   if (!dateStr) return new Date();

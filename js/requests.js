@@ -1,7 +1,7 @@
 import { apiRequest } from './api.js';
 import { triggerNotificationsRefresh } from './notifications.js';
 
-const days = ['월', '화', '수', '목', '금', '토', '일'];
+const days = ['월', '화', '수', '목', '금'];
 const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 09~18시
 
 function sleep(ms) {
