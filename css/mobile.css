@@ -517,6 +517,10 @@ body.app-loading .mobile-nav {
   box-sizing: border-box;
 }
 
+.mobile-app .loader {
+  padding: 8px;
+}
+
 .mobile-grid {
   display: grid;
   gap: 12px;
