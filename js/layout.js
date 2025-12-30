@@ -223,6 +223,7 @@ if (!globalThis.__worktimeLayout) {
     const retryBtn = document.getElementById('login-retry');
     let lastCheck = 0;
     let cooldownTimer = null;
+    let autoRetrying = false;
     const cooldownMs = 5000;
     const runStatusCheck = () => {
       const now = Date.now();
@@ -238,7 +239,7 @@ if (!globalThis.__worktimeLayout) {
       }
       if (cooldownTimer) clearTimeout(cooldownTimer);
       cooldownTimer = setTimeout(() => {
-        if (retryBtn) {
+        if (retryBtn && !autoRetrying) {
           retryBtn.disabled = false;
           retryBtn.textContent = '연결 다시 확인';
         }
@@ -254,9 +255,14 @@ if (!globalThis.__worktimeLayout) {
           timeoutMs: 3500,
           onRecover: () => window.location.reload(),
           onRetry: (nextAttempt, maxRetries) => {
+            autoRetrying = true;
             if (loginProgress) {
               const attemptLabel = Number.isFinite(maxRetries) ? `${nextAttempt}/${maxRetries}회` : `${nextAttempt}회째`;
               loginProgress.textContent = `서버 준비 중... 자동 재시도 (${attemptLabel})`;
+            }
+            if (retryBtn) {
+              retryBtn.disabled = true;
+              retryBtn.textContent = '자동 재시도 중';
             }
           }
         }

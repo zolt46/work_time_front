@@ -100,8 +100,8 @@ body.app-loading .mobile-nav {
 }
 
 .mobile-brand img {
-  width: 52px;
-  height: 52px;
+  width: 32px;
+  height: 32px;
 }
 
 .mobile-status-row {
@@ -419,6 +419,10 @@ body.app-loading .mobile-nav {
   padding: 16px;
 }
 
+.mobile-app .notice-popup-backdrop .notice-popup {
+  max-width: 360px;
+}
+
 .mobile-app .notice-banner {
   padding: 6px 10px;
   gap: 8px;
@@ -482,10 +486,12 @@ body.app-loading .mobile-nav {
 
 .mobile-app #my-requests {
   width: 100%;
+  gap: 4px;
 }
 
 .mobile-app .request-row {
   width: 100%;
+  padding: 8px 10px;
 }
 
 .mobile-content {
@@ -497,6 +503,10 @@ body.app-loading .mobile-nav {
 .mobile-content .card {
   border-radius: 14px;
   padding: 16px;
+}
+
+.mobile-content .timetable-card {
+  padding: 12px;
 }
 
 .mobile-grid {

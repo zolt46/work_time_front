@@ -320,7 +320,7 @@ table.table tbody tr.selected td {
 }
 
 .notice-popup-backdrop .notice-popup {
-  max-width: 560px;
+  max-width: 440px;
 }
 
 .notice-popup-title {
@@ -346,7 +346,7 @@ table.table tbody tr.selected td {
 .notice-snooze {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .notice-popup-footer {
@@ -587,6 +587,14 @@ table.table tbody tr.selected td {
 .request-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #0f172a; }
 .request-meta .meta-label { color: #64748b; font-weight: 600; white-space: nowrap; }
 .request-meta .meta-value { text-align: right; word-break: keep-all; }
+
+.timetable-card {
+  padding: 12px;
+}
+
+.timetable-card .card-title {
+  margin-bottom: 6px;
+}
 .badge.cancelled { background: #e2e8f0; color: #334155; }
 .timetable-pill.pill-extra { background: color-mix(in srgb, #0f766e 14%, #fff); border-color: color-mix(in srgb, #0f766e 40%, #fff); color: #064e3b; }
 
