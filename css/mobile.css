@@ -9,6 +9,7 @@ body.mobile-app {
   min-height: 100vh;
   padding-bottom: calc(var(--mobile-nav-height) + 16px);
   --header-height: 64px;
+  --mobile-gutter: 20px;
 }
 
 .app-shell-loader {
@@ -48,14 +49,14 @@ body.app-loading .mobile-nav {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px 16px 0;
+  padding: 16px var(--mobile-gutter) 0;
 }
 
 .mobile-header {
   position: static;
   z-index: 10;
   background: #f5f7fb;
-  padding: 8px 16px 6px;
+  padding: 8px var(--mobile-gutter) 6px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -497,7 +498,7 @@ body.app-loading .mobile-nav {
 .mobile-content {
   display: grid;
   gap: 14px;
-  padding: 8px 16px 0;
+  padding: 8px var(--mobile-gutter) 0;
 }
 
 .mobile-content .card {

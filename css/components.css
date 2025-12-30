@@ -582,11 +582,21 @@ table.table tbody tr.selected td {
   display: grid;
   gap: 6px;
 }
+.request-row + .request-row {
+  margin-top: 6px;
+}
 .request-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
 .request-meta-list { display: grid; gap: 4px; }
 .request-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #0f172a; }
 .request-meta .meta-label { color: #64748b; font-weight: 600; white-space: nowrap; }
 .request-meta .meta-value { text-align: right; word-break: keep-all; }
+
+#my-requests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
 
 .timetable-card {
   padding: 12px;
