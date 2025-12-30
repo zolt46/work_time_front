@@ -143,6 +143,7 @@
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - dayOffset);
         const params = new URLSearchParams({ start: weekStart.toISOString().slice(0, 10) });
+        if (user?.id) params.set('user_id', user.id);
         const events = await apiRequest(`/schedule/weekly_view?${params.toString()}`);
         const todayStr = today.toISOString().slice(0, 10);
         const todays = events.filter((ev) => ev.date === todayStr);

@@ -127,13 +127,51 @@ function buildRequestEvents(requests, userMap, shiftMap, viewerRole) {
   return events.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
+function buildFeedEvents(entries, userMap, shiftMap) {
+  const events = [];
+  entries.forEach((entry) => {
+    const applicant = userMap[entry.user_id]?.name || '알 수 없는 신청자';
+    const shift = shiftMap[entry.target_shift_id];
+    const window = timeWindow(entry, shift);
+    const kind = entry.type === 'ABSENCE' ? '결근' : '추가 근무';
+    const base = `${entry.target_date} ${window ? `${window} ` : ''}${kind}`;
+    const reasonMeta = entry.reason ? `사유: ${entry.reason}` : null;
+    let status = 'PENDING';
+    let text = `승인 대기 접수: ${applicant} - ${base}`;
+    if (entry.action_type === 'REQUEST_APPROVE') {
+      status = 'APPROVED';
+      text = `승인 완료: ${applicant} - ${base}`;
+    } else if (entry.action_type === 'REQUEST_REJECT') {
+      status = 'REJECTED';
+      text = `거부 처리됨: ${applicant} - ${base}`;
+    } else if (entry.action_type === 'REQUEST_CANCEL') {
+      status = 'CANCELLED';
+      text = entry.cancelled_after_approval
+        ? `승인 후 취소되었습니다: ${applicant} - ${base}`
+        : `승인 전 취소 접수: ${applicant} - ${base}`;
+    }
+    events.push({
+      id: `${entry.request_id}-${entry.action_type}`,
+      text,
+      meta: reasonMeta,
+      status,
+      created_at: entry.created_at
+    });
+  });
+  return events.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
 async function fetchNotifications(user) {
   if (!user) return [];
   const { users, shifts } = await ensureMeta();
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
   const shiftMap = Object.fromEntries(shifts.map((s) => [s.id, s]));
-  const source = user.role === 'MEMBER' ? await apiRequest('/requests/my') : await apiRequest('/requests/feed');
-  return buildRequestEvents(source, userMap, shiftMap, user.role).slice(0, 15);
+  if (user.role === 'MEMBER') {
+    const source = await apiRequest('/requests/my');
+    return buildRequestEvents(source, userMap, shiftMap, user.role).slice(0, 15);
+  }
+  const feed = await apiRequest('/requests/feed');
+  return buildFeedEvents(feed, userMap, shiftMap).slice(0, 15);
 }
 
 export async function initNotifications(user) {

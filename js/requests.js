@@ -543,35 +543,29 @@ async function renderRequestFeed() {
   const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
   if (tbody) tbody.innerHTML = '';
   if (list) list.innerHTML = '';
-  const events = [];
-  feed.forEach((r) => {
-    const requester = userMap[r.user_id];
-    const requesterName = requester ? requester.name : r.user_id;
-    const baseShiftLabel = r.target_shift_id ? shiftLabel(r.target_shift_id) : '근무 정보 없음';
-    const shiftText = `${baseShiftLabel}${requestTimeLabel(r) ? ` (${requestTimeLabel(r)})` : ''}`;
-    const base = { requesterName, shiftText, target: r.target_date || '-', reason: r.reason || '-' };
-    events.push({
-      time: r.created_at,
-      status: '신청',
-      requesterName: base.requesterName,
-      shiftText: base.shiftText,
-      target: base.target,
-      reason: base.reason,
-      rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>신청됨</td><td>${base.reason}</td>`
-    });
-    if (r.status === 'APPROVED' || r.status === 'REJECTED' || r.status === 'CANCELLED') {
-      const decidedAt = r.decided_at || r.created_at;
-      const statusText = r.status === 'APPROVED' ? '승인됨' : r.status === 'REJECTED' ? '거절됨' : r.cancelled_after_approval ? '승인 후 취소' : '취소됨';
-      events.push({
-        time: decidedAt,
-        status: statusText,
-        requesterName: base.requesterName,
-        shiftText: base.shiftText,
-        target: base.target,
-        reason: base.reason,
-        rowHtml: `<td>${requesterName}</td><td>${typeLabel(r.type)}</td><td>${r.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${base.reason}</td>`
-      });
-    }
+  const events = feed.map((entry) => {
+    const requester = userMap[entry.user_id];
+    const requesterName = requester ? requester.name : entry.user_id;
+    const baseShiftLabel = entry.target_shift_id ? shiftLabel(entry.target_shift_id) : '근무 정보 없음';
+    const shiftText = `${baseShiftLabel}${requestTimeLabel(entry) ? ` (${requestTimeLabel(entry)})` : ''}`;
+    const statusText = entry.action_type === 'REQUEST_SUBMIT'
+      ? '신청됨'
+      : entry.action_type === 'REQUEST_APPROVE'
+        ? '승인됨'
+        : entry.action_type === 'REQUEST_REJECT'
+          ? '거절됨'
+          : entry.cancelled_after_approval
+            ? '승인 후 취소'
+            : '취소됨';
+    return {
+      time: entry.created_at,
+      status: statusText,
+      requesterName,
+      shiftText,
+      target: entry.target_date || '-',
+      reason: entry.reason || '-',
+      rowHtml: `<td>${requesterName}</td><td>${typeLabel(entry.type)}</td><td>${entry.target_date}</td><td>${shiftText}</td><td>${statusText}</td><td>${entry.reason || '-'}</td>`
+    };
   });
   events
     .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))
