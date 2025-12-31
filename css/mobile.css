@@ -171,6 +171,60 @@ body.app-loading .mobile-nav {
   border-top-color: #38bdf8;
 }
 
+:root[data-theme="dark"] .nav-sub .nav-link {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+:root[data-theme="dark"] .history-card,
+:root[data-theme="dark"] .member-card-item,
+:root[data-theme="dark"] .profile-info-item,
+:root[data-theme="dark"] .slot-grid-shell,
+:root[data-theme="dark"] .request-card,
+:root[data-theme="dark"] .mobile-panel,
+:root[data-theme="dark"] .mobile-menu-grid .nav-link {
+  background: #0b1220;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .history-row,
+:root[data-theme="dark"] .profile-value,
+:root[data-theme="dark"] .member-card-meta,
+:root[data-theme="dark"] .request-card-meta {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .history-detail pre {
+  background: #0b1220;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .mobile-nav {
+  background: #0b1220;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .mobile-nav .nav-link {
+  color: #94a3b8;
+}
+
+:root[data-theme="dark"] .mobile-nav .nav-link.active {
+  color: #e2e8f0;
+  background: #1e293b;
+}
+
+:root[data-theme="dark"] .mobile-menu-grid .nav-link {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .mobile-menu-grid .nav-link span {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .mobile-login {
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+}
+
 .nav-group {
   display: grid;
   gap: 6px;
