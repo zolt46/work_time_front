@@ -197,6 +197,115 @@ table.table tbody tr.selected td {
   margin-top: 6px;
 }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.theme-toggle .theme-icon {
+  font-size: 14px;
+}
+
+:root[data-theme="dark"] .alert {
+  background: #1f2937;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .status-chip {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .status-chip.status-ok {
+  background: #064e3b;
+  color: #d1fae5;
+}
+
+:root[data-theme="dark"] .status-chip.status-bad {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+:root[data-theme="dark"] .status-chip.status-pending {
+  background: #78350f;
+  color: #fde68a;
+}
+
+:root[data-theme="dark"] .icon-btn {
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .icon-btn:hover,
+:root[data-theme="dark"] .icon-btn.active {
+  background: #1f2937;
+}
+
+:root[data-theme="dark"] .loading-bar {
+  background: #1f2937;
+}
+
+:root[data-theme="dark"] .system-status-badge,
+:root[data-theme="dark"] .compact-list li,
+:root[data-theme="dark"] .notice-board-pill,
+:root[data-theme="dark"] .notice-card {
+  background: #0b1220;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .system-status-badge .status-label,
+:root[data-theme="dark"] .today-summary,
+:root[data-theme="dark"] .time-chip {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] table.table tbody tr.selected,
+:root[data-theme="dark"] table.table tbody tr:hover {
+  background: #111827;
+}
+
+:root[data-theme="dark"] .schedule-item {
+  background: #0b1220;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .schedule-date {
+  color: #cbd5f5;
+}
+
+:root[data-theme="dark"] .schedule-time {
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .timetable,
+:root[data-theme="dark"] .timetable-column {
+  background: #0b1220;
+  border-color: var(--border);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .timetable-header,
+:root[data-theme="dark"] .timetable-times {
+  background: #111827;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .timetable-times .time-label,
+:root[data-theme="dark"] .timetable-header .day-label {
+  color: #cbd5f5;
+}
+
+:root[data-theme="dark"] .timetable-cell:nth-child(odd) {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+:root[data-theme="dark"] .time-chip {
+  background: #1e1b4b;
+  border-color: #312e81;
+}
+
 .schedule-list {
   list-style: none;
   padding: 0;

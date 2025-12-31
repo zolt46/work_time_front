@@ -8,6 +8,37 @@ import { initNoticeOverlays } from './notices.js';
 // 중복 로드 시에도 동일 인스턴스를 재사용하도록 전역에 저장
 if (!globalThis.__worktimeLayout) {
   const roleOrder = { MEMBER: 1, OPERATOR: 2, MASTER: 3 };
+  const THEME_KEY = 'worktime-theme';
+
+  function getPreferredTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    const isDark = theme === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    toggle.setAttribute('aria-pressed', String(isDark));
+    toggle.classList.toggle('is-dark', isDark);
+    const label = document.getElementById('theme-label');
+    if (label) label.textContent = isDark ? '다크 모드' : '라이트 모드';
+    const icon = toggle.querySelector('.theme-icon');
+    if (icon) icon.textContent = isDark ? '🌙' : '☀️';
+  }
+
+  function initThemeToggle() {
+    applyTheme(getPreferredTheme());
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  }
 
   function setupSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -150,6 +181,7 @@ if (!globalThis.__worktimeLayout) {
   }
 
   async function initAppLayout(activePage) {
+    initThemeToggle();
     showAppShellLoader();
     highlightNav(activePage);
     setupSidebar();
@@ -218,6 +250,7 @@ if (!globalThis.__worktimeLayout) {
   }
 
   async function initLoginShell() {
+    initThemeToggle();
     setupSidebar();
     const loginProgress = document.getElementById('login-progress');
     const retryBtn = document.getElementById('login-retry');

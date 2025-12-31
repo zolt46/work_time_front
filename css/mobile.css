@@ -148,6 +148,29 @@ body.app-loading .mobile-nav {
   color: var(--muted);
 }
 
+:root[data-theme="dark"] body.mobile-app {
+  background: #0f172a;
+}
+
+:root[data-theme="dark"] .mobile-header {
+  background: #0f172a;
+}
+
+:root[data-theme="dark"] .mobile-header .system-status-badge {
+  background: #0b1220;
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .app-shell-loader {
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .app-shell-loader .spinner {
+  border-color: #334155;
+  border-top-color: #38bdf8;
+}
+
 .nav-group {
   display: grid;
   gap: 6px;
