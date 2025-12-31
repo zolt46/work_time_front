@@ -1,0 +1,112 @@
+/* File: /ui/css/visitor.css */
+.visitor-portal {
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+.visitor-portal .header {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e0e7ff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.visitor-portal .logo {
+  gap: 12px;
+  color: #1e293b;
+}
+
+.visitor-portal .logo img {
+  width: 44px;
+  height: 44px;
+}
+
+.visitor-portal .sidebar {
+  background: #111827;
+}
+
+.visitor-portal .sidebar-title {
+  color: #93c5fd;
+}
+
+.visitor-portal .sidebar a.active {
+  background: rgba(59, 130, 246, 0.22);
+  color: #e0f2fe;
+}
+
+.visitor-portal .sidebar a.nav-secondary {
+  color: #cbd5f5;
+  font-weight: 500;
+}
+
+.visitor-portal .sidebar a.nav-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.visitor-portal .nav-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.4);
+  margin: 12px 0;
+}
+
+.visitor-portal .content,
+.visitor-portal .mobile-content {
+  width: min(100%, 1100px);
+}
+
+.visitor-portal .card {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+}
+
+.visitor-portal .card-title {
+  color: #1d4ed8;
+}
+
+.visitor-portal .visitor-year-bar {
+  display: grid;
+  gap: 12px;
+}
+
+.visitor-portal .visitor-hero {
+  display: grid;
+  gap: 16px;
+}
+
+.visitor-portal .visitor-hero .helper-grid {
+  margin-top: 8px;
+}
+
+.visitor-portal .calendar-grid .calendar-value {
+  font-weight: 600;
+}
+
+:root[data-theme="dark"] .visitor-portal {
+  background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .visitor-portal .header {
+  background: rgba(15, 23, 42, 0.92);
+  border-bottom-color: #1e293b;
+}
+
+:root[data-theme="dark"] .visitor-portal .card {
+  border-color: #1f2937;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .visitor-portal .card-title {
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .visitor-portal .sidebar {
+  background: #0b1220;
+}
+
+:root[data-theme="dark"] .visitor-portal .sidebar-title {
+  color: #60a5fa;
+}
+
+:root[data-theme="dark"] .visitor-portal .nav-divider {
+  background: rgba(148, 163, 184, 0.2);
+}

@@ -174,9 +174,10 @@ if (!globalThis.__worktimeLayout) {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.onclick = () => logout(true);
     const home = document.querySelector('.logo, .mobile-brand');
+    const homeTarget = document.body?.dataset?.home || 'dashboard.html';
     if (home) {
       home.style.cursor = 'pointer';
-      home.addEventListener('click', () => { window.location.href = 'dashboard.html'; });
+      home.addEventListener('click', () => { window.location.href = homeTarget; });
     }
   }
 
