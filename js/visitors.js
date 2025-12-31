@@ -218,7 +218,18 @@ function renderCalendar() {
     const dateStr = new Date(year, month, day).toISOString().slice(0, 10);
     const entry = entriesMap.get(dateStr);
     cell.className = 'calendar-cell';
-    cell.innerHTML = `\n      <div class=\"calendar-date\">${day}</div>\n      <div class=\"calendar-value\">${entry ? formatNumber(entry.daily_visitors) : '-'}</div>\n    `;\n    if (entry) {\n      cell.classList.add('has-entry');\n      cell.title = `${formatDate(dateStr)}: ${formatNumber(entry.daily_visitors)}명`;\n    }\n    if (entry) {\n      cell.addEventListener('click', () => selectEntry(entry));\n    }\n    grid.appendChild(cell);\n  }\n }
+    cell.innerHTML = `
+      <div class="calendar-date">${day}</div>
+      <div class="calendar-value">${entry ? formatNumber(entry.daily_visitors) : '-'}</div>
+    `;
+    if (entry) {
+      cell.classList.add('has-entry');
+      cell.title = `${formatDate(dateStr)}: ${formatNumber(entry.daily_visitors)}명`;
+      cell.addEventListener('click', () => selectEntry(entry));
+    }
+    grid.appendChild(cell);
+  }
+}
 
 function moveCalendar(monthOffset) {
   const cursor = resolveCalendarCursor();
