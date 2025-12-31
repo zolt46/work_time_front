@@ -12,6 +12,7 @@ let currentYear = null;
 let entries = [];
 let periods = [];
 let selectedEntryId = null;
+let calendarCursor = null;
 
 function formatNumber(value) {
   if (value === null || value === undefined) return '-';
@@ -150,6 +151,96 @@ function updateSummary(summary) {
   if (totalVisitors) totalVisitors.textContent = formatNumber(summary?.total_visitors ?? 0);
 }
 
+function resolveCalendarCursor() {
+  if (calendarCursor) return calendarCursor;
+  const today = new Date();
+  if (currentYear) {
+    const start = new Date(currentYear.start_date);
+    const end = new Date(currentYear.end_date);
+    if (today >= start && today <= end) {
+      calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+      return calendarCursor;
+    }
+    calendarCursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    return calendarCursor;
+  }
+  calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  return calendarCursor;
+}
+
+function buildEntriesMap() {
+  const map = new Map();
+  entries.forEach((entry) => {
+    map.set(entry.visit_date, entry);
+  });
+  return map;
+}
+
+function renderCalendar() {
+  const grid = getElement('calendar-grid');
+  const label = getElement('calendar-label');
+  const meta = getElement('calendar-meta');
+  if (!grid || !label || !meta) return;
+  if (!currentYear) {
+    grid.innerHTML = '';
+    label.textContent = '-';
+    meta.textContent = '-';
+    return;
+  }
+  const cursor = resolveCalendarCursor();
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  label.textContent = `${year}년 ${month + 1}월`;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startWeekday = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+  const entriesMap = buildEntriesMap();
+  let monthTotal = 0;
+  let openDays = 0;
+  entries.forEach((entry) => {
+    const entryDate = new Date(entry.visit_date);
+    if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+      monthTotal += entry.daily_visitors;
+      openDays += 1;
+    }
+  });
+  meta.textContent = `개관일수 ${formatNumber(openDays)}일 · 출입자 ${formatNumber(monthTotal)}명`;
+  grid.innerHTML = '';
+  for (let i = 0; i < startWeekday; i += 1) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-cell muted';
+    cell.textContent = '';
+    grid.appendChild(cell);
+  }
+  for (let day = 1; day <= totalDays; day += 1) {
+    const cell = document.createElement('div');
+    const dateStr = new Date(year, month, day).toISOString().slice(0, 10);
+    const entry = entriesMap.get(dateStr);
+    cell.className = 'calendar-cell';
+    cell.innerHTML = `\n      <div class=\"calendar-date\">${day}</div>\n      <div class=\"calendar-value\">${entry ? formatNumber(entry.daily_visitors) : '-'}</div>\n    `;\n    if (entry) {\n      cell.classList.add('has-entry');\n      cell.title = `${formatDate(dateStr)}: ${formatNumber(entry.daily_visitors)}명`;\n    }\n    if (entry) {\n      cell.addEventListener('click', () => selectEntry(entry));\n    }\n    grid.appendChild(cell);\n  }\n }
+
+function moveCalendar(monthOffset) {
+  const cursor = resolveCalendarCursor();
+  const next = new Date(cursor.getFullYear(), cursor.getMonth() + monthOffset, 1);
+  if (currentYear) {
+    const start = new Date(currentYear.start_date);
+    const end = new Date(currentYear.end_date);
+    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    if (next < startMonth) {
+      calendarCursor = startMonth;
+    } else if (next > endMonth) {
+      calendarCursor = endMonth;
+    } else {
+      calendarCursor = next;
+    }
+  } else {
+    calendarCursor = next;
+  }
+  renderCalendar();
+}
+
 function updatePeriodForm() {
   const mapping = {
     SEMESTER_1: { start: 'period-semester1-start', end: 'period-semester1-end' },
@@ -221,6 +312,7 @@ async function loadYearDetail(yearId) {
   currentYear = data.year;
   entries = data.entries || [];
   periods = data.periods || [];
+  calendarCursor = null;
   updateYearSummary();
   renderEntries();
   updateSummary(data.summary);
@@ -228,6 +320,7 @@ async function loadYearDetail(yearId) {
   renderPeriodStats(data.summary);
   updatePeriodForm();
   updateEntryPreview();
+  renderCalendar();
 }
 
 async function loadYears() {
@@ -253,6 +346,7 @@ async function loadYears() {
     updateSummary({ open_days: 0, total_visitors: 0, monthly: [], periods: [] });
     renderMonthly({ monthly: [] });
     renderPeriodStats({ periods: [] });
+    renderCalendar();
   }
 }
 
@@ -323,6 +417,9 @@ function bindEvents() {
     getElement(id)?.addEventListener('input', () => updateEntryPreview());
     getElement(id)?.addEventListener('change', () => updateEntryPreview());
   });
+
+  getElement('calendar-prev')?.addEventListener('click', () => moveCalendar(-1));
+  getElement('calendar-next')?.addEventListener('click', () => moveCalendar(1));
 
   getElement('save-periods')?.addEventListener('click', async () => {
     if (!currentYear) return;

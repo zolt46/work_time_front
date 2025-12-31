@@ -64,7 +64,17 @@
       <div class="sidebar-title">탐색</div>
       <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
       <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 배정표</a>
-      <a class="nav-link" data-page="visitors" href="visitor_stats.html">출입자 통계</a>
+      <div class="nav-group">
+        <button class="nav-toggle" type="button" data-group="visitors" data-page="visitors" aria-expanded="false">
+          <span>출입자 통계</span>
+          <span class="nav-plus">+</span>
+        </button>
+        <div class="nav-sub" data-group="visitors">
+          <a class="nav-link" data-page="visitors-entry" href="visitor_stats.html#entry">일일 입력</a>
+          <a class="nav-link" data-page="visitors-calendar" href="visitor_stats.html#calendar">월별 달력</a>
+          <a class="nav-link" data-page="visitors-summary" href="visitor_stats.html#summary">요약 통계</a>
+        </div>
+      </div>
       <div class="nav-group">
         <button class="nav-toggle" type="button" data-group="profile" data-page="profile" aria-expanded="false">
           <span>내 프로필</span>
@@ -146,7 +156,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="entry">
         <div class="card-title">일일 방문자 입력</div>
         <div id="entry-hint" class="muted">근무일에만 기록하며, 이전 합산값을 기준으로 자동 계산됩니다.</div>
         <div class="inline-form">
@@ -186,7 +196,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="summary">
         <div class="card-title">전체 요약</div>
         <div class="stats-grid">
           <div class="stat-card">
@@ -198,6 +208,20 @@
             <div class="stat-value" id="total-visitors">-</div>
           </div>
         </div>
+      </section>
+
+      <section class="card" id="calendar">
+        <div class="card-title">월별 달력 요약</div>
+        <div class="calendar-header">
+          <button class="btn tiny secondary" id="calendar-prev">이전 달</button>
+          <div class="calendar-title" id="calendar-label">-</div>
+          <button class="btn tiny secondary" id="calendar-next">다음 달</button>
+        </div>
+        <div class="calendar-meta" id="calendar-meta">-</div>
+        <div class="calendar-grid calendar-head">
+          <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
       </section>
 
       <section class="card">
