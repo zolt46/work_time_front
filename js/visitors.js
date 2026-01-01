@@ -64,20 +64,17 @@ function resetEntryForm() {
 
 function updateYearSummary() {
   const label = getElement('year-label');
+  const academic = getElement('year-academic');
   const range = getElement('year-range');
-  const initial = getElement('year-initial-total');
-  const initialInput = getElement('edit-initial-total');
   if (!currentYear) {
     if (label) label.textContent = '-';
+    if (academic) academic.textContent = '-';
     if (range) range.textContent = '-';
-    if (initial) initial.textContent = '-';
-    if (initialInput) initialInput.value = '';
     return;
   }
   if (label) label.textContent = currentYear.label;
+  if (academic) academic.textContent = `${currentYear.academic_year}학년도`;
   if (range) range.textContent = formatDateRange(currentYear.start_date, currentYear.end_date);
-  if (initial) initial.textContent = formatNumber(currentYear.initial_total);
-  if (initialInput) initialInput.value = String(currentYear.initial_total ?? 0);
 }
 
 function renderEntries() {
@@ -178,6 +175,27 @@ function buildEntriesMap() {
     map.set(entry.visit_date, entry);
   });
   return map;
+}
+
+function getSortedEntries() {
+  return [...entries].sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date));
+}
+
+function findEntryNeighbors(visitDate) {
+  const sorted = getSortedEntries();
+  const target = new Date(visitDate);
+  let prev = null;
+  let next = null;
+  for (const entry of sorted) {
+    const entryDate = new Date(entry.visit_date);
+    if (entryDate < target) {
+      prev = entry;
+    } else if (entryDate > target) {
+      next = entry;
+      break;
+    }
+  }
+  return { prev, next };
 }
 
 function renderCalendar() {
@@ -285,8 +303,8 @@ function selectEntry(entry) {
   if (count2) count2.value = entry.count2;
   const baseline = getElement('baseline-total');
   const dailyInput = getElement('daily-visitors');
-  if (baseline) baseline.value = '';
-  if (dailyInput) dailyInput.value = entry.daily_visitors ?? '';
+  if (baseline) baseline.value = entry.baseline_total ?? '';
+  if (dailyInput) dailyInput.value = entry.daily_override ?? '';
   const deleteBtn = getElement('delete-entry');
   if (deleteBtn) deleteBtn.style.display = '';
   updateEntryPreview(entry);
@@ -295,14 +313,9 @@ function selectEntry(entry) {
 
 function findPreviousTotalForDate(visitDate) {
   if (!currentYear) return 0;
-  const dateValue = new Date(visitDate);
-  const list = [...entries].sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date));
-  let prev = currentYear.initial_total || 0;
-  for (const entry of list) {
-    if (new Date(entry.visit_date) >= dateValue) break;
-    prev = entry.total_count;
-  }
-  return prev;
+  const { prev } = findEntryNeighbors(visitDate);
+  if (prev) return prev.total_count;
+  return currentYear.initial_total || 0;
 }
 
 function updateEntryPreview(entry) {
@@ -320,10 +333,21 @@ function updateEntryPreview(entry) {
   } else if (baselineTotal !== null && !Number.isNaN(baselineTotal)) {
     prevTotal = baselineTotal;
   } else if (visitDate) {
-    prevTotal = findPreviousTotalForDate(visitDate);
+    const { prev, next } = findEntryNeighbors(visitDate);
+    if (prev) {
+      prevTotal = prev.total_count;
+    } else if (dailyInput !== null && !Number.isNaN(dailyInput) && next) {
+      prevTotal = next.previous_total - dailyInput;
+    } else {
+      prevTotal = currentYear?.initial_total || 0;
+    }
   }
   if (dailyInput !== null && !Number.isNaN(dailyInput) && total === 0) {
     total = prevTotal + dailyInput;
+    if (visitDate && prevTotal === 0) {
+      const { next } = findEntryNeighbors(visitDate);
+      if (next) total = next.previous_total;
+    }
   }
   const daily = dailyInput !== null && !Number.isNaN(dailyInput) ? dailyInput : total - prevTotal;
   const prevEl = getElement('preview-prev-total');
@@ -353,7 +377,7 @@ async function loadYearDetail(yearId) {
   renderCalendar();
 }
 
-async function loadYears() {
+async function loadYears(preferredAcademicYear = null) {
   const select = getElement('year-select');
   const years = await apiRequest('/visitors/years');
   if (!select) return;
@@ -365,8 +389,12 @@ async function loadYears() {
     select.appendChild(option);
   });
   if (years.length) {
-    select.value = years[0].id;
-    await loadYearDetail(years[0].id);
+    const preferred = preferredAcademicYear
+      ? years.find((year) => year.academic_year === preferredAcademicYear)
+      : null;
+    const activeYear = preferred || years[0];
+    select.value = activeYear.id;
+    await loadYearDetail(activeYear.id);
   } else {
     currentYear = null;
     entries = [];
@@ -386,31 +414,26 @@ function bindEvents() {
     await loadYearDetail(value);
   });
 
-  getElement('create-year')?.addEventListener('click', async () => {
+  getElement('apply-year')?.addEventListener('click', async () => {
     const yearInput = parseInt(getElement('new-year-input')?.value || '0', 10);
     if (!yearInput) {
       alert('학년도 숫자를 입력하세요.');
       return;
     }
-    const initialTotal = parseInt(getElement('new-initial-total')?.value || '0', 10) || 0;
-    await apiRequest('/visitors/years', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ academic_year: yearInput, initial_total: initialTotal })
-    });
+    try {
+      await apiRequest('/visitors/years', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ academic_year: yearInput })
+      });
+    } catch (error) {
+      if (!String(error.message).includes('이미 등록된 학년도')) {
+        alert(error.message);
+        return;
+      }
+    }
     getElement('new-year-input').value = '';
-    await loadYears();
-  });
-
-  getElement('update-initial-total')?.addEventListener('click', async () => {
-    if (!currentYear) return;
-    const value = parseInt(getElement('edit-initial-total')?.value || '0', 10) || 0;
-    await apiRequest(`/visitors/years/${currentYear.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initial_total: value })
-    });
-    await loadYearDetail(currentYear.id);
+    await loadYears(yearInput);
   });
 
   getElement('save-entry')?.addEventListener('click', async () => {
@@ -427,9 +450,15 @@ function bindEvents() {
     const dailyRaw = getElement('daily-visitors')?.value;
     const dailyInput = dailyRaw === '' || dailyRaw === undefined ? null : parseInt(dailyRaw, 10);
     if (dailyInput !== null && !Number.isNaN(dailyInput) && count1 + count2 === 0) {
-      const prevTotal = baselineTotal !== null && !Number.isNaN(baselineTotal)
+      let prevTotal = baselineTotal !== null && !Number.isNaN(baselineTotal)
         ? baselineTotal
         : findPreviousTotalForDate(visitDate);
+      if (prevTotal === 0) {
+        const { next } = findEntryNeighbors(visitDate);
+        if (next) {
+          prevTotal = next.previous_total - dailyInput;
+        }
+      }
       const computedTotal = prevTotal + dailyInput;
       count1 = computedTotal;
       count2 = 0;
@@ -438,23 +467,16 @@ function bindEvents() {
       if (count1El) count1El.value = String(count1);
       if (count2El) count2El.value = String(count2);
     }
-    if (baselineTotal !== null && !Number.isNaN(baselineTotal)) {
-      const earliestDate = entries.reduce((earliest, entry) => {
-        if (!earliest) return entry.visit_date;
-        return entry.visit_date < earliest ? entry.visit_date : earliest;
-      }, null);
-      if (!earliestDate || visitDate <= earliestDate) {
-        await apiRequest(`/visitors/years/${currentYear.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ initial_total: baselineTotal })
-        });
-      }
-    }
     await apiRequest(`/visitors/years/${currentYear.id}/entries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visit_date: visitDate, count1, count2 })
+      body: JSON.stringify({
+        visit_date: visitDate,
+        count1,
+        count2,
+        baseline_total: baselineTotal,
+        daily_override: dailyInput
+      })
     });
     await loadYearDetail(currentYear.id);
     resetEntryForm();
