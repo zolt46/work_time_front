@@ -179,6 +179,18 @@ if (!globalThis.__worktimeLayout) {
       home.style.cursor = 'pointer';
       home.addEventListener('click', () => { window.location.href = homeTarget; });
     }
+    document.querySelectorAll('[data-return-target]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = link.getAttribute('data-return-target') || 'dashboard.html';
+        if (window.opener && !window.opener.closed) {
+          window.opener.location.href = target;
+          window.close();
+          return;
+        }
+        window.location.href = target;
+      });
+    });
   }
 
   async function initAppLayout(activePage) {

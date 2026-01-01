@@ -53,6 +53,10 @@ function resetEntryForm() {
   const count2 = getElement('count2');
   if (count1) count1.value = '0';
   if (count2) count2.value = '0';
+  const baseline = getElement('baseline-total');
+  if (baseline) baseline.value = '';
+  const dailyInput = getElement('daily-visitors');
+  if (dailyInput) dailyInput.value = '';
   const deleteBtn = getElement('delete-entry');
   if (deleteBtn) deleteBtn.style.display = 'none';
   updateEntryPreview();
@@ -217,14 +221,16 @@ function renderCalendar() {
     const cell = document.createElement('div');
     const dateStr = new Date(year, month, day).toISOString().slice(0, 10);
     const entry = entriesMap.get(dateStr);
+    const author = entry?.updated_by_name || entry?.created_by_name || '-';
     cell.className = 'calendar-cell';
     cell.innerHTML = `
       <div class="calendar-date">${day}</div>
       <div class="calendar-value">${entry ? formatNumber(entry.daily_visitors) : '-'}</div>
+      <div class="calendar-author">${entry ? author : ''}</div>
     `;
     if (entry) {
       cell.classList.add('has-entry');
-      cell.title = `${formatDate(dateStr)}: ${formatNumber(entry.daily_visitors)}명`;
+      cell.title = `${formatDate(dateStr)}: ${formatNumber(entry.daily_visitors)}명 (${author})`;
       cell.addEventListener('click', () => selectEntry(entry));
     }
     grid.appendChild(cell);
@@ -277,6 +283,10 @@ function selectEntry(entry) {
   if (visitDate) visitDate.value = entry.visit_date;
   if (count1) count1.value = entry.count1;
   if (count2) count2.value = entry.count2;
+  const baseline = getElement('baseline-total');
+  const dailyInput = getElement('daily-visitors');
+  if (baseline) baseline.value = '';
+  if (dailyInput) dailyInput.value = entry.daily_visitors ?? '';
   const deleteBtn = getElement('delete-entry');
   if (deleteBtn) deleteBtn.style.display = '';
   updateEntryPreview(entry);
@@ -298,15 +308,24 @@ function findPreviousTotalForDate(visitDate) {
 function updateEntryPreview(entry) {
   const count1 = parseInt(getElement('count1')?.value || '0', 10);
   const count2 = parseInt(getElement('count2')?.value || '0', 10);
-  const total = count1 + count2;
+  const baselineRaw = getElement('baseline-total')?.value;
+  const baselineTotal = baselineRaw === '' || baselineRaw === undefined ? null : parseInt(baselineRaw, 10);
+  const dailyRaw = getElement('daily-visitors')?.value;
+  const dailyInput = dailyRaw === '' || dailyRaw === undefined ? null : parseInt(dailyRaw, 10);
+  let total = count1 + count2;
   let prevTotal = currentYear?.initial_total || 0;
   const visitDate = getElement('visit-date')?.value;
   if (entry?.previous_total !== undefined) {
     prevTotal = entry.previous_total;
+  } else if (baselineTotal !== null && !Number.isNaN(baselineTotal)) {
+    prevTotal = baselineTotal;
   } else if (visitDate) {
     prevTotal = findPreviousTotalForDate(visitDate);
   }
-  const daily = total - prevTotal;
+  if (dailyInput !== null && !Number.isNaN(dailyInput) && total === 0) {
+    total = prevTotal + dailyInput;
+  }
+  const daily = dailyInput !== null && !Number.isNaN(dailyInput) ? dailyInput : total - prevTotal;
   const prevEl = getElement('preview-prev-total');
   const totalEl = getElement('preview-total');
   const dailyEl = getElement('preview-daily');
@@ -401,8 +420,37 @@ function bindEvents() {
       alert('날짜를 선택하세요.');
       return;
     }
-    const count1 = parseInt(getElement('count1')?.value || '0', 10) || 0;
-    const count2 = parseInt(getElement('count2')?.value || '0', 10) || 0;
+    let count1 = parseInt(getElement('count1')?.value || '0', 10) || 0;
+    let count2 = parseInt(getElement('count2')?.value || '0', 10) || 0;
+    const baselineRaw = getElement('baseline-total')?.value;
+    const baselineTotal = baselineRaw === '' || baselineRaw === undefined ? null : parseInt(baselineRaw, 10);
+    const dailyRaw = getElement('daily-visitors')?.value;
+    const dailyInput = dailyRaw === '' || dailyRaw === undefined ? null : parseInt(dailyRaw, 10);
+    if (dailyInput !== null && !Number.isNaN(dailyInput) && count1 + count2 === 0) {
+      const prevTotal = baselineTotal !== null && !Number.isNaN(baselineTotal)
+        ? baselineTotal
+        : findPreviousTotalForDate(visitDate);
+      const computedTotal = prevTotal + dailyInput;
+      count1 = computedTotal;
+      count2 = 0;
+      const count1El = getElement('count1');
+      const count2El = getElement('count2');
+      if (count1El) count1El.value = String(count1);
+      if (count2El) count2El.value = String(count2);
+    }
+    if (baselineTotal !== null && !Number.isNaN(baselineTotal)) {
+      const earliestDate = entries.reduce((earliest, entry) => {
+        if (!earliest) return entry.visit_date;
+        return entry.visit_date < earliest ? entry.visit_date : earliest;
+      }, null);
+      if (!earliestDate || visitDate <= earliestDate) {
+        await apiRequest(`/visitors/years/${currentYear.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initial_total: baselineTotal })
+        });
+      }
+    }
     await apiRequest(`/visitors/years/${currentYear.id}/entries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -424,7 +472,7 @@ function bindEvents() {
     resetEntryForm();
   });
 
-  ['visit-date', 'count1', 'count2'].forEach((id) => {
+  ['visit-date', 'count1', 'count2', 'baseline-total', 'daily-visitors'].forEach((id) => {
     getElement(id)?.addEventListener('input', () => updateEntryPreview());
     getElement(id)?.addEventListener('change', () => updateEntryPreview());
   });
