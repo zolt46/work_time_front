@@ -82,6 +82,16 @@
   color: #1e293b;
 }
 
+.visitor-portal .inline-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visitor-portal .inline-input input {
+  flex: 1;
+}
+
 .visitor-portal .bulk-entry-month {
   margin-top: 12px;
   display: grid;

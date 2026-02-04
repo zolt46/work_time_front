@@ -99,12 +99,12 @@
 
       <section class="card" id="entry">
         <div class="card-title">일일 방문자 입력</div>
-        <div id="entry-hint" class="muted">날짜를 선택하면 전일 합산이 자동으로 채워집니다.</div>
+        <div id="entry-hint" class="muted">전일 합산 불러오기 버튼으로 기준값을 가져온 뒤 수정하여 계산할 수 있습니다.</div>
         <div id="entry-message" class="form-message" role="alert" aria-live="polite"></div>
         <div class="inline-form">
           <div class="form-row">
             <label for="visit-date">날짜</label>
-            <input id="visit-date" type="date" />
+            <input id="visit-date" type="date" disabled />
           </div>
           <div class="form-row">
             <label for="count1">Count 1</label>
@@ -113,6 +113,13 @@
           <div class="form-row">
             <label for="count2">Count 2</label>
             <input id="count2" type="number" min="0" value="0" />
+          </div>
+          <div class="form-row">
+            <label for="prev-total">전일 합산</label>
+            <div class="inline-input">
+              <input id="prev-total" type="number" min="0" placeholder="전일 합산 입력" />
+              <button class="btn tiny secondary" id="load-prev-total" type="button">불러오기</button>
+            </div>
           </div>
           <button class="btn" id="save-entry">기록 저장</button>
           <button class="btn secondary" id="reset-entry">초기화</button>
@@ -150,10 +157,6 @@
           <thead>
             <tr>
               <th>날짜</th>
-              <th>Count 1</th>
-              <th>Count 2</th>
-              <th>금일 합산</th>
-              <th>전일 합산</th>
               <th>금일 출입자</th>
               <th>수정자</th>
               <th>수정 시각</th>

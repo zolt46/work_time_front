@@ -74,16 +74,12 @@
 
       <section class="card" id="bulk-entry">
         <div class="card-title">일괄 입력</div>
-        <div id="bulk-entry-hint" class="muted">금일 출입자 수만 입력해도 누적 합산이 계산됩니다.</div>
+        <div id="bulk-entry-hint" class="muted">과거 날짜의 일일 방문자 수만 입력할 수 있습니다.</div>
         <div id="bulk-entry-message" class="form-message" role="alert" aria-live="polite"></div>
         <div class="inline-form">
           <div class="form-row">
             <label for="bulk-visit-date">날짜</label>
             <input id="bulk-visit-date" type="date" />
-          </div>
-          <div class="form-row">
-            <label for="bulk-baseline-total">전일 합산 기준값 (선택)</label>
-            <input id="bulk-baseline-total" type="number" min="0" placeholder="기준점이 되는 전일 합산" />
           </div>
           <div class="form-row">
             <label for="bulk-daily-visitors">금일 출입자</label>
@@ -94,7 +90,7 @@
           <button class="btn danger" id="delete-bulk-entry" style="display:none;">기록 삭제</button>
         </div>
         <div class="bulk-entry-month">
-          <div class="muted">월간 입력: 날짜가 자동으로 생성되며 방문자 수만 입력합니다.</div>
+          <div class="muted">월간 입력: 평일 날짜만 표시되며 방문자 수만 입력합니다. 오늘 날짜는 제외됩니다.</div>
           <div class="inline-form">
             <div class="form-row">
               <label for="bulk-month">월 선택</label>
@@ -116,14 +112,6 @@
           </div>
         </div>
         <div class="helper-grid" id="bulk-entry-preview">
-          <div class="helper-item">
-            <div class="muted">전일 합산</div>
-            <strong id="bulk-preview-prev-total">-</strong>
-          </div>
-          <div class="helper-item">
-            <div class="muted">금일 합산</div>
-            <strong id="bulk-preview-total">-</strong>
-          </div>
           <div class="helper-item">
             <div class="muted">금일 출입자</div>
             <strong id="bulk-preview-daily">-</strong>
@@ -147,10 +135,6 @@
           <thead>
             <tr>
               <th>날짜</th>
-              <th>Count 1</th>
-              <th>Count 2</th>
-              <th>금일 합산</th>
-              <th>전일 합산</th>
               <th>금일 출입자</th>
               <th>수정자</th>
               <th>수정 시각</th>
