@@ -14,6 +14,7 @@ let periods = [];
 let selectedEntryId = null;
 let calendarCursor = null;
 let entryMonthCursor = null;
+let pendingEntryMonth = null;
 
 function formatNumber(value) {
   if (value === null || value === undefined) return '-';
@@ -37,6 +38,12 @@ function setFormMessage(elementId, message) {
     el.textContent = '';
     el.classList.remove('show');
   }
+}
+
+function showUserError(message, elementId) {
+  if (!message) return;
+  setFormMessage(elementId, message);
+  alert(message);
 }
 
 function formatDate(dateStr) {
@@ -96,6 +103,10 @@ function resetBulkEntryForm() {
 function formatMonthLabel(dateObj) {
   if (!dateObj) return '-';
   return `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월`;
+}
+
+function hasBaselineInYear() {
+  return entries.some((entry) => entry.baseline_total !== null && entry.baseline_total !== undefined);
 }
 
 function updateYearSummary() {
@@ -248,6 +259,11 @@ function resolveEntryMonthCursor() {
   }
   entryMonthCursor = new Date(today.getFullYear(), today.getMonth(), 1);
   return entryMonthCursor;
+}
+
+function toMonthStart(dateObj) {
+  if (!dateObj) return null;
+  return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
 }
 
 function moveEntryMonth(monthOffset) {
@@ -471,7 +487,12 @@ async function loadYearDetail(yearId) {
   entries = data.entries || [];
   periods = data.periods || [];
   calendarCursor = null;
-  entryMonthCursor = null;
+  if (pendingEntryMonth) {
+    entryMonthCursor = toMonthStart(pendingEntryMonth);
+    pendingEntryMonth = null;
+  } else {
+    entryMonthCursor = null;
+  }
   updateYearSummary();
   renderEntries();
   updateSummary(data.summary);
@@ -527,13 +548,18 @@ async function loadYears(preferredAcademicYear = null) {
 function bindEvents() {
   getElement('year-select')?.addEventListener('change', async (event) => {
     const value = event.target.value;
-    await loadYearDetail(value);
+    try {
+      await loadYearDetail(value);
+    } catch (error) {
+      console.error(error);
+      showUserError(error.message || '학년도 정보를 불러오지 못했습니다.', 'entry-message');
+    }
   });
 
   getElement('apply-year')?.addEventListener('click', async () => {
     const yearInput = parseInt(getElement('new-year-input')?.value || '0', 10);
     if (!yearInput) {
-      alert('학년도 숫자를 입력하세요.');
+      showUserError('학년도 숫자를 입력하세요.', 'entry-message');
       return;
     }
     try {
@@ -544,7 +570,7 @@ function bindEvents() {
       });
     } catch (error) {
       if (!String(error.message).includes('이미 등록된 학년도')) {
-        alert(error.message);
+        showUserError(error.message || '학년도 생성에 실패했습니다.', 'entry-message');
         return;
       }
     }
@@ -556,21 +582,34 @@ function bindEvents() {
     if (!currentYear) return;
     const visitDate = getElement('visit-date')?.value;
     if (!visitDate) {
-      setFormMessage('entry-message', '날짜를 선택하세요.');
+      showUserError('날짜를 선택하세요.', 'entry-message');
       return;
     }
     const count1 = parseNumberInput(getElement('count1')?.value);
     const count2 = parseNumberInput(getElement('count2')?.value);
+    if (count1 !== null && (count1 < 0 || count1 > 1000000)) {
+      showUserError('Count 1은 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'entry-message');
+      return;
+    }
+    if (count2 !== null && (count2 < 0 || count2 > 1000000)) {
+      showUserError('Count 2는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'entry-message');
+      return;
+    }
     if (count1 === null && count2 === null) {
-      setFormMessage('entry-message', 'Count 1과 Count 2를 입력하세요.');
+      showUserError('Count 1과 Count 2를 입력하세요.', 'entry-message');
       return;
     }
     if (count1 === null || count2 === null) {
-      setFormMessage('entry-message', 'Count 1과 Count 2를 모두 입력하세요.');
+      showUserError('Count 1과 Count 2를 모두 입력하세요.', 'entry-message');
+      return;
+    }
+    if (Math.abs(count1 - count2) >= 10000) {
+      showUserError('Count 1과 Count 2 차이가 너무 큽니다.', 'entry-message');
       return;
     }
     setFormMessage('entry-message', '');
     try {
+      pendingEntryMonth = new Date(visitDate);
       await apiRequest(`/visitors/years/${currentYear.id}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -585,7 +624,7 @@ function bindEvents() {
       await loadYearDetail(currentYear.id);
       resetEntryForm();
     } catch (error) {
-      setFormMessage('entry-message', error.message || '저장에 실패했습니다.');
+      showUserError(error.message || '저장에 실패했습니다.', 'entry-message');
     }
   });
 
@@ -594,28 +633,46 @@ function bindEvents() {
   getElement('delete-entry')?.addEventListener('click', async () => {
     if (!currentYear || !selectedEntryId) return;
     if (!confirm('선택한 기록을 삭제할까요?')) return;
-    await apiRequest(`/visitors/years/${currentYear.id}/entries/${selectedEntryId}`, {
-      method: 'DELETE'
-    });
-    await loadYearDetail(currentYear.id);
-    resetEntryForm();
+    try {
+      await apiRequest(`/visitors/years/${currentYear.id}/entries/${selectedEntryId}`, {
+        method: 'DELETE'
+      });
+      await loadYearDetail(currentYear.id);
+      resetEntryForm();
+    } catch (error) {
+      showUserError(error.message || '삭제에 실패했습니다.', 'entry-message');
+    }
   });
 
   getElement('save-bulk-entry')?.addEventListener('click', async () => {
     if (!currentYear) return;
     const visitDate = getElement('bulk-visit-date')?.value;
     if (!visitDate) {
-      setFormMessage('bulk-entry-message', '날짜를 선택하세요.');
+      showUserError('날짜를 선택하세요.', 'bulk-entry-message');
       return;
     }
     const baselineTotal = parseNumberInput(getElement('bulk-baseline-total')?.value);
     const dailyVisitors = parseNumberInput(getElement('bulk-daily-visitors')?.value);
+    if (baselineTotal !== null && (baselineTotal < 0 || baselineTotal > 100000000)) {
+      showUserError('전일 합산 기준값은 0 이상 100,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+      return;
+    }
+    if (dailyVisitors !== null && (dailyVisitors < 0 || dailyVisitors > 1000000)) {
+      showUserError('금일 출입자는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+      return;
+    }
+    if (baselineTotal === null && !hasBaselineInYear()) {
+      showUserError('기준점이 되는 전일 합산값이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
+      getElement('bulk-baseline-total')?.focus();
+      return;
+    }
     if (baselineTotal === null && dailyVisitors === null) {
-      setFormMessage('bulk-entry-message', '전일 합산 기준값 또는 금일 출입자를 입력하세요.');
+      showUserError('전일 합산 기준값 또는 금일 출입자를 입력하세요.', 'bulk-entry-message');
       return;
     }
     setFormMessage('bulk-entry-message', '');
     try {
+      pendingEntryMonth = new Date(visitDate);
       await apiRequest(`/visitors/years/${currentYear.id}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -630,7 +687,71 @@ function bindEvents() {
       await loadYearDetail(currentYear.id);
       resetBulkEntryForm();
     } catch (error) {
-      setFormMessage('bulk-entry-message', error.message || '저장에 실패했습니다.');
+      showUserError(error.message || '저장에 실패했습니다.', 'bulk-entry-message');
+    }
+  });
+
+  getElement('save-bulk-list')?.addEventListener('click', async () => {
+    if (!currentYear) return;
+    const raw = getElement('bulk-entry-list')?.value || '';
+    const baselineTotal = parseNumberInput(getElement('bulk-baseline-total')?.value);
+    if (baselineTotal !== null && (baselineTotal < 0 || baselineTotal > 100000000)) {
+      showUserError('전일 합산 기준값은 0 이상 100,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+      return;
+    }
+    if (baselineTotal === null && !hasBaselineInYear()) {
+      showUserError('기준점이 되는 전일 합산값이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
+      getElement('bulk-baseline-total')?.focus();
+      return;
+    }
+    const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) {
+      showUserError('일괄 입력할 데이터를 입력하세요.', 'bulk-entry-message');
+      return;
+    }
+    const parsed = [];
+    for (const line of lines) {
+      const parts = line.split(/[,\t]/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length < 2) {
+        showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+        return;
+      }
+      const visitDate = parts[0];
+      const dailyVisitors = parseNumberInput(parts[1]);
+      if (!visitDate || dailyVisitors === null) {
+        showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+        return;
+      }
+      if (dailyVisitors < 0 || dailyVisitors > 1000000) {
+        showUserError('금일 출입자는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+        return;
+      }
+      parsed.push({ visitDate, dailyVisitors });
+    }
+    parsed.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+    pendingEntryMonth = new Date(parsed[0].visitDate);
+    setFormMessage('bulk-entry-message', '');
+    try {
+      const payload = {
+        entries: parsed.map((item, index) => ({
+          visit_date: item.visitDate,
+          count1: null,
+          count2: null,
+          baseline_total: index === 0 ? baselineTotal : null,
+          daily_override: item.dailyVisitors
+        }))
+      };
+      await apiRequest(`/visitors/years/${currentYear.id}/entries/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await loadYearDetail(currentYear.id);
+      getElement('bulk-entry-list').value = '';
+      resetBulkEntryForm();
+      alert(`총 ${parsed.length}건을 저장했습니다.`);
+    } catch (error) {
+      showUserError(error.message || '일괄 저장에 실패했습니다.', 'bulk-entry-message');
     }
   });
 
@@ -639,11 +760,15 @@ function bindEvents() {
   getElement('delete-bulk-entry')?.addEventListener('click', async () => {
     if (!currentYear || !selectedEntryId) return;
     if (!confirm('선택한 기록을 삭제할까요?')) return;
-    await apiRequest(`/visitors/years/${currentYear.id}/entries/${selectedEntryId}`, {
-      method: 'DELETE'
-    });
-    await loadYearDetail(currentYear.id);
-    resetBulkEntryForm();
+    try {
+      await apiRequest(`/visitors/years/${currentYear.id}/entries/${selectedEntryId}`, {
+        method: 'DELETE'
+      });
+      await loadYearDetail(currentYear.id);
+      resetBulkEntryForm();
+    } catch (error) {
+      showUserError(error.message || '삭제에 실패했습니다.', 'bulk-entry-message');
+    }
   });
 
   ['visit-date', 'count1', 'count2'].forEach((id) => {
@@ -690,12 +815,16 @@ function bindEvents() {
         end_date: getElement('period-winter-end')?.value || null
       }
     ];
-    await apiRequest(`/visitors/years/${currentYear.id}/periods`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    await loadYearDetail(currentYear.id);
+    try {
+      await apiRequest(`/visitors/years/${currentYear.id}/periods`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await loadYearDetail(currentYear.id);
+    } catch (error) {
+      showUserError(error.message || '기간 저장에 실패했습니다.', 'entry-message');
+    }
   });
 }
 
@@ -708,5 +837,6 @@ export function initVisitorStats() {
     if (status) status.textContent = message;
     setFormMessage('entry-message', message);
     setFormMessage('bulk-entry-message', message);
+    alert(message);
   });
 }

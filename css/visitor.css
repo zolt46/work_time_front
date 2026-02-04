@@ -82,6 +82,22 @@
   color: #1e293b;
 }
 
+.visitor-portal .bulk-entry-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.visitor-portal .bulk-entry-list textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+}
+
 .visitor-portal .form-message {
   margin: 4px 0 12px;
   padding: 8px 12px;
@@ -124,6 +140,12 @@
 }
 
 :root[data-theme="dark"] .visitor-portal .entry-month-label {
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .visitor-portal .bulk-entry-list textarea {
+  background: #0f172a;
+  border-color: #1f2937;
   color: #e2e8f0;
 }
 
