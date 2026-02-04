@@ -512,16 +512,16 @@ function bindEvents() {
         end_date: getElement('period-semester1-end')?.value || null
       },
       {
-        period_type: 'SEMESTER_2',
-        name: periodTypes.SEMESTER_2,
-        start_date: getElement('period-semester2-start')?.value || null,
-        end_date: getElement('period-semester2-end')?.value || null
-      },
-      {
         period_type: 'SUMMER_BREAK',
         name: periodTypes.SUMMER_BREAK,
         start_date: getElement('period-summer-start')?.value || null,
         end_date: getElement('period-summer-end')?.value || null
+      },
+      {
+        period_type: 'SEMESTER_2',
+        name: periodTypes.SEMESTER_2,
+        start_date: getElement('period-semester2-start')?.value || null,
+        end_date: getElement('period-semester2-end')?.value || null
       },
       {
         period_type: 'WINTER_BREAK',
