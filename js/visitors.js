@@ -13,6 +13,7 @@ let entries = [];
 let periods = [];
 let selectedEntryId = null;
 let calendarCursor = null;
+let entryMonthCursor = null;
 
 function formatNumber(value) {
   if (value === null || value === undefined) return '-';
@@ -92,6 +93,11 @@ function resetBulkEntryForm() {
   updateBulkEntryPreview();
 }
 
+function formatMonthLabel(dateObj) {
+  if (!dateObj) return '-';
+  return `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월`;
+}
+
 function updateYearSummary() {
   const label = getElement('year-label');
   const academic = getElement('year-academic');
@@ -110,14 +116,21 @@ function updateYearSummary() {
 function renderEntries() {
   const tbody = getElement('entry-table')?.querySelector('tbody');
   const status = getElement('entry-status');
+  const label = getElement('entry-month-label');
   if (!tbody) return;
+  const cursor = resolveEntryMonthCursor();
+  if (label) label.textContent = formatMonthLabel(cursor);
   tbody.innerHTML = '';
   if (!entries.length) {
     if (status) status.textContent = '아직 기록된 데이터가 없습니다.';
     return;
   }
-  if (status) status.textContent = `총 ${entries.length}건의 기록`;
-  entries.forEach((entry) => {
+  const filtered = entries.filter((entry) => {
+    const entryDate = new Date(entry.visit_date);
+    return entryDate.getFullYear() === cursor.getFullYear() && entryDate.getMonth() === cursor.getMonth();
+  });
+  if (status) status.textContent = `${formatMonthLabel(cursor)} · ${filtered.length}건`;
+  filtered.forEach((entry) => {
     const tr = document.createElement('tr');
     if (entry.id === selectedEntryId) tr.classList.add('selected');
     const updater = entry.updated_by_name || entry.created_by_name || '-';
@@ -213,6 +226,46 @@ function resolveCalendarCursor() {
   }
   calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
   return calendarCursor;
+}
+
+function resolveEntryMonthCursor() {
+  if (entryMonthCursor) return entryMonthCursor;
+  const today = new Date();
+  if (currentYear && isDateWithinYear(currentYear, today)) {
+    entryMonthCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+    return entryMonthCursor;
+  }
+  if (entries.length) {
+    const firstEntry = entries[0];
+    const dateObj = new Date(firstEntry.visit_date);
+    entryMonthCursor = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
+    return entryMonthCursor;
+  }
+  if (currentYear) {
+    const start = new Date(currentYear.start_date);
+    entryMonthCursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    return entryMonthCursor;
+  }
+  entryMonthCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  return entryMonthCursor;
+}
+
+function moveEntryMonth(monthOffset) {
+  const cursor = resolveEntryMonthCursor();
+  let next = new Date(cursor.getFullYear(), cursor.getMonth() + monthOffset, 1);
+  if (currentYear) {
+    const start = new Date(currentYear.start_date);
+    const end = new Date(currentYear.end_date);
+    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    if (next < startMonth) {
+      next = startMonth;
+    } else if (next > endMonth) {
+      next = endMonth;
+    }
+  }
+  entryMonthCursor = next;
+  renderEntries();
 }
 
 function buildEntriesMap() {
@@ -350,6 +403,8 @@ function updatePeriodForm() {
 
 function selectEntry(entry) {
   selectedEntryId = entry.id;
+  const entryDate = new Date(entry.visit_date);
+  entryMonthCursor = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
   const visitDate = getElement('visit-date');
   const count1 = getElement('count1');
   const count2 = getElement('count2');
@@ -416,6 +471,7 @@ async function loadYearDetail(yearId) {
   entries = data.entries || [];
   periods = data.periods || [];
   calendarCursor = null;
+  entryMonthCursor = null;
   updateYearSummary();
   renderEntries();
   updateSummary(data.summary);
@@ -456,6 +512,7 @@ async function loadYears(preferredAcademicYear = null) {
     currentYear = null;
     entries = [];
     periods = [];
+    entryMonthCursor = null;
     updateYearSummary();
     renderEntries();
     updateSummary({ open_days: 0, total_visitors: 0, monthly: [], periods: [] });
@@ -598,6 +655,9 @@ function bindEvents() {
     getElement(id)?.addEventListener('input', () => updateBulkEntryPreview());
     getElement(id)?.addEventListener('change', () => updateBulkEntryPreview());
   });
+
+  getElement('entry-month-prev')?.addEventListener('click', () => moveEntryMonth(-1));
+  getElement('entry-month-next')?.addEventListener('click', () => moveEntryMonth(1));
 
   getElement('calendar-prev')?.addEventListener('click', () => moveCalendar(-1));
   getElement('calendar-next')?.addEventListener('click', () => moveCalendar(1));

@@ -53,9 +53,9 @@
       <div class="sidebar-title">출입자 통계</div>
       <a class="nav-link" data-page="visitor-dashboard" href="visitor_dashboard.html">월간 대시보드</a>
       <a class="nav-link" data-page="visitor-entry" href="visitor_entry.html">일일 입력</a>
-      <a class="nav-link" data-page="visitor-bulk-entry" href="visitor_bulk_entry.html">일괄 입력</a>
+      <a class="nav-link" data-page="visitor-bulk-entry" data-min-role="OPERATOR" href="visitor_bulk_entry.html">일괄 입력</a>
       <a class="nav-link" data-page="visitor-summary" href="visitor_summary.html">통계 리포트</a>
-      <a class="nav-link" data-page="visitor-settings" href="visitor_settings.html">학년도 · 설정</a>
+      <a class="nav-link" data-page="visitor-settings" data-min-role="OPERATOR" href="visitor_settings.html">학년도 · 설정</a>
       <div class="nav-divider"></div>
       <a class="nav-link nav-secondary" href="dashboard.html" data-return-target="dashboard.html">근무 시스템 돌아가기</a>
     </nav>
@@ -128,6 +128,11 @@
 
       <section class="card">
         <div class="card-title">일일 기록</div>
+        <div class="entry-month-header">
+          <button class="btn tiny secondary" id="entry-month-prev">이전 달</button>
+          <div class="entry-month-label" id="entry-month-label">-</div>
+          <button class="btn tiny secondary" id="entry-month-next">다음 달</button>
+        </div>
         <div class="muted" id="entry-status">불러오는 중...</div>
         <table class="table" id="entry-table">
           <thead>
