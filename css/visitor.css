@@ -64,6 +64,25 @@
   color: #64748b;
 }
 
+.visitor-portal .calendar-grid .calendar-cell.is-today {
+  border: 1px solid rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+}
+
+.visitor-portal .form-message {
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: rgba(248, 113, 113, 0.12);
+  color: #b91c1c;
+  display: none;
+}
+
+.visitor-portal .form-message.show {
+  display: block;
+}
+
 :root[data-theme="dark"] .visitor-portal {
   background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
   color: #e2e8f0;
@@ -84,6 +103,16 @@
 
 :root[data-theme="dark"] .visitor-portal .calendar-grid .calendar-author {
   color: #94a3b8;
+}
+
+:root[data-theme="dark"] .visitor-portal .calendar-grid .calendar-cell.is-today {
+  border-color: rgba(148, 197, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(148, 197, 255, 0.25);
+}
+
+:root[data-theme="dark"] .visitor-portal .form-message {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
 }
 
 :root[data-theme="dark"] .visitor-portal .sidebar-title {

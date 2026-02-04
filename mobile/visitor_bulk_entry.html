@@ -1,19 +1,21 @@
-<!-- File: /ui/html/visitor_entry.html -->
+<!-- File: /ui/mobile/visitor_bulk_entry.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>일일 입력 - 출입자 통계 센터</title>
+  <title>일괄 입력 - 출입자 통계 센터</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
   <link rel="stylesheet" href="../css/visitor.css" />
   <script type="module">
-    import { redirectToMobileIfNeeded } from '../js/mobile.js';
-    redirectToMobileIfNeeded('../mobile/visitor_entry.html');
+    import { redirectToDesktopIfNeeded } from '../js/mobile.js';
+    redirectToDesktopIfNeeded('../html/visitor_bulk_entry.html');
   </script>
 </head>
-<body class="app-loading visitor-portal" data-home="visitor_dashboard.html">
+<body class="mobile-app app-loading visitor-portal" data-home="visitor_dashboard.html">
   <div id="app-shell-loader" class="app-shell-loader">
     <div class="spinner" aria-label="로딩 중"></div>
     <div class="muted">필요한 정보를 불러오는 중...</div>
@@ -24,27 +26,12 @@
       <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 출입자 통계 센터</div>
     </div>
     <div class="header-right">
-      <div class="system-status-badge inline" id="status-card">
-        <div class="status-label">연결 상태</div>
-        <div class="system-status">
-          <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
-            <span class="status-dot"></span>
-            <span class="status-text">서버 확인 중</span>
-          </span>
-          <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
-            <span class="status-dot"></span>
-            <span class="status-text">DB 확인 중</span>
-          </span>
-        </div>
-        <div class="status-meta" id="status-meta">상태 체크 중...</div>
-      </div>
       <button class="btn tiny muted theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
         <span class="theme-icon">☀️</span>
         <span id="theme-label">라이트 모드</span>
       </button>
       <span id="session-countdown" class="status-chip session-timer"></span>
       <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
-      <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
       <button class="btn muted" id="logout-btn">로그아웃</button>
     </div>
   </header>
@@ -60,7 +47,7 @@
       <a class="nav-link nav-secondary" href="dashboard.html" data-return-target="dashboard.html">근무 시스템 돌아가기</a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <main class="content">
+    <main class="mobile-content">
       <section class="card visitor-year-bar">
         <div class="card-title">학년도 선택</div>
         <div class="inline-form">
@@ -85,43 +72,43 @@
         </div>
       </section>
 
-      <section class="card" id="entry">
-        <div class="card-title">일일 방문자 입력</div>
-        <div id="entry-hint" class="muted">날짜를 선택하면 전일 합산이 자동으로 채워집니다.</div>
-        <div id="entry-message" class="form-message" role="alert" aria-live="polite"></div>
+      <section class="card" id="bulk-entry">
+        <div class="card-title">일괄 입력</div>
+        <div id="bulk-entry-hint" class="muted">금일 출입자 수만 입력해도 누적 합산이 계산됩니다.</div>
+        <div id="bulk-entry-message" class="form-message" role="alert" aria-live="polite"></div>
         <div class="inline-form">
           <div class="form-row">
-            <label for="visit-date">날짜</label>
-            <input id="visit-date" type="date" />
+            <label for="bulk-visit-date">날짜</label>
+            <input id="bulk-visit-date" type="date" />
           </div>
           <div class="form-row">
-            <label for="count1">Count 1</label>
-            <input id="count1" type="number" min="0" value="0" />
+            <label for="bulk-baseline-total">전일 합산 기준값 (선택)</label>
+            <input id="bulk-baseline-total" type="number" min="0" placeholder="기준점이 되는 전일 합산" />
           </div>
           <div class="form-row">
-            <label for="count2">Count 2</label>
-            <input id="count2" type="number" min="0" value="0" />
+            <label for="bulk-daily-visitors">금일 출입자</label>
+            <input id="bulk-daily-visitors" type="number" min="0" placeholder="일일 방문자 수" />
           </div>
-          <button class="btn" id="save-entry">기록 저장</button>
-          <button class="btn secondary" id="reset-entry">초기화</button>
-          <button class="btn danger" id="delete-entry" style="display:none;">기록 삭제</button>
+          <button class="btn" id="save-bulk-entry">기록 저장</button>
+          <button class="btn secondary" id="reset-bulk-entry">초기화</button>
+          <button class="btn danger" id="delete-bulk-entry" style="display:none;">기록 삭제</button>
         </div>
-        <div class="helper-grid" id="entry-preview">
+        <div class="helper-grid" id="bulk-entry-preview">
           <div class="helper-item">
             <div class="muted">전일 합산</div>
-            <strong id="preview-prev-total">-</strong>
+            <strong id="bulk-preview-prev-total">-</strong>
           </div>
           <div class="helper-item">
             <div class="muted">금일 합산</div>
-            <strong id="preview-total">-</strong>
+            <strong id="bulk-preview-total">-</strong>
           </div>
           <div class="helper-item">
             <div class="muted">금일 출입자</div>
-            <strong id="preview-daily">-</strong>
+            <strong id="bulk-preview-daily">-</strong>
           </div>
           <div class="helper-item">
             <div class="muted">최근 수정자</div>
-            <strong id="preview-updater">-</strong>
+            <strong id="bulk-preview-updater">-</strong>
           </div>
         </div>
       </section>
@@ -151,7 +138,7 @@
     import { initAppLayout } from '../js/layout.js';
     import { initVisitorStats } from '../js/visitors.js';
 
-    await initAppLayout('visitor-entry');
+    await initAppLayout('visitor-bulk-entry');
     initVisitorStats();
   </script>
 </body>

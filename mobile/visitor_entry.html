@@ -65,6 +65,7 @@
       <div class="sidebar-title">출입자 통계</div>
       <a class="nav-link" data-page="visitor-dashboard" href="visitor_dashboard.html">월간 대시보드</a>
       <a class="nav-link" data-page="visitor-entry" href="visitor_entry.html">일일 입력</a>
+      <a class="nav-link" data-page="visitor-bulk-entry" href="visitor_bulk_entry.html">일괄 입력</a>
       <a class="nav-link" data-page="visitor-summary" href="visitor_summary.html">통계 리포트</a>
       <a class="nav-link" data-page="visitor-settings" href="visitor_settings.html">학년도 · 설정</a>
       <div class="nav-divider"></div>
@@ -98,7 +99,8 @@
 
       <section class="card" id="entry">
         <div class="card-title">일일 방문자 입력</div>
-        <div id="entry-hint" class="muted">기준 합산값이나 금일 출입자 입력으로 중간부터도 자연스럽게 집계할 수 있습니다.</div>
+        <div id="entry-hint" class="muted">날짜를 선택하면 전일 합산이 자동으로 채워집니다.</div>
+        <div id="entry-message" class="form-message" role="alert" aria-live="polite"></div>
         <div class="inline-form">
           <div class="form-row">
             <label for="visit-date">날짜</label>
@@ -111,14 +113,6 @@
           <div class="form-row">
             <label for="count2">Count 2</label>
             <input id="count2" type="number" min="0" value="0" />
-          </div>
-          <div class="form-row">
-            <label for="baseline-total">기준 합산값 (선택)</label>
-            <input id="baseline-total" type="number" min="0" placeholder="중간 시작 시 입력" />
-          </div>
-          <div class="form-row">
-            <label for="daily-visitors">금일 출입자 (역산)</label>
-            <input id="daily-visitors" type="number" min="0" placeholder="역으로 계산할 때 입력" />
           </div>
           <button class="btn" id="save-entry">기록 저장</button>
           <button class="btn secondary" id="reset-entry">초기화</button>
