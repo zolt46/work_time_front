@@ -109,6 +109,21 @@ function hasBaselineInYear() {
   return entries.some((entry) => entry.baseline_total !== null && entry.baseline_total !== undefined);
 }
 
+function updateBulkEntryAvailability() {
+  const hint = getElement('bulk-entry-hint');
+  const saveBtn = getElement('save-bulk-entry');
+  if (!hint || !saveBtn) return;
+  if (!hasBaselineInYear()) {
+    hint.textContent = '기준점이 없습니다. 기본 일괄 입력(리스트)에서 첫 줄 기준점을 먼저 입력하세요.';
+    saveBtn.disabled = true;
+    saveBtn.classList.add('disabled');
+  } else {
+    hint.textContent = '금일 출입자 수만 입력해도 누적 합산이 계산됩니다.';
+    saveBtn.disabled = false;
+    saveBtn.classList.remove('disabled');
+  }
+}
+
 function updateYearSummary() {
   const label = getElement('year-label');
   const academic = getElement('year-academic');
@@ -433,7 +448,7 @@ function selectEntry(entry) {
   const bulkVisit = getElement('bulk-visit-date');
   if (bulkVisit) bulkVisit.value = entry.visit_date;
   const bulkBaseline = getElement('bulk-baseline-total');
-  if (bulkBaseline) bulkBaseline.value = entry.baseline_total ?? '';
+  if (bulkBaseline) bulkBaseline.value = entry.baseline_total ?? entry.previous_total ?? '';
   const bulkDaily = getElement('bulk-daily-visitors');
   if (bulkDaily) bulkDaily.value = entry.daily_override ?? '';
   const bulkDelete = getElement('delete-bulk-entry');
@@ -501,6 +516,7 @@ async function loadYearDetail(yearId) {
   updatePeriodForm();
   resetEntryForm();
   resetBulkEntryForm();
+  updateBulkEntryAvailability();
   renderCalendar();
 }
 
@@ -646,6 +662,11 @@ function bindEvents() {
 
   getElement('save-bulk-entry')?.addEventListener('click', async () => {
     if (!currentYear) return;
+    if (!hasBaselineInYear()) {
+      showUserError('기준점이 없어서 보조 입력을 사용할 수 없습니다. 기본 일괄 입력에서 첫 줄 기준점을 먼저 입력하세요.', 'bulk-entry-message');
+      getElement('bulk-entry-list')?.focus();
+      return;
+    }
     const visitDate = getElement('bulk-visit-date')?.value;
     if (!visitDate) {
       showUserError('날짜를 선택하세요.', 'bulk-entry-message');
@@ -659,11 +680,6 @@ function bindEvents() {
     }
     if (dailyVisitors !== null && (dailyVisitors < 0 || dailyVisitors > 1000000)) {
       showUserError('금일 출입자는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
-      return;
-    }
-    if (baselineTotal === null && !hasBaselineInYear()) {
-      showUserError('기준점이 되는 전일 합산값이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
-      getElement('bulk-baseline-total')?.focus();
       return;
     }
     if (baselineTotal === null && dailyVisitors === null) {
