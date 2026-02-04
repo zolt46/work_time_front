@@ -107,9 +107,31 @@
           <button class="btn danger" id="delete-bulk-entry" style="display:none;">기록 삭제</button>
         </div>
         <div class="bulk-entry-list">
-          <div class="muted">여러 날짜를 한 번에 입력할 수 있습니다. 예: 2025-03-01,120 또는 2025-03-01~2025-03-05,120</div>
-          <textarea id="bulk-entry-list" rows="6" placeholder="YYYY-MM-DD,일일방문자수&#10;2025-03-01,120"></textarea>
-          <button class="btn secondary" id="save-bulk-list">일괄 저장</button>
+          <div class="muted">리스트 입력(고급): 예) 2025-03-01,120</div>
+          <textarea id="bulk-entry-list" rows="4" placeholder="YYYY-MM-DD,일일방문자수&#10;2025-03-01,120"></textarea>
+          <button class="btn secondary" id="save-bulk-list">리스트 일괄 저장</button>
+        </div>
+        <div class="bulk-entry-month">
+          <div class="muted">월간 입력: 날짜가 자동으로 생성되며 방문자 수만 입력합니다.</div>
+          <div class="inline-form">
+            <div class="form-row">
+              <label for="bulk-month">월 선택</label>
+              <input id="bulk-month" type="month" />
+            </div>
+            <button class="btn secondary" id="bulk-month-load">월 불러오기</button>
+            <button class="btn" id="save-bulk-month">월간 저장</button>
+          </div>
+          <div class="table-scroll">
+            <table class="table" id="bulk-month-table">
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>일일 방문자</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
         <div class="helper-grid" id="bulk-entry-preview">
           <div class="helper-item">

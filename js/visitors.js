@@ -15,6 +15,7 @@ let selectedEntryId = null;
 let calendarCursor = null;
 let entryMonthCursor = null;
 let pendingEntryMonth = null;
+let bulkMonthCursor = null;
 
 function formatNumber(value) {
   if (value === null || value === undefined) return '-';
@@ -33,20 +34,6 @@ function parseDateInput(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function expandDateRange(startText, endText) {
-  const start = parseDateInput(startText);
-  const end = parseDateInput(endText);
-  if (!start || !end) return null;
-  if (end < start) return null;
-  const results = [];
-  const current = new Date(start);
-  while (current <= end) {
-    results.push(current.toISOString().slice(0, 10));
-    current.setDate(current.getDate() + 1);
-  }
-  return results;
 }
 
 function setFormMessage(elementId, message) {
@@ -121,6 +108,48 @@ function resetBulkEntryForm() {
   updateBulkEntryPreview();
 }
 
+function resolveBulkMonthCursor() {
+  if (bulkMonthCursor) return bulkMonthCursor;
+  const monthInput = getElement('bulk-month')?.value;
+  if (monthInput) {
+    const [year, month] = monthInput.split('-').map(Number);
+    if (year && month) return new Date(year, month - 1, 1);
+  }
+  return new Date(resolveDefaultVisitDate());
+}
+
+function renderBulkMonthTable() {
+  const tbody = getElement('bulk-month-table')?.querySelector('tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (!currentYear) return;
+  const cursor = resolveBulkMonthCursor();
+  bulkMonthCursor = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const monthInput = getElement('bulk-month');
+  if (monthInput) {
+    monthInput.value = `${bulkMonthCursor.getFullYear()}-${String(bulkMonthCursor.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const startDate = new Date(bulkMonthCursor);
+  const endDate = new Date(bulkMonthCursor.getFullYear(), bulkMonthCursor.getMonth() + 1, 0);
+  const yearStart = new Date(currentYear.start_date);
+  const yearEnd = new Date(currentYear.end_date);
+  const start = startDate < yearStart ? yearStart : startDate;
+  const end = endDate > yearEnd ? yearEnd : endDate;
+  const current = new Date(start);
+  while (current <= end) {
+    const dateStr = current.toISOString().slice(0, 10);
+    const entry = entries.find((item) => item.visit_date === dateStr);
+    const value = entry?.daily_override ?? entry?.daily_visitors ?? '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatDate(dateStr)}</td>
+      <td><input type="number" min="0" class="bulk-month-input" data-date="${dateStr}" value="${value ?? ''}" /></td>
+    `;
+    tbody.appendChild(tr);
+    current.setDate(current.getDate() + 1);
+  }
+}
+
 function formatMonthLabel(dateObj) {
   if (!dateObj) return '-';
   return `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월`;
@@ -137,7 +166,7 @@ function updateBulkEntryAvailability() {
   const listInput = getElement('bulk-entry-list');
   if (!hint) return;
   if (!hasBaselineInYear()) {
-    hint.textContent = '기준점이 없습니다. 1건 입력에서 전일 합산 기준값을 먼저 저장하세요.';
+    hint.textContent = '기준점이 없습니다. 1건/월간 입력에서 전일 합산 기준값을 먼저 저장하세요. (리스트 입력 비활성화)';
     if (listBtn) {
       listBtn.disabled = true;
       listBtn.classList.add('disabled');
@@ -481,7 +510,7 @@ function selectEntry(entry) {
   const bulkVisit = getElement('bulk-visit-date');
   if (bulkVisit) bulkVisit.value = entry.visit_date;
   const bulkBaseline = getElement('bulk-baseline-total');
-  if (bulkBaseline) bulkBaseline.value = entry.baseline_total ?? entry.previous_total ?? '';
+  if (bulkBaseline) bulkBaseline.value = entry.previous_total ?? entry.baseline_total ?? '';
   const bulkDaily = getElement('bulk-daily-visitors');
   if (bulkDaily) bulkDaily.value = entry.daily_override ?? '';
   const bulkDelete = getElement('delete-bulk-entry');
@@ -550,6 +579,7 @@ async function loadYearDetail(yearId) {
   resetEntryForm();
   resetBulkEntryForm();
   updateBulkEntryAvailability();
+  renderBulkMonthTable();
   renderCalendar();
 }
 
@@ -776,21 +806,15 @@ function bindEvents() {
         return;
       }
       if (datePart.includes('~')) {
-        const [startText, endText] = datePart.split('~').map((p) => p.trim());
-        const dates = expandDateRange(startText, endText);
-        if (!dates) {
-          showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
-          return;
-        }
-        dates.forEach((visitDate) => parsed.push({ visitDate, dailyVisitors }));
-      } else {
-        const visitDate = parseDateInput(datePart);
-        if (!visitDate) {
-          showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
-          return;
-        }
-        parsed.push({ visitDate: visitDate.toISOString().slice(0, 10), dailyVisitors });
+        showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+        return;
       }
+      const visitDate = parseDateInput(datePart);
+      if (!visitDate) {
+        showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+        return;
+      }
+      parsed.push({ visitDate: visitDate.toISOString().slice(0, 10), dailyVisitors });
     }
     parsed.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
     pendingEntryMonth = new Date(parsed[0].visitDate);
@@ -816,6 +840,65 @@ function bindEvents() {
       alert(`총 ${parsed.length}건을 저장했습니다.`);
     } catch (error) {
       showUserError(error.message || '일괄 저장에 실패했습니다.', 'bulk-entry-message');
+    }
+  });
+
+  getElement('bulk-month-load')?.addEventListener('click', () => {
+    bulkMonthCursor = null;
+    renderBulkMonthTable();
+  });
+
+  getElement('save-bulk-month')?.addEventListener('click', async () => {
+    if (!currentYear) return;
+    const baselineTotal = parseNumberInput(getElement('bulk-baseline-total')?.value);
+    if (!hasBaselineInYear() && baselineTotal === null) {
+      showUserError('기준점이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
+      getElement('bulk-baseline-total')?.focus();
+      return;
+    }
+    if (baselineTotal !== null && (baselineTotal < 0 || baselineTotal > 100000000)) {
+      showUserError('전일 합산 기준값은 0 이상 100,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+      return;
+    }
+    const inputs = Array.from(document.querySelectorAll('.bulk-month-input'));
+    const parsed = [];
+    for (const input of inputs) {
+      const dateStr = input.dataset.date;
+      const value = parseNumberInput(input.value);
+      if (value === null) continue;
+      if (value < 0 || value > 1000000) {
+        showUserError('금일 출입자는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
+        return;
+      }
+      parsed.push({ visitDate: dateStr, dailyVisitors: value });
+    }
+    if (!parsed.length) {
+      showUserError('입력된 일일 방문자 데이터가 없습니다.', 'bulk-entry-message');
+      return;
+    }
+    parsed.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+    pendingEntryMonth = new Date(parsed[0].visitDate);
+    setFormMessage('bulk-entry-message', '');
+    try {
+      const payload = {
+        entries: parsed.map((item, index) => ({
+          visit_date: item.visitDate,
+          count1: null,
+          count2: null,
+          baseline_total: index === 0 ? baselineTotal : null,
+          daily_override: item.dailyVisitors
+        }))
+      };
+      await apiRequest(`/visitors/years/${currentYear.id}/entries/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await loadYearDetail(currentYear.id);
+      renderBulkMonthTable();
+      alert(`총 ${parsed.length}건을 저장했습니다.`);
+    } catch (error) {
+      showUserError(error.message || '월간 저장에 실패했습니다.', 'bulk-entry-message');
     }
   });
 
