@@ -124,6 +124,22 @@
         </div>
         <div class="muted">기간을 입력하면 해당 구간의 합계가 자동 계산됩니다.</div>
       </section>
+
+      <section class="card">
+        <div class="card-title">기록 초기화 · 삭제</div>
+        <div class="muted">입력 데이터만 삭제하거나 학년도 자체를 삭제할 수 있습니다. 삭제 후 복구는 불가능합니다.</div>
+        <div class="inline-form">
+          <div class="form-row">
+            <label for="reset-month">대상 월</label>
+            <input id="reset-month" type="month" />
+          </div>
+          <button class="btn danger" id="reset-month-entries">월간 데이터 초기화</button>
+        </div>
+        <div class="inline-form">
+          <button class="btn danger" id="reset-year-entries">학년도 데이터 초기화</button>
+          <button class="btn danger" id="delete-year">학년도 삭제</button>
+        </div>
+      </section>
     </main>
   </div>
   <script type="module">

@@ -82,20 +82,25 @@
   color: #1e293b;
 }
 
-.visitor-portal .bulk-entry-list {
+.visitor-portal .bulk-entry-month {
   margin-top: 12px;
   display: grid;
   gap: 8px;
 }
 
-.visitor-portal .bulk-entry-list textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 10px 12px;
-  border-radius: 8px;
+.visitor-portal .bulk-entry-month .table-scroll {
+  max-height: 380px;
+  overflow: auto;
   border: 1px solid #e2e8f0;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 13px;
+  border-radius: 10px;
+}
+
+.visitor-portal .bulk-entry-month .table-scroll table {
+  margin: 0;
+}
+
+.visitor-portal .bulk-entry-month input[type="number"] {
+  width: 100%;
 }
 
 .visitor-portal .form-message {
@@ -143,7 +148,11 @@
   color: #e2e8f0;
 }
 
-:root[data-theme="dark"] .visitor-portal .bulk-entry-list textarea {
+:root[data-theme="dark"] .visitor-portal .bulk-entry-month .table-scroll {
+  border-color: #1f2937;
+}
+
+:root[data-theme="dark"] .visitor-portal .bulk-entry-month input[type="number"] {
   background: #0f172a;
   border-color: #1f2937;
   color: #e2e8f0;
