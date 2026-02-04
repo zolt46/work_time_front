@@ -28,6 +28,27 @@ function parseNumberInput(value) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function parseDateInput(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function expandDateRange(startText, endText) {
+  const start = parseDateInput(startText);
+  const end = parseDateInput(endText);
+  if (!start || !end) return null;
+  if (end < start) return null;
+  const results = [];
+  const current = new Date(start);
+  while (current <= end) {
+    results.push(current.toISOString().slice(0, 10));
+    current.setDate(current.getDate() + 1);
+  }
+  return results;
+}
+
 function setFormMessage(elementId, message) {
   const el = getElement(elementId);
   if (!el) return;
@@ -112,13 +133,25 @@ function hasBaselineInYear() {
 function updateBulkEntryAvailability() {
   const hint = getElement('bulk-entry-hint');
   const saveBtn = getElement('save-bulk-entry');
-  if (!hint || !saveBtn) return;
+  const listBtn = getElement('save-bulk-list');
+  const listInput = getElement('bulk-entry-list');
+  if (!hint) return;
   if (!hasBaselineInYear()) {
-    hint.textContent = '기준점이 없습니다. 기본 일괄 입력(리스트)에서 첫 줄 기준점을 먼저 입력하세요.';
-    saveBtn.disabled = true;
-    saveBtn.classList.add('disabled');
+    hint.textContent = '기준점이 없습니다. 1건 입력에서 전일 합산 기준값을 먼저 저장하세요.';
+    if (listBtn) {
+      listBtn.disabled = true;
+      listBtn.classList.add('disabled');
+    }
+    if (listInput) listInput.disabled = true;
   } else {
-    hint.textContent = '금일 출입자 수만 입력해도 누적 합산이 계산됩니다.';
+    hint.textContent = '기준점이 있다면 리스트 입력도 사용할 수 있습니다.';
+    if (listBtn) {
+      listBtn.disabled = false;
+      listBtn.classList.remove('disabled');
+    }
+    if (listInput) listInput.disabled = false;
+  }
+  if (saveBtn) {
     saveBtn.disabled = false;
     saveBtn.classList.remove('disabled');
   }
@@ -466,8 +499,8 @@ function updateEntryPreview(entry) {
   const count2 = parseNumberInput(getElement('count2')?.value);
   const hasCounts = count1 !== null || count2 !== null;
   const prevTotal = entry?.previous_total ?? (visitDate ? getPreviousTotal(visitDate) : currentYear?.initial_total || 0);
-  const total = hasCounts ? (count1 || 0) + (count2 || 0) : null;
-  const daily = total !== null ? total - prevTotal : null;
+  const total = hasCounts ? (count1 || 0) + (count2 || 0) : (entry?.total_count ?? null);
+  const daily = total !== null ? total - prevTotal : (entry?.daily_visitors ?? null);
   const prevEl = getElement('preview-prev-total');
   const totalEl = getElement('preview-total');
   const dailyEl = getElement('preview-daily');
@@ -662,11 +695,6 @@ function bindEvents() {
 
   getElement('save-bulk-entry')?.addEventListener('click', async () => {
     if (!currentYear) return;
-    if (!hasBaselineInYear()) {
-      showUserError('기준점이 없어서 보조 입력을 사용할 수 없습니다. 기본 일괄 입력에서 첫 줄 기준점을 먼저 입력하세요.', 'bulk-entry-message');
-      getElement('bulk-entry-list')?.focus();
-      return;
-    }
     const visitDate = getElement('bulk-visit-date')?.value;
     if (!visitDate) {
       showUserError('날짜를 선택하세요.', 'bulk-entry-message');
@@ -674,6 +702,11 @@ function bindEvents() {
     }
     const baselineTotal = parseNumberInput(getElement('bulk-baseline-total')?.value);
     const dailyVisitors = parseNumberInput(getElement('bulk-daily-visitors')?.value);
+    if (!hasBaselineInYear() && baselineTotal === null) {
+      showUserError('기준점이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
+      getElement('bulk-baseline-total')?.focus();
+      return;
+    }
     if (baselineTotal !== null && (baselineTotal < 0 || baselineTotal > 100000000)) {
       showUserError('전일 합산 기준값은 0 이상 100,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
       return;
@@ -709,15 +742,15 @@ function bindEvents() {
 
   getElement('save-bulk-list')?.addEventListener('click', async () => {
     if (!currentYear) return;
+    if (!hasBaselineInYear()) {
+      showUserError('기준점이 없습니다. 1건 입력에서 전일 합산 기준값을 먼저 저장하세요.', 'bulk-entry-message');
+      getElement('bulk-baseline-total')?.focus();
+      return;
+    }
     const raw = getElement('bulk-entry-list')?.value || '';
     const baselineTotal = parseNumberInput(getElement('bulk-baseline-total')?.value);
     if (baselineTotal !== null && (baselineTotal < 0 || baselineTotal > 100000000)) {
       showUserError('전일 합산 기준값은 0 이상 100,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
-      return;
-    }
-    if (baselineTotal === null && !hasBaselineInYear()) {
-      showUserError('기준점이 되는 전일 합산값이 없습니다. 전일 합산 기준값을 먼저 입력하세요.', 'bulk-entry-message');
-      getElement('bulk-baseline-total')?.focus();
       return;
     }
     const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
@@ -732,9 +765,9 @@ function bindEvents() {
         showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
         return;
       }
-      const visitDate = parts[0];
+      const datePart = parts[0];
       const dailyVisitors = parseNumberInput(parts[1]);
-      if (!visitDate || dailyVisitors === null) {
+      if (!datePart || dailyVisitors === null) {
         showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
         return;
       }
@@ -742,7 +775,22 @@ function bindEvents() {
         showUserError('금일 출입자는 0 이상 1,000,000 이하만 입력할 수 있습니다.', 'bulk-entry-message');
         return;
       }
-      parsed.push({ visitDate, dailyVisitors });
+      if (datePart.includes('~')) {
+        const [startText, endText] = datePart.split('~').map((p) => p.trim());
+        const dates = expandDateRange(startText, endText);
+        if (!dates) {
+          showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+          return;
+        }
+        dates.forEach((visitDate) => parsed.push({ visitDate, dailyVisitors }));
+      } else {
+        const visitDate = parseDateInput(datePart);
+        if (!visitDate) {
+          showUserError(`형식 오류: "${line}"`, 'bulk-entry-message');
+          return;
+        }
+        parsed.push({ visitDate: visitDate.toISOString().slice(0, 10), dailyVisitors });
+      }
     }
     parsed.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
     pendingEntryMonth = new Date(parsed[0].visitDate);
