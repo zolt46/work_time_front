@@ -8,6 +8,13 @@ const periodTypes = {
   WINTER_BREAK: '겨울방학'
 };
 
+const periodFields = [
+  { type: 'SEMESTER_1', start: 'period-semester1-start', end: 'period-semester1-end' },
+  { type: 'SUMMER_BREAK', start: 'period-summer-start', end: 'period-summer-end' },
+  { type: 'SEMESTER_2', start: 'period-semester2-start', end: 'period-semester2-end' },
+  { type: 'WINTER_BREAK', start: 'period-winter-start', end: 'period-winter-end' }
+];
+
 let currentYear = null;
 let entries = [];
 let entriesByDate = new Map();
@@ -18,6 +25,7 @@ let calendarCursor = null;
 let entryMonthCursor = null;
 let pendingEntryMonth = null;
 let bulkMonthCursor = null;
+let isPeriodDraftMode = false;
 
 function formatNumber(value) {
   if (value === null || value === undefined) return '-';
@@ -504,19 +512,31 @@ async function moveCalendar(monthOffset) {
 }
 
 function updatePeriodForm() {
-  const mapping = {
-    SEMESTER_1: { start: 'period-semester1-start', end: 'period-semester1-end' },
-    SEMESTER_2: { start: 'period-semester2-start', end: 'period-semester2-end' },
-    SUMMER_BREAK: { start: 'period-summer-start', end: 'period-summer-end' },
-    WINTER_BREAK: { start: 'period-winter-start', end: 'period-winter-end' }
-  };
   periods.forEach((period) => {
-    const fields = mapping[period.period_type];
+    const fields = periodFields.find((item) => item.type === period.period_type);
     if (!fields) return;
     const startEl = getElement(fields.start);
     const endEl = getElement(fields.end);
     if (startEl) startEl.value = period.start_date || '';
     if (endEl) endEl.value = period.end_date || '';
+  });
+}
+
+function setPeriodFormEditable(isEditable) {
+  periodFields.forEach((field) => {
+    const startEl = getElement(field.start);
+    const endEl = getElement(field.end);
+    if (startEl) startEl.disabled = !isEditable;
+    if (endEl) endEl.disabled = !isEditable;
+  });
+}
+
+function resetPeriodDraft() {
+  periodFields.forEach((field) => {
+    const startEl = getElement(field.start);
+    const endEl = getElement(field.end);
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
   });
 }
 
@@ -634,6 +654,8 @@ async function loadYearDetail(yearId) {
   renderMonthly(data.summary);
   renderPeriodStats(data.summary);
   updatePeriodForm();
+  isPeriodDraftMode = false;
+  setPeriodFormEditable(false);
   resetEntryForm();
   resetBulkEntryForm();
   updateTodayEntryCard();
@@ -687,6 +709,8 @@ async function loadYears(preferredAcademicYear = null) {
     resetEntryForm();
     resetBulkEntryForm();
     updateTodayEntryCard();
+    isPeriodDraftMode = false;
+    setPeriodFormEditable(false);
   }
 }
 
@@ -707,20 +731,45 @@ function bindEvents() {
       showUserError('학년도 숫자를 입력하세요.', 'entry-message');
       return;
     }
+    const periodPayload = periodFields.map((field) => ({
+      period_type: field.type,
+      name: periodTypes[field.type],
+      start_date: getElement(field.start)?.value || null,
+      end_date: getElement(field.end)?.value || null
+    }));
     try {
       await apiRequest('/visitors/years', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ academic_year: yearInput })
+        body: JSON.stringify({ academic_year: yearInput, periods: periodPayload })
       });
     } catch (error) {
-      if (!String(error.message).includes('이미 등록된 학년도')) {
-        showUserError(error.message || '학년도 생성에 실패했습니다.', 'entry-message');
+      if (String(error.message).includes('이미 등록된 학년도')) {
+        showUserError('이미 등록된 학년도입니다.', 'entry-message');
         return;
       }
+      showUserError(error.message || '학년도 생성에 실패했습니다.', 'entry-message');
+      return;
     }
     getElement('new-year-input').value = '';
+    isPeriodDraftMode = false;
+    setPeriodFormEditable(false);
     await loadYears(yearInput);
+  });
+
+  getElement('new-year-input')?.addEventListener('input', (event) => {
+    const value = event.target.value.trim();
+    if (value) {
+      if (!isPeriodDraftMode) {
+        resetPeriodDraft();
+      }
+      isPeriodDraftMode = true;
+      setPeriodFormEditable(true);
+    } else {
+      isPeriodDraftMode = false;
+      setPeriodFormEditable(false);
+      updatePeriodForm();
+    }
   });
 
   getElement('save-entry')?.addEventListener('click', async () => {
