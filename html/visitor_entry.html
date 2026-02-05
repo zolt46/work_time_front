@@ -61,33 +61,9 @@
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
-      <section class="card visitor-year-bar">
-        <div class="card-title">학년도 선택</div>
-        <div class="inline-form">
-          <div class="form-row">
-            <label for="year-select">학년도</label>
-            <select id="year-select"></select>
-          </div>
-        </div>
-        <div class="helper-grid" id="year-summary">
-          <div class="helper-item">
-            <div class="muted">학년도</div>
-            <strong id="year-academic">-</strong>
-          </div>
-          <div class="helper-item">
-            <div class="muted">기간</div>
-            <strong id="year-range">-</strong>
-          </div>
-          <div class="helper-item">
-            <div class="muted">학년도 명칭</div>
-            <strong id="year-label">-</strong>
-          </div>
-        </div>
-      </section>
-
       <section class="card" id="entry">
         <div class="card-title">일일 방문자 입력</div>
-        <div id="entry-hint" class="muted">전일 합산 불러오기 버튼으로 기준값을 가져온 뒤 수정하여 계산할 수 있습니다.</div>
+        <div id="entry-hint" class="muted">전일 합산을 불러오거나 입력한 뒤 Count를 입력하면 금일 합산과 출입자를 계산합니다. 기록 저장 시 금일 합산이 다음 전일 합산으로 저장됩니다.</div>
         <div id="entry-message" class="form-message" role="alert" aria-live="polite"></div>
         <div class="inline-form">
           <div class="form-row">
@@ -131,27 +107,6 @@
             <strong id="preview-updater">-</strong>
           </div>
         </div>
-      </section>
-
-      <section class="card">
-        <div class="card-title">일일 기록</div>
-        <div class="entry-month-header">
-          <button class="btn tiny secondary" id="entry-month-prev">이전 달</button>
-          <div class="entry-month-label" id="entry-month-label">-</div>
-          <button class="btn tiny secondary" id="entry-month-next">다음 달</button>
-        </div>
-        <div class="muted" id="entry-status">불러오는 중...</div>
-        <table class="table" id="entry-table">
-          <thead>
-            <tr>
-              <th>날짜</th>
-              <th>금일 출입자</th>
-              <th>수정자</th>
-              <th>수정 시각</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
       </section>
     </main>
   </div>

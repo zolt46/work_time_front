@@ -391,13 +391,6 @@ function buildEntriesMap() {
   return entriesByDate;
 }
 
-function getPreviousTotal(visitDate) {
-  if (!currentYear || !visitDate) return 0;
-  const { prev } = findEntryNeighbors(visitDate);
-  if (prev) return prev.total_count;
-  return currentYear.initial_total || 0;
-}
-
 function renderCalendar() {
   const grid = getElement('calendar-grid');
   const label = getElement('calendar-label');
@@ -597,14 +590,15 @@ function resolveYearByDate(years, targetDate) {
 async function loadYears(preferredAcademicYear = null) {
   const select = getElement('year-select');
   const years = await apiRequest('/visitors/years');
-  if (!select) return;
-  select.innerHTML = '';
-  years.forEach((year) => {
-    const option = document.createElement('option');
-    option.value = year.id;
-    option.textContent = year.label;
-    select.appendChild(option);
-  });
+  if (select) {
+    select.innerHTML = '';
+    years.forEach((year) => {
+      const option = document.createElement('option');
+      option.value = year.id;
+      option.textContent = year.label;
+      select.appendChild(option);
+    });
+  }
   if (years.length) {
     const preferred = preferredAcademicYear
       ? years.find((year) => year.academic_year === preferredAcademicYear)
@@ -612,7 +606,9 @@ async function loadYears(preferredAcademicYear = null) {
     const today = new Date();
     const datedYear = resolveYearByDate(years, today);
     const activeYear = preferred || datedYear || years[0];
-    select.value = activeYear.id;
+    if (select) {
+      select.value = activeYear.id;
+    }
     await loadYearDetail(activeYear.id);
   } else {
     currentYear = null;
@@ -721,7 +717,7 @@ function bindEvents() {
         body: JSON.stringify({
           visit_date: visitDate,
           daily_visitors: dailyVisitors,
-          previous_total: prevTotal
+          previous_total: totalCount
         })
       });
       await loadYearDetail(currentYear.id);
@@ -857,23 +853,9 @@ function bindEvents() {
     }
   });
 
-  getElement('reset-year-entries')?.addEventListener('click', async () => {
-    if (!currentYear) return;
-    if (!confirm('해당 학년도 입력 데이터를 모두 초기화할까요?')) return;
-    try {
-      await apiRequest(`/visitors/years/${currentYear.id}/entries`, {
-        method: 'DELETE'
-      });
-      await loadYearDetail(currentYear.id);
-      alert('학년도 입력 데이터가 초기화되었습니다.');
-    } catch (error) {
-      showUserError(error.message || '학년도 초기화에 실패했습니다.', 'bulk-entry-message');
-    }
-  });
-
   getElement('delete-year')?.addEventListener('click', async () => {
     if (!currentYear) return;
-    if (!confirm('학년도 자체를 삭제할까요? 기간/설정도 함께 삭제됩니다.')) return;
+    if (!confirm('학년도 삭제 시 데이터와 기간 설정이 모두 삭제됩니다. 계속할까요?')) return;
     try {
       await apiRequest(`/visitors/years/${currentYear.id}`, { method: 'DELETE' });
       alert('학년도 삭제가 완료되었습니다.');
@@ -908,14 +890,6 @@ function bindEvents() {
   getElement('load-prev-total')?.addEventListener('click', loadPreviousTotal);
 
   ['bulk-visit-date', 'bulk-daily-visitors'].forEach((id) => {
-    getElement(id)?.addEventListener('input', () => updateBulkEntryPreview());
-    getElement(id)?.addEventListener('change', () => updateBulkEntryPreview());
-  });
-
-  getElement('entry-month-prev')?.addEventListener('click', () => moveEntryMonth(-1));
-  getElement('entry-month-next')?.addEventListener('click', () => moveEntryMonth(1));
-
-  ['bulk-visit-date', 'bulk-baseline-total', 'bulk-daily-visitors'].forEach((id) => {
     getElement(id)?.addEventListener('input', () => updateBulkEntryPreview());
     getElement(id)?.addEventListener('change', () => updateBulkEntryPreview());
   });

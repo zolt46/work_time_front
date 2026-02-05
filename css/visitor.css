@@ -92,6 +92,10 @@
   flex: 1;
 }
 
+.visitor-portal .form-row-action label {
+  visibility: hidden;
+}
+
 .visitor-portal .bulk-entry-month {
   margin-top: 12px;
   display: grid;
