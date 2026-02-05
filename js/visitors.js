@@ -118,7 +118,12 @@ function resetEntryForm() {
   const prevTotal = getElement('prev-total');
   if (prevTotal) prevTotal.value = '';
   const deleteBtn = getElement('delete-entry');
-  const todayEntry = entriesByDate.get(resolveDefaultVisitDate());
+  const todayKey = resolveDefaultVisitDate();
+  const todayMonthKey = todayKey ? formatMonthKey(new Date(todayKey)) : '';
+  let todayEntry = todayKey ? entriesByDate.get(todayKey) : null;
+  if (!todayEntry && todayMonthKey && entriesByMonth.has(todayMonthKey)) {
+    todayEntry = entriesByMonth.get(todayMonthKey).find((item) => item.visit_date === todayKey);
+  }
   if (deleteBtn) {
     if (todayEntry) {
       selectedEntryId = todayEntry.id;
@@ -656,6 +661,10 @@ async function loadYearDetail(yearId) {
   updatePeriodForm();
   isPeriodDraftMode = false;
   setPeriodFormEditable(false);
+  const today = new Date();
+  if (currentYear && isDateWithinYear(currentYear, today)) {
+    await ensureEntriesForMonth(today);
+  }
   resetEntryForm();
   resetBulkEntryForm();
   updateTodayEntryCard();
