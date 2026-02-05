@@ -430,10 +430,10 @@ function renderCalendar() {
   }
   for (let day = 1; day <= totalDays; day += 1) {
     const cell = document.createElement('div');
-    const dateStr = new Date(year, month, day).toISOString().slice(0, 10);
+    const dateStr = formatDateKey(new Date(year, month, day));
     const entry = entriesMap.get(dateStr);
     const author = entry?.updated_by_name || entry?.created_by_name || '-';
-    const isToday = dateStr === new Date().toISOString().slice(0, 10);
+    const isToday = dateStr === formatDateKey(new Date());
     cell.className = 'calendar-cell';
     if (isToday) cell.classList.add('is-today');
     cell.innerHTML = `
@@ -688,10 +688,6 @@ function bindEvents() {
     }
     if (count1 === null || count2 === null) {
       showUserError('Count 1과 Count 2를 모두 입력하세요.', 'entry-message');
-      return;
-    }
-    if (Math.abs(count1 - count2) >= 10000) {
-      showUserError('Count 1과 Count 2 차이가 너무 큽니다.', 'entry-message');
       return;
     }
     if (prevTotal === null) {
