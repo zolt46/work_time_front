@@ -11,6 +11,7 @@ const periodTypes = {
 let currentYear = null;
 let entries = [];
 let entriesByDate = new Map();
+let entriesByMonth = new Map();
 let periods = [];
 let selectedEntryId = null;
 let calendarCursor = null;
@@ -42,6 +43,13 @@ function formatDateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatMonthKey(date) {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 }
 
 function setFormMessage(elementId, message) {
@@ -225,7 +233,29 @@ function updateYearSummary() {
   if (range) range.textContent = formatDateRange(currentYear.start_date, currentYear.end_date);
 }
 
-function renderEntries() {
+async function ensureEntriesForMonth(dateObj, { setActive = false } = {}) {
+  if (!currentYear || !dateObj) return [];
+  const monthKey = formatMonthKey(dateObj);
+  if (!monthKey) return [];
+  if (entriesByMonth.has(monthKey)) {
+    const cached = entriesByMonth.get(monthKey) || [];
+    if (setActive) {
+      entries = cached;
+      entriesByDate = new Map(cached.map((entry) => [entry.visit_date, entry]));
+    }
+    return cached;
+  }
+  const data = await apiRequest(`/visitors/years/${currentYear.id}/entries?month=${monthKey}`);
+  const list = data || [];
+  entriesByMonth.set(monthKey, list);
+  if (setActive) {
+    entries = list;
+    entriesByDate = new Map(list.map((entry) => [entry.visit_date, entry]));
+  }
+  return list;
+}
+
+async function renderEntries() {
   const tbody = getElement('entry-table')?.querySelector('tbody');
   const status = getElement('entry-status');
   const label = getElement('entry-month-label');
@@ -233,6 +263,7 @@ function renderEntries() {
   const cursor = resolveEntryMonthCursor();
   if (label) label.textContent = formatMonthLabel(cursor);
   tbody.innerHTML = '';
+  await ensureEntriesForMonth(cursor, { setActive: true });
   if (!entries.length) {
     if (status) status.textContent = '아직 기록된 데이터가 없습니다.';
     return;
@@ -369,7 +400,7 @@ function toMonthStart(dateObj) {
   return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
 }
 
-function moveEntryMonth(monthOffset) {
+async function moveEntryMonth(monthOffset) {
   const cursor = resolveEntryMonthCursor();
   let next = new Date(cursor.getFullYear(), cursor.getMonth() + monthOffset, 1);
   if (currentYear) {
@@ -384,14 +415,14 @@ function moveEntryMonth(monthOffset) {
     }
   }
   entryMonthCursor = next;
-  renderEntries();
+  await renderEntries();
 }
 
 function buildEntriesMap() {
   return entriesByDate;
 }
 
-function renderCalendar() {
+async function renderCalendar() {
   const grid = getElement('calendar-grid');
   const label = getElement('calendar-label');
   const meta = getElement('calendar-meta');
@@ -410,10 +441,11 @@ function renderCalendar() {
   const lastDay = new Date(year, month + 1, 0);
   const startWeekday = firstDay.getDay();
   const totalDays = lastDay.getDate();
-  const entriesMap = buildEntriesMap();
+  const monthEntries = await ensureEntriesForMonth(cursor);
+  const entriesMap = new Map(monthEntries.map((entry) => [entry.visit_date, entry]));
   let monthTotal = 0;
   let openDays = 0;
-  entries.forEach((entry) => {
+  monthEntries.forEach((entry) => {
     const entryDate = new Date(entry.visit_date);
     if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
       monthTotal += entry.daily_visitors;
@@ -450,7 +482,7 @@ function renderCalendar() {
   }
 }
 
-function moveCalendar(monthOffset) {
+async function moveCalendar(monthOffset) {
   const cursor = resolveCalendarCursor();
   const next = new Date(cursor.getFullYear(), cursor.getMonth() + monthOffset, 1);
   if (currentYear) {
@@ -468,7 +500,7 @@ function moveCalendar(monthOffset) {
   } else {
     calendarCursor = next;
   }
-  renderCalendar();
+  await renderCalendar();
 }
 
 function updatePeriodForm() {
@@ -528,7 +560,11 @@ function updateTodayEntryCard() {
   const summary = getElement('today-entry-summary');
   if (!status || !summary) return;
   const todayKey = formatDateKey(new Date());
-  const entry = entriesByDate.get(todayKey);
+  const todayMonthKey = formatMonthKey(new Date());
+  let entry = entriesByDate.get(todayKey);
+  if (!entry && entriesByMonth.has(todayMonthKey)) {
+    entry = entriesByMonth.get(todayMonthKey).find((item) => item.visit_date === todayKey);
+  }
   if (!entry) {
     status.textContent = '오늘 기록이 없습니다.';
     summary.style.display = 'none';
@@ -581,8 +617,9 @@ async function loadYearDetail(yearId) {
   if (!yearId) return;
   const data = await apiRequest(`/visitors/years/${yearId}`);
   currentYear = data.year;
-  entries = data.entries || [];
-  entriesByDate = new Map(entries.map((entry) => [entry.visit_date, entry]));
+  entries = [];
+  entriesByDate = new Map();
+  entriesByMonth = new Map();
   periods = data.periods || [];
   calendarCursor = null;
   if (pendingEntryMonth) {
@@ -592,7 +629,7 @@ async function loadYearDetail(yearId) {
     entryMonthCursor = null;
   }
   updateYearSummary();
-  renderEntries();
+  await renderEntries();
   updateSummary(data.summary);
   renderMonthly(data.summary);
   renderPeriodStats(data.summary);
@@ -603,7 +640,7 @@ async function loadYearDetail(yearId) {
   updateBulkEntryAvailability();
   renderBulkMonthTable();
   updateResetControls();
-  renderCalendar();
+  await renderCalendar();
 }
 
 function resolveYearByDate(years, targetDate) {
@@ -638,14 +675,15 @@ async function loadYears(preferredAcademicYear = null) {
     currentYear = null;
     entries = [];
     entriesByDate = new Map();
+    entriesByMonth = new Map();
     periods = [];
     entryMonthCursor = null;
     updateYearSummary();
-    renderEntries();
+    await renderEntries();
     updateSummary({ open_days: 0, total_visitors: 0, monthly: [], periods: [] });
     renderMonthly({ monthly: [] });
     renderPeriodStats({ periods: [] });
-    renderCalendar();
+    await renderCalendar();
     resetEntryForm();
     resetBulkEntryForm();
     updateTodayEntryCard();
