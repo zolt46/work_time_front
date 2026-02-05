@@ -20,19 +20,44 @@
     <div class="spinner" aria-label="로딩 중"></div>
     <div class="muted">필요한 정보를 불러오는 중...</div>
   </div>
-  <header class="header">
-    <div class="header-left">
-      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 출입자 통계 센터</div>
+  <header class="mobile-header">
+    <div class="mobile-top">
+      <div class="mobile-top-left">
+        <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
+      </div>
+      <div class="mobile-top-center">
+        <div class="mobile-brand"><img src="../assets/logo.png" alt="logo" />통계 센터</div>
+      </div>
+      <div class="mobile-top-right mobile-actions">
+        <button class="btn tiny muted" id="logout-btn">로그아웃</button>
+      </div>
     </div>
-    <div class="header-right">
-      <button class="btn tiny muted theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
-        <span class="theme-icon">☀️</span>
-        <span id="theme-label">라이트 모드</span>
-      </button>
-      <span id="session-countdown" class="status-chip session-timer"></span>
-      <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
-      <button class="btn muted" id="logout-btn">로그아웃</button>
+    <div class="mobile-status-row">
+      <div class="mobile-status-line">
+        <div class="system-status-badge">
+          <div class="status-label">연결 상태</div>
+          <div class="system-status">
+            <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
+              <span class="status-dot"></span>
+              <span class="status-text">서버 확인 중</span>
+            </span>
+            <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
+              <span class="status-dot"></span>
+              <span class="status-text">DB 확인 중</span>
+            </span>
+          </div>
+          <div class="status-meta" id="status-meta">상태 체크 중...</div>
+        </div>
+        <button class="btn tiny muted theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
+          <span class="theme-icon">☀️</span>
+          <span id="theme-label">라이트 모드</span>
+        </button>
+        <span id="session-countdown" class="status-chip session-timer"></span>
+      </div>
+      <div class="mobile-session">
+        <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
+        <span class="mobile-user">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</span>
+      </div>
     </div>
   </header>
   <div class="page">

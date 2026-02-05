@@ -523,6 +523,29 @@ function updateEntryPreview(entry) {
   if (updaterEl) updaterEl.textContent = entry?.updated_by_name || entry?.created_by_name || '-';
 }
 
+function updateTodayEntryCard() {
+  const status = getElement('today-entry-status');
+  const summary = getElement('today-entry-summary');
+  if (!status || !summary) return;
+  const todayKey = formatDateKey(new Date());
+  const entry = entriesByDate.get(todayKey);
+  if (!entry) {
+    status.textContent = '오늘 기록이 없습니다.';
+    summary.style.display = 'none';
+    return;
+  }
+  status.textContent = '오늘 기록을 확인하세요.';
+  summary.style.display = '';
+  const dateEl = getElement('today-entry-date');
+  const visitorsEl = getElement('today-entry-visitors');
+  const updaterEl = getElement('today-entry-updater');
+  const updatedEl = getElement('today-entry-updated');
+  if (dateEl) dateEl.textContent = formatDate(entry.visit_date);
+  if (visitorsEl) visitorsEl.textContent = formatNumber(entry.daily_visitors);
+  if (updaterEl) updaterEl.textContent = entry.updated_by_name || entry.created_by_name || '-';
+  if (updatedEl) updatedEl.textContent = formatDateTime(entry.updated_at);
+}
+
 function updateBulkEntryPreview(entry) {
   if (!getElement('bulk-preview-daily')) return;
   const dailyInput = parseNumberInput(getElement('bulk-daily-visitors')?.value);
@@ -576,6 +599,7 @@ async function loadYearDetail(yearId) {
   updatePeriodForm();
   resetEntryForm();
   resetBulkEntryForm();
+  updateTodayEntryCard();
   updateBulkEntryAvailability();
   renderBulkMonthTable();
   updateResetControls();
@@ -613,6 +637,7 @@ async function loadYears(preferredAcademicYear = null) {
   } else {
     currentYear = null;
     entries = [];
+    entriesByDate = new Map();
     periods = [];
     entryMonthCursor = null;
     updateYearSummary();
@@ -623,6 +648,7 @@ async function loadYears(preferredAcademicYear = null) {
     renderCalendar();
     resetEntryForm();
     resetBulkEntryForm();
+    updateTodayEntryCard();
   }
 }
 
