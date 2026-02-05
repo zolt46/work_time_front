@@ -15,6 +15,11 @@ function getElement(id) {
   return document.getElementById(id);
 }
 
+function setText(id, value) {
+  const el = getElement(id);
+  if (el) el.textContent = value;
+}
+
 function formatAcquisition(type) {
   return acquisitionLabels[type] || '-';
 }
@@ -48,22 +53,25 @@ function renderShelfMap(row, column) {
 }
 
 function updateDetail(serial) {
+  if (!getElement('detail-title')) {
+    return;
+  }
   if (!serial) {
-    getElement('detail-title').textContent = '-';
-    getElement('detail-issn').textContent = '-';
-    getElement('detail-type').textContent = '-';
-    getElement('detail-shelf').textContent = '-';
-    getElement('detail-location').textContent = '-';
-    getElement('detail-note').textContent = '-';
+    setText('detail-title', '-');
+    setText('detail-issn', '-');
+    setText('detail-type', '-');
+    setText('detail-shelf', '-');
+    setText('detail-location', '-');
+    setText('detail-note', '-');
     renderShelfMap(null, null);
     return;
   }
-  getElement('detail-title').textContent = serial.title;
-  getElement('detail-issn').textContent = serial.issn || '-';
-  getElement('detail-type').textContent = formatAcquisition(serial.acquisition_type);
-  getElement('detail-shelf').textContent = serial.shelf_section || '-';
-  getElement('detail-location').textContent = formatLocation(serial);
-  getElement('detail-note').textContent = serial.shelf_note || serial.remark || '-';
+  setText('detail-title', serial.title);
+  setText('detail-issn', serial.issn || '-');
+  setText('detail-type', formatAcquisition(serial.acquisition_type));
+  setText('detail-shelf', serial.shelf_section || '-');
+  setText('detail-location', formatLocation(serial));
+  setText('detail-note', serial.shelf_note || serial.remark || '-');
   renderShelfMap(serial.shelf_row, serial.shelf_column);
 }
 
@@ -92,7 +100,9 @@ function renderList() {
 }
 
 function setForm(serial) {
-  getElement('serial-title').value = serial?.title || '';
+  const title = getElement('serial-title');
+  if (!title) return;
+  title.value = serial?.title || '';
   getElement('serial-issn').value = serial?.issn || '';
   getElement('serial-type').value = serial?.acquisition_type || 'SUBSCRIPTION';
   getElement('serial-shelf').value = serial?.shelf_section || '';
@@ -118,10 +128,10 @@ function clearSelection() {
 
 function buildQuery() {
   const params = new URLSearchParams();
-  const keyword = getElement('search-keyword')?.value.trim();
-  const issn = getElement('search-issn')?.value.trim();
-  const shelf = getElement('search-shelf')?.value.trim();
-  const type = getElement('search-type')?.value;
+  const keyword = getElement('search-keyword')?.value?.trim() ?? '';
+  const issn = getElement('search-issn')?.value?.trim() ?? '';
+  const shelf = getElement('search-shelf')?.value?.trim() ?? '';
+  const type = getElement('search-type')?.value ?? '';
   if (keyword) params.set('q', keyword);
   if (issn) params.set('issn', issn);
   if (shelf) params.set('shelf_section', shelf);
@@ -138,6 +148,20 @@ async function loadSerials() {
   }
   updateDetail(selectedSerial);
   renderList();
+  const totalEl = getElement('serials-total-count');
+  if (totalEl) {
+    totalEl.textContent = serials.length.toLocaleString('ko-KR');
+  }
+  const donationEl = getElement('serials-donation-count');
+  if (donationEl) {
+    const count = serials.filter((item) => item.acquisition_type === 'DONATION').length;
+    donationEl.textContent = count.toLocaleString('ko-KR');
+  }
+  const subscriptionEl = getElement('serials-subscription-count');
+  if (subscriptionEl) {
+    const count = serials.filter((item) => item.acquisition_type === 'SUBSCRIPTION').length;
+    subscriptionEl.textContent = count.toLocaleString('ko-KR');
+  }
 }
 
 function applyRoleGuard() {
@@ -145,6 +169,7 @@ function applyRoleGuard() {
   const buttons = form?.querySelectorAll('button, input, select, textarea');
   const warning = getElement('serials-permission');
   const isAllowed = currentRole === 'OPERATOR' || currentRole === 'MASTER';
+  if (!form) return;
   if (warning) warning.style.display = isAllowed ? 'none' : '';
   if (buttons) {
     buttons.forEach((el) => {
