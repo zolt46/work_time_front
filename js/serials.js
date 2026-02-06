@@ -14,14 +14,14 @@ let editingSerialId = null;
 
 // Editor State (Layout Page)
 let currentLayout = null;
-let currentMode = 'view';
+let currentMode = 'view'; // 'view'|'select'|'wall'
 let editorScale = 1.0;
+let editorPan = { x: 0, y: 0 }; // Pan Offset
 const UNIT_SIZE = 20;
 const GRID_SIZE = 10;
 
 let selectedElement = null;
-let selectedSerial = null;
-let dragOffset = { x: 0, y: 0 }; // Initialize here
+let dragOffset = { x: 0, y: 0 };
 
 const acquisitionLabels = {
   UNCLASSIFIED: '미분류',
@@ -35,26 +35,20 @@ export async function initSerials() {
   currentRole = user?.role || null;
   applyRoleGuard();
 
-  // Determine Page Context
   const isEditor = !!document.getElementById('editor-toolbar');
   const isManage = !!document.getElementById('serial-form');
   const isHomeOrList = !isEditor && !isManage && (!!document.getElementById('serials-total-count') || !!document.getElementById('serials-table'));
 
-  // Load Common Data
   await Promise.all([loadLayouts(), loadShelfTypes()]);
 
   if (isHomeOrList || isManage) {
     await loadSerials();
-    // Load shelves for list/manage too (for shelf info)
     if (layouts.length > 0) {
-      // Ideally load for all layouts, but for now just first or active?
-      // Manage page might need shelf list for dropdown.
       await loadShelves(layouts[0].id);
     }
   }
 
   if (isHomeOrList) {
-    // Home/List logic
     if (layouts.length > 0) await selectLayout(layouts[0].id, false);
     bindListEvents();
     renderStats();
@@ -63,9 +57,8 @@ export async function initSerials() {
   }
 
   if (isManage) {
-    // Manage logic
-    renderStats(); // Maybe?
-    renderList(); // Render table
+    renderStats();
+    renderList();
     renderShelfOptions();
     bindManageEvents();
   }
@@ -80,7 +73,6 @@ export async function initSerials() {
     bindToolbarEvents();
     bindDialogEvents();
 
-    // Force Close Dialogs
     document.querySelectorAll('dialog').forEach(d => {
       try { d.close(); } catch (e) { }
       d.style.display = 'none';
@@ -98,7 +90,6 @@ function applyRoleGuard() {
   const protectedBtns = document.querySelectorAll('#layout-create-btn, #layout-delete-btn, #save-layout-btn, #manage-types-btn, .action-btn');
   protectedBtns.forEach(btn => btn.disabled = !isOperator);
 
-  // Manage Page Form
   const form = document.getElementById('serial-form');
   if (form && !isOperator) {
     form.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
@@ -143,10 +134,6 @@ function buildQuery() {
 function renderShelfOptions() {
   const select = document.getElementById('serial-shelf-id');
   if (!select) return;
-  // Group by layout? Or just list all shelves?
-  // Assuming loaded shelves are from default layout for now. 
-  // TODO: Load ALL shelves or Select Layout first.
-  // For now, list loaded shelves.
   select.innerHTML = '<option value="">배치도에서 선택 (또는 직접 입력)</option>' +
     shelves.map(s => `<option value="${s.id}">${s.code} (Layout ${s.layout_id})</option>`).join('');
 }
@@ -162,7 +149,7 @@ function bindManageEvents() {
       issn: document.getElementById('serial-issn').value,
       acquisition_type: document.getElementById('serial-type').value,
       shelf_section: document.getElementById('serial-shelf').value,
-      shelf_id: document.getElementById('serial-shelf-id').value || null, // Optional
+      shelf_id: document.getElementById('serial-shelf-id').value || null,
       shelf_row: parseInt(document.getElementById('serial-row').value) || null,
       shelf_column: parseInt(document.getElementById('serial-column').value) || null,
       note: document.getElementById('serial-note').value,
@@ -172,22 +159,31 @@ function bindManageEvents() {
     const url = editingSerialId ? `/serials/${editingSerialId}` : '/serials';
     const method = editingSerialId ? 'PUT' : 'POST';
 
-    await apiRequest(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    alert('저장되었습니다.');
-
-    await loadSerials();
-    renderList();
-    resetManageForm();
+    try {
+      await apiRequest(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      alert('저장되었습니다.');
+      await loadSerials();
+      renderList();
+      resetManageForm();
+    } catch (err) {
+      console.error(err);
+      alert('저장 오류: ' + err.message);
+    }
   });
 
   document.getElementById('serial-new')?.addEventListener('click', resetManageForm);
   document.getElementById('serial-delete')?.addEventListener('click', async () => {
     if (!editingSerialId) return;
     if (confirm('삭제하시겠습니까?')) {
-      await apiRequest(`/serials/${editingSerialId}`, { method: 'DELETE' });
-      await loadSerials();
-      renderList();
-      resetManageForm();
+      try {
+        await apiRequest(`/serials/${editingSerialId}`, { method: 'DELETE' });
+        await loadSerials();
+        renderList();
+        resetManageForm();
+      } catch (err) {
+        console.error(err);
+        alert('삭제 오류: ' + err.message);
+      }
     }
   });
 }
@@ -195,7 +191,7 @@ function bindManageEvents() {
 function resetManageForm() {
   editingSerialId = null;
   document.getElementById('serial-form').reset();
-  document.getElementById('serial-delete').style.display = 'none'; // Hide delete on new
+  document.getElementById('serial-delete').style.display = 'none';
 }
 
 function populateManageForm(serial) {
@@ -316,10 +312,16 @@ function renderCanvas() {
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
+  // Use viewBox or Transform, but here we keep simple logic
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
 
+  // Transform Group (Zoom + Pan)
+  const rootGroup = document.createElementNS(ns, 'g');
+  rootGroup.setAttribute('transform', `translate(${editorPan.x}, ${editorPan.y}) scale(${editorScale})`);
+
+  // Grid
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
@@ -335,14 +337,14 @@ function renderCanvas() {
   defs.appendChild(pattern);
   svg.appendChild(defs);
 
-  const zoomGroup = document.createElementNS(ns, 'g');
-  zoomGroup.setAttribute('transform', `scale(${editorScale})`);
-
   const gridRect = document.createElementNS(ns, 'rect');
-  gridRect.setAttribute('width', width);
-  gridRect.setAttribute('height', height);
+  // Make grid HUGE so pan doesn't reveal edges easily
+  gridRect.setAttribute('x', -width * 2);
+  gridRect.setAttribute('y', -height * 2);
+  gridRect.setAttribute('width', width * 5);
+  gridRect.setAttribute('height', height * 5);
   gridRect.setAttribute('fill', 'url(#grid)');
-  zoomGroup.appendChild(gridRect);
+  rootGroup.appendChild(gridRect);
 
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
@@ -381,18 +383,20 @@ function renderCanvas() {
     contentGroup.appendChild(g);
   });
 
-  zoomGroup.appendChild(contentGroup);
-  svg.appendChild(zoomGroup);
+  rootGroup.appendChild(contentGroup);
+  svg.appendChild(rootGroup);
   canvasEl.appendChild(svg);
 }
 
 
 // --- Interaction Logic ---
 let isDrawing = false;
+let isPanning = false;
 let startPoint = null;
 let activeLine = null;
 let isDraggingShelf = false;
 let draggingShelf = null;
+let panStart = { x: 0, y: 0 };
 
 function bindCanvasEvents(isEditor) {
   const canvasEl = document.getElementById('layout-canvas');
@@ -400,14 +404,24 @@ function bindCanvasEvents(isEditor) {
 
   canvasEl.addEventListener('mousedown', (e) => {
     if (!currentLayout) return;
-    const pt = getCanvasCoordinates(e, canvasEl);
+    const pt = getCanvasCoordinates(e, canvasEl); // Raw coords relative to canvas origin
+    const worldPt = getWorldCoordinates(e, canvasEl); // Transformed coords
+
     const target = e.target.closest('.wall-line, .shelf-group');
+
+    // Panning Logic (Middle Click or Alt+Click, or if not clicking any interactable in Select mode)
+    if (e.button === 1 || (currentMode === 'select' && !target)) {
+      isPanning = true;
+      panStart = { x: e.clientX, y: e.clientY };
+      canvasEl.style.cursor = 'grabbing';
+      return;
+    }
 
     if (isEditor) {
       if (currentMode === 'wall') {
         isDrawing = true;
-        const snapX = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
-        const snapY = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
+        const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
+        const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
         startPoint = { x: snapX, y: snapY };
         activeLine = createSVGLine(snapX, snapY, snapX, snapY, ['wall-line', 'preview']);
         document.querySelector('#canvas-content').appendChild(activeLine);
@@ -435,19 +449,42 @@ function bindCanvasEvents(isEditor) {
   });
 
   canvasEl.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
+      editorPan.x += dx;
+      editorPan.y += dy;
+      panStart = { x: e.clientX, y: e.clientY };
+
+      // Efficient update? Full render for now to be safe.
+      renderCanvas();
+      return;
+    }
+
     if (!isEditor) return;
-    const pt = getCanvasCoordinates(e, canvasEl);
+    const worldPt = getWorldCoordinates(e, canvasEl);
     const storedPt = {
-      x: Math.round(pt.x / GRID_SIZE) * GRID_SIZE,
-      y: Math.round(pt.y / GRID_SIZE) * GRID_SIZE
+      x: Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE,
+      y: Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE
     };
 
     const coordEl = document.getElementById('cursor-coords');
     if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
 
     if (isDrawing && activeLine) {
-      activeLine.setAttribute('x2', storedPt.x);
-      activeLine.setAttribute('y2', storedPt.y);
+      // Orthogonal Logic: Abs(dx) vs Abs(dy)
+      const dx = Math.abs(storedPt.x - startPoint.x);
+      const dy = Math.abs(storedPt.y - startPoint.y);
+
+      if (dx > dy) {
+        // Horizontal
+        activeLine.setAttribute('x2', storedPt.x);
+        activeLine.setAttribute('y2', startPoint.y);
+      } else {
+        // Vertical
+        activeLine.setAttribute('x2', startPoint.x);
+        activeLine.setAttribute('y2', storedPt.y);
+      }
     }
 
     if (isDraggingShelf && draggingShelf) {
@@ -456,6 +493,12 @@ function bindCanvasEvents(isEditor) {
   });
 
   canvasEl.addEventListener('mouseup', () => {
+    if (isPanning) {
+      isPanning = false;
+      canvasEl.style.cursor = '';
+      return;
+    }
+
     if (!isEditor) return;
     if (isDrawing && activeLine) {
       const x1 = parseFloat(activeLine.getAttribute('x1'));
@@ -515,12 +558,35 @@ function createSVGLine(x1, y1, x2, y2, classes) {
 }
 
 function getCanvasCoordinates(e, canvasEl) {
+  // Pure client to Canvas Relative
   const rect = canvasEl.querySelector('svg').getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  const scaleX = 800 / rect.width;
-  const scaleY = 600 / rect.height;
-  return { x: (x * scaleX) / editorScale, y: (y * scaleY) / editorScale };
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function getWorldCoordinates(e, canvasEl) {
+  // Canvas Relative to Zoomed/Panned World
+  const pt = getCanvasCoordinates(e, canvasEl);
+  return {
+    x: (pt.x - editorPan.x) / editorScale,
+    y: (pt.y - editorPan.y) / editorScale
+  };
+}
+
+function setZoom(scale) {
+  editorScale = Math.max(0.1, Math.min(3.0, scale));
+  renderCanvas();
+  const el = document.getElementById('canvas-status-text');
+  if (el) el.textContent = `Zoom: ${Math.round(editorScale * 100)}%`;
+}
+
+function selectElement(type, data) {
+  if (type === null) {
+    selectedElement = null;
+  } else {
+    selectedElement = { type, ...data };
+  }
+  renderCanvas();
+  renderPropertiesPanel();
 }
 
 
@@ -598,10 +664,13 @@ function bindToolbarEvents() {
   document.getElementById('save-layout-btn')?.addEventListener('click', updateCurrentLayout);
   document.getElementById('zoom-in')?.addEventListener('click', () => setZoom(editorScale + 0.1));
   document.getElementById('zoom-out')?.addEventListener('click', () => setZoom(editorScale - 0.1));
-  document.getElementById('zoom-reset')?.addEventListener('click', () => setZoom(1.0));
+  document.getElementById('zoom-reset')?.addEventListener('click', () => {
+    editorPan = { x: 0, y: 0 };
+    setZoom(1.0);
+  });
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
     const d = document.getElementById('layout-meta-dialog');
-    d.style.display = 'block'; // Ensure visible 
+    d.style.display = 'block';
     d.showModal();
   });
   document.getElementById('layout-delete-btn')?.addEventListener('click', deleteCurrentLayout);
@@ -615,12 +684,7 @@ function bindToolbarEvents() {
 
 function updateToolbarUI() {
   const statusText = document.getElementById('canvas-status-text');
-  if (statusText) statusText.textContent = currentMode === 'wall' ? '드래그하여 벽 그리기' : '요소 선택 및 이동';
-
-  document.querySelectorAll('.tool-btn[data-mode]').forEach(btn => {
-    if (btn.dataset.mode === currentMode) btn.classList.add('active');
-    else btn.classList.remove('active');
-  });
+  // if (statusText) statusText.textContent = currentMode === 'wall' ? '드래그하여 벽 그리기' : '요소 선택 및 이동';
 }
 
 function bindDialogEvents() {
@@ -630,7 +694,7 @@ function bindDialogEvents() {
       e.preventDefault();
       const d = e.target.closest('dialog');
       d.close();
-      d.style.display = 'none'; // Force hide
+      d.style.display = 'none';
     });
   });
 
@@ -755,14 +819,14 @@ function renderPropertiesPanel() {
 function startShelfDrag(e, shelf, canvasEl) {
   isDraggingShelf = true;
   draggingShelf = shelf;
-  const pt = getCanvasCoordinates(e, canvasEl);
+  const pt = getWorldCoordinates(e, canvasEl);
   dragOffset.x = pt.x - shelf.x;
   dragOffset.y = pt.y - shelf.y;
 }
 
 function updateShelfDrag(e, canvasEl) {
   if (!draggingShelf) return;
-  const pt = getCanvasCoordinates(e, canvasEl);
+  const pt = getWorldCoordinates(e, canvasEl);
   const snapX = Math.round((pt.x - dragOffset.x) / GRID_SIZE) * GRID_SIZE;
   const snapY = Math.round((pt.y - dragOffset.y) / GRID_SIZE) * GRID_SIZE;
 
@@ -794,7 +858,7 @@ async function handleShelfDrop(e, canvasEl) {
   const type = shelfTypes.find(t => t.id === typeId);
   if (!type) return;
 
-  const pt = getCanvasCoordinates(e, canvasEl);
+  const pt = getWorldCoordinates(e, canvasEl);
   const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
   const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
 
