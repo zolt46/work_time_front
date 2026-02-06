@@ -623,7 +623,7 @@ async function saveSerial(event) {
     return;
   }
   if (selectedSerial) {
-    await apiRequest(`/serials/${selectedSerial.id}`, {
+    await apiRequest(`/serials/publications/${selectedSerial.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -642,7 +642,7 @@ async function saveSerial(event) {
 async function deleteSerial() {
   if (!selectedSerial) return;
   if (!confirm('선택한 연속 간행물을 삭제할까요?')) return;
-  await apiRequest(`/serials/${selectedSerial.id}`, { method: 'DELETE' });
+  await apiRequest(`/serials/publications/${selectedSerial.id}`, { method: 'DELETE' });
   await loadSerials();
   clearSelection();
 }
