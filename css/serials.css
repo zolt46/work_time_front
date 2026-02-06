@@ -1,4 +1,22 @@
 /* File: /ui/css/serials.css */
+.serials-logo-button,
+.serials-mobile-logo-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.serials-logo-button:focus-visible,
+.serials-mobile-logo-button:focus-visible {
+  outline: 2px solid rgba(46, 129, 247, 0.6);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
 .serials-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;

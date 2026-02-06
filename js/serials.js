@@ -3,6 +3,7 @@ import { apiRequest } from './api.js';
 import { loadUser } from './auth.js';
 
 const acquisitionLabels = {
+  UNCLASSIFIED: '미분류',
   DONATION: '수증',
   SUBSCRIPTION: '구독'
 };
@@ -104,7 +105,7 @@ function setForm(serial) {
   if (!title) return;
   title.value = serial?.title || '';
   getElement('serial-issn').value = serial?.issn || '';
-  getElement('serial-type').value = serial?.acquisition_type || 'SUBSCRIPTION';
+  getElement('serial-type').value = serial?.acquisition_type || 'UNCLASSIFIED';
   getElement('serial-shelf').value = serial?.shelf_section || '';
   getElement('serial-row').value = serial?.shelf_row ?? '';
   getElement('serial-column').value = serial?.shelf_column ?? '';
@@ -233,6 +234,9 @@ async function deleteSerial() {
 
 function bindEvents() {
   getElement('search-button')?.addEventListener('click', loadSerials);
+  getElement('serials-logo')?.addEventListener('click', () => {
+    window.location.href = 'serials_home.html';
+  });
   getElement('search-reset')?.addEventListener('click', () => {
     getElement('search-keyword').value = '';
     getElement('search-issn').value = '';
