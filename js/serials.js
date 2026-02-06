@@ -16,12 +16,13 @@ let editingSerialId = null;
 let currentLayout = null;
 let currentMode = 'view'; // 'view'|'select'|'wall'
 let editorScale = 1.0;
-let editorPan = { x: 0, y: 0 }; // Pan Offset
+let editorPan = { x: 0, y: 0 };
 const UNIT_SIZE = 20;
 const GRID_SIZE = 10;
 
-let selectedElement = null;
+let selectedElement = null; // { type: 'shelf'|'wall', ... }
 let dragOffset = { x: 0, y: 0 };
+let panStart = { x: 0, y: 0 };
 
 const acquisitionLabels = {
   UNCLASSIFIED: '미분류',
@@ -31,56 +32,65 @@ const acquisitionLabels = {
 
 // --- Initialization ---
 export async function initSerials() {
-  const user = await loadUser();
-  currentRole = user?.role || null;
-  applyRoleGuard();
+  try {
+    const user = await loadUser();
+    currentRole = user?.role || null;
+    applyRoleGuard();
 
-  const isEditor = !!document.getElementById('editor-toolbar');
-  const isManage = !!document.getElementById('serial-form');
-  const isHomeOrList = !isEditor && !isManage && (!!document.getElementById('serials-total-count') || !!document.getElementById('serials-table'));
+    const isEditor = !!document.getElementById('editor-toolbar');
+    const isManage = !!document.getElementById('serial-form');
+    const isHomeOrList = !isEditor && !isManage && (!!document.getElementById('serials-total-count') || !!document.getElementById('serials-table'));
 
-  await Promise.all([loadLayouts(), loadShelfTypes()]);
+    // Use Promise.allSettled to prevent one failure from blocking everything
+    await Promise.allSettled([loadLayouts(), loadShelfTypes()]);
 
-  if (isHomeOrList || isManage) {
-    await loadSerials();
-    if (layouts.length > 0) {
-      await loadShelves(layouts[0].id);
+    if (isHomeOrList || isManage) {
+      await loadSerials().catch(console.error);
+      if (layouts.length > 0) {
+        await loadShelves(layouts[0].id).catch(console.error);
+      }
     }
-  }
 
-  if (isHomeOrList) {
-    if (layouts.length > 0) await selectLayout(layouts[0].id, false);
-    bindListEvents();
-    renderStats();
-    renderList();
-    renderLayoutLegend();
-  }
-
-  if (isManage) {
-    renderStats();
-    renderList();
-    renderShelfOptions();
-    bindManageEvents();
-  }
-
-  if (isEditor) {
-    currentMode = 'select';
-    if (layouts.length > 0) {
-      await selectLayout(layouts[0].id, true);
-    } else {
-      showEmptyState();
+    if (isHomeOrList) {
+      if (layouts.length > 0) await selectLayout(layouts[0].id, false);
+      bindListEvents();
+      renderStats();
+      renderList();
+      renderLayoutLegend();
     }
-    bindToolbarEvents();
-    bindDialogEvents();
 
-    document.querySelectorAll('dialog').forEach(d => {
-      try { d.close(); } catch (e) { }
-      d.style.display = 'none';
-    });
+    if (isManage) {
+      renderStats();
+      renderList();
+      renderShelfOptions();
+      bindManageEvents();
+    }
+
+    if (isEditor) {
+      currentMode = 'select';
+      renderLayoutSelect(); // Render immediately after load
+      renderShelfPalette(); // Render immediately after load
+
+      if (layouts.length > 0) {
+        await selectLayout(layouts[0].id, true);
+      } else {
+        showEmptyState();
+      }
+      bindToolbarEvents();
+      bindDialogEvents();
+
+      document.querySelectorAll('dialog').forEach(d => {
+        try { d.close(); } catch (e) { }
+        d.style.display = 'none';
+      });
+    }
+
+    bindCanvasEvents(isEditor);
+    bindSidebarEvents();
+
+  } catch (err) {
+    console.warn("Init error (likely listener timeout):", err);
   }
-
-  bindCanvasEvents(isEditor);
-  bindSidebarEvents();
 }
 
 function applyRoleGuard() {
@@ -134,6 +144,8 @@ function buildQuery() {
 function renderShelfOptions() {
   const select = document.getElementById('serial-shelf-id');
   if (!select) return;
+  // We should ideally fetch ALL shelves or group by layout. 
+  // Using current loaded shelves (likely layout[0])
   select.innerHTML = '<option value="">배치도에서 선택 (또는 직접 입력)</option>' +
     shelves.map(s => `<option value="${s.id}">${s.code} (Layout ${s.layout_id})</option>`).join('');
 }
@@ -167,7 +179,7 @@ function bindManageEvents() {
       resetManageForm();
     } catch (err) {
       console.error(err);
-      alert('저장 오류: ' + err.message);
+      alert('오류: ID가 유효하지 않거나 이미 삭제되었을 수 있습니다.');
     }
   });
 
@@ -182,7 +194,7 @@ function bindManageEvents() {
         resetManageForm();
       } catch (err) {
         console.error(err);
-        alert('삭제 오류: ' + err.message);
+        alert('오류: ' + err.message);
       }
     }
   });
@@ -192,6 +204,9 @@ function resetManageForm() {
   editingSerialId = null;
   document.getElementById('serial-form').reset();
   document.getElementById('serial-delete').style.display = 'none';
+
+  // Clear selection
+  document.querySelectorAll('#serials-table tbody tr').forEach(r => r.classList.remove('active', 'selected'));
 }
 
 function populateManageForm(serial) {
@@ -241,13 +256,15 @@ function renderList() {
          <td>${formatShelfLabel(s)}</td>
        `;
     tr.addEventListener('click', () => {
+      // Highlight logic
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('active', 'selected'));
+      tr.classList.add('active', 'selected'); // Add 'selected' for styling
+
       if (isManage) {
         populateManageForm(s);
       } else {
         showSerialDetail(s);
       }
-      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('active'));
-      tr.classList.add('active');
     });
     tbody.appendChild(tr);
   });
@@ -312,16 +329,15 @@ function renderCanvas() {
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  // Use viewBox or Transform, but here we keep simple logic
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  svg.classList.add('layout-svg');
+  // svg.setAttribute('viewBox', `0 0 ${width} ${height}`); // viewbox conflicts with pan/zoom if naive
+  // We use a root Group for Pan/Zoom, so viewBox can stay or be removed. 
+  // Better to use no viewBox and let SVG fill container, with rootGroup doing the work.
 
-  // Transform Group (Zoom + Pan)
   const rootGroup = document.createElementNS(ns, 'g');
   rootGroup.setAttribute('transform', `translate(${editorPan.x}, ${editorPan.y}) scale(${editorScale})`);
+  rootGroup.id = 'canvas-root';
 
-  // Grid
+  // Grid Pattern
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
@@ -337,17 +353,27 @@ function renderCanvas() {
   defs.appendChild(pattern);
   svg.appendChild(defs);
 
+  // Huge Grid Rect to cover 'infinite' space
   const gridRect = document.createElementNS(ns, 'rect');
-  // Make grid HUGE so pan doesn't reveal edges easily
-  gridRect.setAttribute('x', -width * 2);
-  gridRect.setAttribute('y', -height * 2);
-  gridRect.setAttribute('width', width * 5);
-  gridRect.setAttribute('height', height * 5);
+  gridRect.setAttribute('x', -2000);
+  gridRect.setAttribute('y', -2000);
+  gridRect.setAttribute('width', 4000);
+  gridRect.setAttribute('height', 4000);
   gridRect.setAttribute('fill', 'url(#grid)');
   rootGroup.appendChild(gridRect);
 
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
+
+  // Layout Bounds (optional visual guide)
+  const border = document.createElementNS(ns, 'rect');
+  border.setAttribute('x', 0); border.setAttribute('y', 0);
+  border.setAttribute('width', currentLayout.width || 800);
+  border.setAttribute('height', currentLayout.height || 600);
+  border.setAttribute('fill', 'none');
+  border.setAttribute('stroke', '#cbd5e1');
+  border.setAttribute('stroke-dasharray', '5,5');
+  contentGroup.appendChild(border);
 
   (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
@@ -383,6 +409,39 @@ function renderCanvas() {
     contentGroup.appendChild(g);
   });
 
+  // Drag Preview (Ghost)
+  if (isDraggingShelf && draggingShelf) {
+    // Already rendered as shelf-group? No, we might be dragging a NEW shelf from palette.
+    // Or moving existing. 
+    // If moving existing, it's already updated in render loop if we allow live update.
+  }
+
+  if (previewShelf) {
+    const g = document.createElementNS(ns, 'g');
+    g.setAttribute('transform', `translate(${previewShelf.x}, ${previewShelf.y})`);
+    g.style.opacity = '0.5';
+    g.style.pointerEvents = 'none';
+
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('width', previewShelf.width);
+    rect.setAttribute('height', previewShelf.height);
+    rect.setAttribute('fill', '#3b82f6');
+    g.appendChild(rect);
+    contentGroup.appendChild(g);
+  }
+
+  // Selection Rect
+  if (isSelectingArea && selectionRect) {
+    const r = document.createElementNS(ns, 'rect');
+    r.setAttribute('x', selectionRect.x);
+    r.setAttribute('y', selectionRect.y);
+    r.setAttribute('width', selectionRect.width);
+    r.setAttribute('height', selectionRect.height);
+    r.setAttribute('fill', 'rgba(59, 130, 246, 0.2)');
+    r.setAttribute('stroke', '#3b82f6');
+    contentGroup.appendChild(r);
+  }
+
   rootGroup.appendChild(contentGroup);
   svg.appendChild(rootGroup);
   canvasEl.appendChild(svg);
@@ -392,34 +451,55 @@ function renderCanvas() {
 // --- Interaction Logic ---
 let isDrawing = false;
 let isPanning = false;
+let isSelectingArea = false;
 let startPoint = null;
 let activeLine = null;
 let isDraggingShelf = false;
 let draggingShelf = null;
-let panStart = { x: 0, y: 0 };
+let previewShelf = null; // { x, y, width, height, typeId }
+let selectionRect = null; // { x, y, width, height }
 
 function bindCanvasEvents(isEditor) {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
 
+  // Wheel Zoom
+  canvasEl.addEventListener('wheel', (e) => {
+    if (!isEditor) return;
+    e.preventDefault();
+    const delta = e.deltaY;
+    const zoomStep = 0.1;
+    const newScale = editorScale + (delta > 0 ? -zoomStep : zoomStep);
+    setZoom(newScale);
+  });
+
   canvasEl.addEventListener('mousedown', (e) => {
     if (!currentLayout) return;
-    const pt = getCanvasCoordinates(e, canvasEl); // Raw coords relative to canvas origin
-    const worldPt = getWorldCoordinates(e, canvasEl); // Transformed coords
 
+    // Right click (2) for Area Selection
+    if (e.button === 2 && isEditor) {
+      isSelectingArea = true;
+      const pt = getWorldCoordinates(e, canvasEl);
+      startPoint = pt;
+      selectionRect = { x: pt.x, y: pt.y, width: 0, height: 0 };
+      return;
+    }
+
+    // Middle Click (1) for Pan
+    const pt = getCanvasCoordinates(e, canvasEl);
     const target = e.target.closest('.wall-line, .shelf-group');
 
-    // Panning Logic (Middle Click or Alt+Click, or if not clicking any interactable in Select mode)
-    if (e.button === 1 || (currentMode === 'select' && !target)) {
+    if (e.button === 1 || (currentMode === 'select' && !target && e.button === 0)) {
       isPanning = true;
       panStart = { x: e.clientX, y: e.clientY };
       canvasEl.style.cursor = 'grabbing';
       return;
     }
 
-    if (isEditor) {
+    if (isEditor && e.button === 0) {
       if (currentMode === 'wall') {
         isDrawing = true;
+        const worldPt = getWorldCoordinates(e, canvasEl);
         const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
         const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
         startPoint = { x: snapX, y: snapY };
@@ -438,14 +518,8 @@ function bindCanvasEvents(isEditor) {
           selectElement(null);
         }
       }
-    } else {
-      if (target && target.classList.contains('shelf-group')) {
-        const shelf = shelves.find(s => s.id === target.dataset.id);
-        showShelfTooltip(shelf, e.clientX, e.clientY);
-      } else {
-        hideShelfTooltip();
-      }
     }
+    // Read-only logic..
   });
 
   canvasEl.addEventListener('mousemove', (e) => {
@@ -455,8 +529,17 @@ function bindCanvasEvents(isEditor) {
       editorPan.x += dx;
       editorPan.y += dy;
       panStart = { x: e.clientX, y: e.clientY };
+      renderCanvas();
+      return;
+    }
 
-      // Efficient update? Full render for now to be safe.
+    if (isSelectingArea) {
+      const pt = getWorldCoordinates(e, canvasEl);
+      const x = Math.min(startPoint.x, pt.x);
+      const y = Math.min(startPoint.y, pt.y);
+      const w = Math.abs(pt.x - startPoint.x);
+      const h = Math.abs(pt.y - startPoint.y);
+      selectionRect = { x, y, width: w, height: h };
       renderCanvas();
       return;
     }
@@ -472,16 +555,13 @@ function bindCanvasEvents(isEditor) {
     if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
 
     if (isDrawing && activeLine) {
-      // Orthogonal Logic: Abs(dx) vs Abs(dy)
       const dx = Math.abs(storedPt.x - startPoint.x);
       const dy = Math.abs(storedPt.y - startPoint.y);
 
       if (dx > dy) {
-        // Horizontal
         activeLine.setAttribute('x2', storedPt.x);
         activeLine.setAttribute('y2', startPoint.y);
       } else {
-        // Vertical
         activeLine.setAttribute('x2', startPoint.x);
         activeLine.setAttribute('y2', storedPt.y);
       }
@@ -496,6 +576,15 @@ function bindCanvasEvents(isEditor) {
     if (isPanning) {
       isPanning = false;
       canvasEl.style.cursor = '';
+      return;
+    }
+
+    if (isSelectingArea) {
+      isSelectingArea = false;
+      // Select elements in rect
+      // (Ignoring multi-select for now, just cleanup rect)
+      selectionRect = null;
+      renderCanvas();
       return;
     }
 
@@ -518,33 +607,22 @@ function bindCanvasEvents(isEditor) {
     if (isDraggingShelf) finishShelfDrag();
   });
 
+  // Disable Context Menu for Right Click
+  canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
   if (isEditor) {
     canvasEl.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
+
+      // Show Ghost
+      const typeId = e.dataTransfer.types.find(t => t !== 'text/plain'); // Hack or store in variable
+      // Actually we need to pass data via dragStart. 
+      // Browser doesn't give data in dragover.
+      // But we can store global 'draggingType'
     });
     canvasEl.addEventListener('drop', (e) => handleShelfDrop(e, canvasEl));
   }
-}
-
-function showShelfTooltip(shelf, clientX, clientY) {
-  let tooltip = document.getElementById('layout-tooltip');
-  if (!tooltip) {
-    tooltip = document.createElement('div');
-    tooltip.id = 'layout-tooltip';
-    tooltip.className = 'layout-tooltip';
-    document.body.appendChild(tooltip);
-  }
-  const count = serials.filter(s => s.shelf_id === shelf.id).length;
-  tooltip.innerHTML = `<h4>${shelf.code}</h4><div class="muted">보관 중: ${count}권</div><div class="small text-muted">${shelf.note || ''}</div>`;
-  tooltip.style.left = `${clientX + 10}px`;
-  tooltip.style.top = `${clientY + 10}px`;
-  tooltip.style.display = 'block';
-}
-
-function hideShelfTooltip() {
-  const tooltip = document.getElementById('layout-tooltip');
-  if (tooltip) tooltip.style.display = 'none';
 }
 
 
@@ -558,13 +636,11 @@ function createSVGLine(x1, y1, x2, y2, classes) {
 }
 
 function getCanvasCoordinates(e, canvasEl) {
-  // Pure client to Canvas Relative
   const rect = canvasEl.querySelector('svg').getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
 function getWorldCoordinates(e, canvasEl) {
-  // Canvas Relative to Zoomed/Panned World
   const pt = getCanvasCoordinates(e, canvasEl);
   return {
     x: (pt.x - editorPan.x) / editorScale,
@@ -573,7 +649,7 @@ function getWorldCoordinates(e, canvasEl) {
 }
 
 function setZoom(scale) {
-  editorScale = Math.max(0.1, Math.min(3.0, scale));
+  editorScale = Math.max(0.1, Math.min(5.0, scale));
   renderCanvas();
   const el = document.getElementById('canvas-status-text');
   if (el) el.textContent = `Zoom: ${Math.round(editorScale * 100)}%`;
@@ -684,7 +760,7 @@ function bindToolbarEvents() {
 
 function updateToolbarUI() {
   const statusText = document.getElementById('canvas-status-text');
-  // if (statusText) statusText.textContent = currentMode === 'wall' ? '드래그하여 벽 그리기' : '요소 선택 및 이동';
+  // We can update status text here
 }
 
 function bindDialogEvents() {
@@ -862,7 +938,7 @@ async function handleShelfDrop(e, canvasEl) {
   const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
   const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
 
-  const code = prompt('서가 번호:', `S-${shelves.length + 1}`);
+  const code = prompt('서가 번호/명칭을 입력하세요:', `S-${shelves.length + 1}`);
   if (!code) return;
 
   const payload = { layout_id: currentLayout.id, shelf_type_id: type.id, code, x, y, rotation: 0 };
