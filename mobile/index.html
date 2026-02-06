@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>?�산 근무 관리자 - 모바??로그??/title>
+  <title>다산 근무 관리자 - 모바일 로그인</title>
   <link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -19,33 +19,33 @@
 <body class="mobile-app">
   <div class="mobile-login">
     <div class="card mobile-login-card">
-      <div class="logo"><img src="../assets/logo.png" alt="logo" />?�산 근무 관리자</div>
+      <div class="logo"><img src="../assets/logo.png" alt="logo" />다산 근무 관리자</div>
       <form id="login-form" class="stack">
-        <label for="login_id">로그??ID</label>
+        <label for="login_id">로그인 ID</label>
         <input id="login_id" required />
-        <label for="password">비�?번호</label>
+        <label for="password">비밀번호</label>
         <div class="input-with-toggle">
           <input id="password" type="password" required />
-          <button type="button" class="toggle-visibility" id="toggle-login-password">??/button>
+          <button type="button" class="toggle-visibility" id="toggle-login-password">◎</button>
         </div>
         <div class="loading-bar" id="login-loading"></div>
-        <button class="btn full" type="submit">로그??/button>
+        <button class="btn full" type="submit">로그인</button>
         <div class="login-status">
-          <span id="login-progress" class="muted">로그???�보�??�력?�세??/span>
-          <button class="btn tiny secondary" type="button" id="login-retry">?�결 ?�시 ?�인</button>
+          <span id="login-progress" class="muted">로그인 정보를 입력하세요</span>
+          <button class="btn tiny secondary" type="button" id="login-retry">연결 다시 확인</button>
           <div class="mobile-panel">
-            <div class="status-label">?�버 · DB ?�결 ?�태</div>
+            <div class="status-label">서버 · DB 연결 상태</div>
             <div class="system-status">
-              <span id="server-status" class="status-chip status-pending" title="?�버 ?�태 ?�인 �?>
+              <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
                 <span class="status-dot"></span>
-                <span class="status-text">?�버 ?�인 �?/span>
+                <span class="status-text">서버 확인 중</span>
               </span>
-              <span id="db-status" class="status-chip status-pending" title="DB ?�태 ?�인 �?>
+              <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
                 <span class="status-dot"></span>
-                <span class="status-text">DB ?�인 �?/span>
+                <span class="status-text">DB 확인 중</span>
               </span>
             </div>
-            <div class="status-meta" id="status-meta">?�태 체크 �?..</div>
+            <div class="status-meta" id="status-meta">상태 체크 중...</div>
           </div>
         </div>
       </form>

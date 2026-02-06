@@ -423,9 +423,8 @@ function renderCanvas() {
     g.dataset.id = shelf.id;
 
     const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
-    // Width based on columns only, height fixed at 2 grid units
-    const shelfWidth = (type.columns || 4) * GRID_SIZE;
-    const shelfHeight = 2 * GRID_SIZE;
+    const shelfWidth = (type.columns || 4) * UNIT_SIZE;
+    const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -436,11 +435,6 @@ function renderCanvas() {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('font-size', '9');
     text.textContent = shelf.code;
-
-    // Tooltip showing shelf info
-    const titleEl = document.createElementNS(ns, 'title');
-    titleEl.textContent = `${shelf.code}\n타입: ${type.name || '미지정'}\n행: ${type.rows}, 열: ${type.columns}\n위치: (${shelf.x}, ${shelf.y})`;
-    g.appendChild(titleEl);
 
     g.appendChild(rect);
     g.appendChild(text);
@@ -742,6 +736,52 @@ function selectElement(type, data) {
   renderPropertiesPanel();
 }
 
+function renderPropertiesPanel() {
+  const content = document.getElementById('properties-content');
+  if (!content) return;
+
+  if (!selectedElement) {
+    content.innerHTML = '<div class="muted center-message">선택된 요소가 없습니다.</div>';
+    return;
+  }
+
+  if (selectedElement.type === 'shelf') {
+    const shelf = selectedElement;
+    const type = shelfTypes.find(t => t.id === shelf.shelf_type_id);
+    content.innerHTML = `
+      <div class="property-group">
+        <div class="property-row"><span class="property-label">코드</span><span class="property-value">${shelf.code || '-'}</span></div>
+        <div class="property-row"><span class="property-label">이름</span><span class="property-value">${shelf.name || '-'}</span></div>
+        <div class="property-row"><span class="property-label">타입</span><span class="property-value">${type?.name || '-'}</span></div>
+        <div class="property-row"><span class="property-label">위치</span><span class="property-value">(${shelf.x}, ${shelf.y})</span></div>
+        <div class="property-row"><span class="property-label">회전</span><span class="property-value">${shelf.rotation || 0}°</span></div>
+        ${type ? `<div class="property-row"><span class="property-label">행/열</span><span class="property-value">${type.rows || 4}행 × ${type.columns || 4}열</span></div>` : ''}
+      </div>
+    `;
+  } else if (selectedElement.type === 'wall') {
+    const w = selectedElement;
+    content.innerHTML = `
+      <div class="property-group">
+        <div class="property-row"><span class="property-label">유형</span><span class="property-value">벽</span></div>
+        <div class="property-row"><span class="property-label">시작</span><span class="property-value">(${w.x1}, ${w.y1})</span></div>
+        <div class="property-row"><span class="property-label">끝</span><span class="property-value">(${w.x2}, ${w.y2})</span></div>
+      </div>
+    `;
+  } else if (selectedElement.type === 'multi') {
+    const shelfCount = selectedElement.items.filter(i => i.type === 'shelf').length;
+    const wallCount = selectedElement.items.filter(i => i.type === 'wall').length;
+    content.innerHTML = `
+      <div class="property-group">
+        <div class="property-row"><span class="property-label">선택됨</span><span class="property-value">${selectedElement.items.length}개</span></div>
+        ${shelfCount > 0 ? `<div class="property-row"><span class="property-label">서가</span><span class="property-value">${shelfCount}개</span></div>` : ''}
+        ${wallCount > 0 ? `<div class="property-row"><span class="property-label">벽</span><span class="property-value">${wallCount}개</span></div>` : ''}
+      </div>
+    `;
+  } else {
+    content.innerHTML = '<div class="muted center-message">선택된 요소가 없습니다.</div>';
+  }
+}
+
 
 // --- Layout Management & Dialogs ---
 async function selectLayout(layoutId, editorMode) {
@@ -779,23 +819,15 @@ function fitLayoutToView() {
   const layoutHeight = currentLayout.height || 600;
 
   // Calculate scale to fit with some padding
-  const padding = 30;
+  const padding = 20;
   const availableWidth = containerRect.width - padding * 2;
   const availableHeight = containerRect.height - padding * 2;
 
   const scaleX = availableWidth / layoutWidth;
   const scaleY = availableHeight / layoutHeight;
-  // Use the fit scale as 100% baseline
-  const fitScale = Math.min(scaleX, scaleY);
+  const fitScale = Math.min(scaleX, scaleY, 1.0); // Don't exceed 1.0
 
-  editorScale = 1.0; // This is now "100%" meaning full fit
-  // Apply the actual rendering scale
-  const actualScale = fitScale;
-
-  // Store the base scale for 100%
-  canvasEl.dataset.baseScale = fitScale;
-
-  editorScale = actualScale;
+  editorScale = fitScale;
 
   // Center the layout
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
@@ -850,7 +882,7 @@ function bindToolbarEvents() {
     fitLayoutToView();
     renderCanvas();
     const el = document.getElementById('canvas-status-text');
-    if (el) el.textContent = '100%';
+    if (el) el.textContent = `${Math.round(editorScale * 100)}%`;
   });
 
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
@@ -916,8 +948,8 @@ function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
   list.innerHTML = shelfTypes.map(t => `
-      <div class="list-item" title="행: ${t.rows}, 열: ${t.columns}">
-        <span>${t.name} <small class="muted">(${t.rows}행 × ${t.columns}열)</small></span>
+      <div class="list-item">
+        <span>${t.name}</span>
         <button class="btn-icon delete-type" data-id="${t.id}">🗑️</button>
       </div>`).join('');
 
