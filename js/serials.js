@@ -4,23 +4,25 @@ import { loadUser } from './auth.js';
 
 // --- Global State ---
 let currentRole = null;
-let serials = []; // Publications
+let serials = [];
 let layouts = [];
 let shelfTypes = [];
 let shelves = [];
 
-// Editor State
-let currentLayout = null;
-let currentMode = 'view'; // 'view' | 'select' | 'wall'
-let editorScale = 1.0;
-const UNIT_SIZE = 20; // Shelf scaling unit
-const GRID_SIZE = 10; // Drawing/Snapping grid
+// Edit State (Manage Page)
+let editingSerialId = null;
 
-// Selection & Interaction
+// Editor State (Layout Page)
+let currentLayout = null;
+let currentMode = 'view';
+let editorScale = 1.0;
+const UNIT_SIZE = 20;
+const GRID_SIZE = 10;
+
 let selectedElement = null;
 let selectedSerial = null;
+let dragOffset = { x: 0, y: 0 }; // Initialize here
 
-// Helper / constants
 const acquisitionLabels = {
   UNCLASSIFIED: '미분류',
   DONATION: '수증',
@@ -35,21 +37,37 @@ export async function initSerials() {
 
   // Determine Page Context
   const isEditor = !!document.getElementById('editor-toolbar');
-  const isHomeOrList = !!document.getElementById('serials-total-count') || !!document.getElementById('serials-table');
+  const isManage = !!document.getElementById('serial-form');
+  const isHomeOrList = !isEditor && !isManage && (!!document.getElementById('serials-total-count') || !!document.getElementById('serials-table'));
 
   // Load Common Data
   await Promise.all([loadLayouts(), loadShelfTypes()]);
 
-  if (isHomeOrList) {
+  if (isHomeOrList || isManage) {
     await loadSerials();
+    // Load shelves for list/manage too (for shelf info)
     if (layouts.length > 0) {
-      await selectLayout(layouts[0].id, false);
+      // Ideally load for all layouts, but for now just first or active?
+      // Manage page might need shelf list for dropdown.
+      await loadShelves(layouts[0].id);
     }
+  }
+
+  if (isHomeOrList) {
+    // Home/List logic
+    if (layouts.length > 0) await selectLayout(layouts[0].id, false);
     bindListEvents();
-    // Restore list logic
     renderStats();
     renderList();
     renderLayoutLegend();
+  }
+
+  if (isManage) {
+    // Manage logic
+    renderStats(); // Maybe?
+    renderList(); // Render table
+    renderShelfOptions();
+    bindManageEvents();
   }
 
   if (isEditor) {
@@ -62,12 +80,10 @@ export async function initSerials() {
     bindToolbarEvents();
     bindDialogEvents();
 
-    // Force Close Dialogs on Init to prevent "Floating" issue
+    // Force Close Dialogs
     document.querySelectorAll('dialog').forEach(d => {
-      if (d.open) d.close();
-      // Explicitly hide in case of polyfill issues
+      try { d.close(); } catch (e) { }
       d.style.display = 'none';
-      d.style.display = ''; // Reset after closing
     });
   }
 
@@ -81,6 +97,13 @@ function applyRoleGuard() {
 
   const protectedBtns = document.querySelectorAll('#layout-create-btn, #layout-delete-btn, #save-layout-btn, #manage-types-btn, .action-btn');
   protectedBtns.forEach(btn => btn.disabled = !isOperator);
+
+  // Manage Page Form
+  const form = document.getElementById('serial-form');
+  if (form && !isOperator) {
+    form.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+    document.getElementById('serials-permission').style.display = 'block';
+  }
 }
 
 // --- Data Loading ---
@@ -116,62 +139,82 @@ function buildQuery() {
   return params.toString();
 }
 
-
-// --- Layout Management ---
-async function selectLayout(layoutId, isEditor) {
-  const layout = layouts.find(l => l.id === layoutId);
-  if (!layout) return;
-
-  currentLayout = layout;
-
-  if (isEditor) {
-    const select = document.getElementById('layout-select');
-    if (select) select.value = layout.id;
-    const delBtn = document.getElementById('layout-delete-btn');
-    if (delBtn) delBtn.style.display = 'inline-block';
-
-    selectedElement = null;
-    currentMode = 'select'; // Reset mode
-    updateToolbarUI();
-    renderPropertiesPanel();
-  }
-
-  await loadShelves(layout.id);
-  renderCanvas();
+// --- Manage Page Logic ---
+function renderShelfOptions() {
+  const select = document.getElementById('serial-shelf-id');
+  if (!select) return;
+  // Group by layout? Or just list all shelves?
+  // Assuming loaded shelves are from default layout for now. 
+  // TODO: Load ALL shelves or Select Layout first.
+  // For now, list loaded shelves.
+  select.innerHTML = '<option value="">배치도에서 선택 (또는 직접 입력)</option>' +
+    shelves.map(s => `<option value="${s.id}">${s.code} (Layout ${s.layout_id})</option>`).join('');
 }
 
-function showEmptyState() {
-  const canvas = document.getElementById('layout-canvas');
-  if (canvas) canvas.innerHTML = '<div class="muted center-message">배치도를 선택하거나 새로 만드세요.</div>';
-  const delBtn = document.getElementById('layout-delete-btn');
-  if (delBtn) delBtn.style.display = 'none';
+function bindManageEvents() {
+  const form = document.getElementById('serial-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      title: document.getElementById('serial-title').value,
+      issn: document.getElementById('serial-issn').value,
+      acquisition_type: document.getElementById('serial-type').value,
+      shelf_section: document.getElementById('serial-shelf').value,
+      shelf_id: document.getElementById('serial-shelf-id').value || null, // Optional
+      shelf_row: parseInt(document.getElementById('serial-row').value) || null,
+      shelf_column: parseInt(document.getElementById('serial-column').value) || null,
+      note: document.getElementById('serial-note').value,
+      remark: document.getElementById('serial-remark').value
+    };
+
+    const url = editingSerialId ? `/serials/${editingSerialId}` : '/serials';
+    const method = editingSerialId ? 'PUT' : 'POST';
+
+    await apiRequest(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    alert('저장되었습니다.');
+
+    await loadSerials();
+    renderList();
+    resetManageForm();
+  });
+
+  document.getElementById('serial-new')?.addEventListener('click', resetManageForm);
+  document.getElementById('serial-delete')?.addEventListener('click', async () => {
+    if (!editingSerialId) return;
+    if (confirm('삭제하시겠습니까?')) {
+      await apiRequest(`/serials/${editingSerialId}`, { method: 'DELETE' });
+      await loadSerials();
+      renderList();
+      resetManageForm();
+    }
+  });
 }
 
-async function createLayout(name, note) {
-  const payload = { name, note, width: 800, height: 600, walls: [] };
-  const newLayout = await apiRequest('/serials/layouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  await loadLayouts();
-  renderLayoutSelect();
-  selectLayout(newLayout.id, true);
+function resetManageForm() {
+  editingSerialId = null;
+  document.getElementById('serial-form').reset();
+  document.getElementById('serial-delete').style.display = 'none'; // Hide delete on new
 }
 
-async function updateCurrentLayout() {
-  if (!currentLayout) return;
-  const payload = { name: currentLayout.name, note: currentLayout.note, walls: currentLayout.walls };
-  await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  alert('배치도가 저장되었습니다.');
+function populateManageForm(serial) {
+  editingSerialId = serial.id;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+
+  setVal('serial-title', serial.title);
+  setVal('serial-issn', serial.issn);
+  setVal('serial-type', serial.acquisition_type);
+  setVal('serial-shelf', serial.shelf_section);
+  setVal('serial-shelf-id', serial.shelf_id);
+  setVal('serial-row', serial.shelf_row);
+  setVal('serial-column', serial.shelf_column);
+  setVal('serial-note', serial.note);
+  setVal('serial-remark', serial.remark);
+
+  document.getElementById('serial-delete').style.display = 'inline-block';
 }
 
-async function deleteCurrentLayout() {
-  if (!currentLayout || !confirm(`'${currentLayout.name}' 삭제하시겠습니까?`)) return;
-  await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'DELETE' });
-  currentLayout = null;
-  await loadLayouts();
-  renderLayoutSelect();
-
-  if (layouts.length > 0) selectLayout(layouts[0].id, true);
-  else showEmptyState();
-}
 
 // --- List & Stats ---
 function renderStats() {
@@ -191,6 +234,8 @@ function renderList() {
     return;
   }
 
+  const isManage = !!document.getElementById('serial-form');
+
   serials.forEach(s => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -200,7 +245,11 @@ function renderList() {
          <td>${formatShelfLabel(s)}</td>
        `;
     tr.addEventListener('click', () => {
-      showSerialDetail(s);
+      if (isManage) {
+        populateManageForm(s);
+      } else {
+        showSerialDetail(s);
+      }
       tbody.querySelectorAll('tr').forEach(r => r.classList.remove('active'));
       tr.classList.add('active');
     });
@@ -271,18 +320,17 @@ function renderCanvas() {
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
 
-  // Grid: Denser 10px grid
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
-  pattern.setAttribute('width', GRID_SIZE); // 10px
+  pattern.setAttribute('width', GRID_SIZE);
   pattern.setAttribute('height', GRID_SIZE);
   pattern.setAttribute('patternUnits', 'userSpaceOnUse');
   const path = document.createElementNS(ns, 'path');
   path.setAttribute('d', `M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', '#e2e8f0');
-  path.setAttribute('stroke-width', '0.5'); // Thinner lines for dense grid
+  path.setAttribute('stroke-width', '0.5');
   pattern.appendChild(path);
   defs.appendChild(pattern);
   svg.appendChild(defs);
@@ -299,10 +347,8 @@ function renderCanvas() {
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
 
-  // Walls
   (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
-    // Snap drawing coords? They should be saved snapped.
     line.setAttribute('x1', wall.x1);
     line.setAttribute('y1', wall.y1);
     line.setAttribute('x2', wall.x2);
@@ -313,7 +359,6 @@ function renderCanvas() {
     contentGroup.appendChild(line);
   });
 
-  // Shelves
   shelves.forEach(shelf => {
     const g = document.createElementNS(ns, 'g');
     g.setAttribute('transform', `translate(${shelf.x}, ${shelf.y}) rotate(${shelf.rotation || 0})`);
@@ -341,19 +386,18 @@ function renderCanvas() {
   canvasEl.appendChild(svg);
 }
 
+
 // --- Interaction Logic ---
 let isDrawing = false;
 let startPoint = null;
 let activeLine = null;
 let isDraggingShelf = false;
 let draggingShelf = null;
-let dragOffset = { x: 0, y: 0 };
 
 function bindCanvasEvents(isEditor) {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
 
-  // Mouse Down
   canvasEl.addEventListener('mousedown', (e) => {
     if (!currentLayout) return;
     const pt = getCanvasCoordinates(e, canvasEl);
@@ -362,12 +406,9 @@ function bindCanvasEvents(isEditor) {
     if (isEditor) {
       if (currentMode === 'wall') {
         isDrawing = true;
-
-        // Snap Start Point to Grid
         const snapX = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
         const snapY = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
         startPoint = { x: snapX, y: snapY };
-
         activeLine = createSVGLine(snapX, snapY, snapX, snapY, ['wall-line', 'preview']);
         document.querySelector('#canvas-content').appendChild(activeLine);
       } else if (currentMode === 'select') {
@@ -393,7 +434,6 @@ function bindCanvasEvents(isEditor) {
     }
   });
 
-  // Mouse Move
   canvasEl.addEventListener('mousemove', (e) => {
     if (!isEditor) return;
     const pt = getCanvasCoordinates(e, canvasEl);
@@ -406,7 +446,6 @@ function bindCanvasEvents(isEditor) {
     if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
 
     if (isDrawing && activeLine) {
-      // Snap End Point to Grid (already snapped by storedPt)
       activeLine.setAttribute('x2', storedPt.x);
       activeLine.setAttribute('y2', storedPt.y);
     }
@@ -416,7 +455,6 @@ function bindCanvasEvents(isEditor) {
     }
   });
 
-  // Mouse Up
   canvasEl.addEventListener('mouseup', () => {
     if (!isEditor) return;
     if (isDrawing && activeLine) {
@@ -425,10 +463,8 @@ function bindCanvasEvents(isEditor) {
       const x2 = parseFloat(activeLine.getAttribute('x2'));
       const y2 = parseFloat(activeLine.getAttribute('y2'));
 
-      // Should be integers now, but float parse just in case
-      if (Math.abs(x1 - x2) > 0 || Math.abs(y1 - y2) > 0) { // Allow 0 length? No.
+      if (Math.abs(x1 - x2) > 0 || Math.abs(y1 - y2) > 0) {
         currentLayout.walls = currentLayout.walls || [];
-        // Push snapped coords
         currentLayout.walls.push({ x1, y1, x2, y2 });
       }
       activeLine.remove();
@@ -436,11 +472,9 @@ function bindCanvasEvents(isEditor) {
       activeLine = null;
       renderCanvas();
     }
-
     if (isDraggingShelf) finishShelfDrag();
   });
 
-  // Drag Over/Drop (Editor only)
   if (isEditor) {
     canvasEl.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -450,7 +484,6 @@ function bindCanvasEvents(isEditor) {
   }
 }
 
-// --- Home Tooltips ---
 function showShelfTooltip(shelf, clientX, clientY) {
   let tooltip = document.getElementById('layout-tooltip');
   if (!tooltip) {
@@ -490,61 +523,61 @@ function getCanvasCoordinates(e, canvasEl) {
   return { x: (x * scaleX) / editorScale, y: (y * scaleY) / editorScale };
 }
 
-// --- Drag & Drop ---
-function startShelfDrag(e, shelf, canvasEl) {
-  isDraggingShelf = true;
-  draggingShelf = shelf;
-  const pt = getCanvasCoordinates(e, canvasEl);
-  dragOffset.x = pt.x - shelf.x;
-  dragOffset.y = pt.y - shelf.y;
-}
 
-function updateShelfDrag(e, canvasEl) {
-  if (!draggingShelf) return;
-  const pt = getCanvasCoordinates(e, canvasEl);
-  const snapX = Math.round((pt.x - dragOffset.x) / GRID_SIZE) * GRID_SIZE;
-  const snapY = Math.round((pt.y - dragOffset.y) / GRID_SIZE) * GRID_SIZE;
+// --- Layout Management & Dialogs ---
+async function selectLayout(layoutId, isEditor) {
+  const layout = layouts.find(l => l.id === layoutId);
+  if (!layout) return;
 
-  const g = document.querySelector(`.shelf-group[data-id="${draggingShelf.id}"]`);
-  if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
+  currentLayout = layout;
 
-  draggingShelf._tempX = snapX;
-  draggingShelf._tempY = snapY;
-}
+  if (isEditor) {
+    const select = document.getElementById('layout-select');
+    if (select) select.value = layout.id;
+    const delBtn = document.getElementById('layout-delete-btn');
+    if (delBtn) delBtn.style.display = 'inline-block';
 
-async function finishShelfDrag() {
-  isDraggingShelf = false;
-  if (draggingShelf && draggingShelf._tempX !== undefined) {
-    const x = draggingShelf._tempX;
-    const y = draggingShelf._tempY;
-    draggingShelf.x = x; draggingShelf.y = y;
-    delete draggingShelf._tempX; delete draggingShelf._tempY;
-
-    await apiRequest(`/serials/shelves/${draggingShelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x, y }) });
-    renderCanvas();
+    selectedElement = null;
+    currentMode = 'select'; // Reset mode
+    updateToolbarUI();
+    renderPropertiesPanel();
   }
-  draggingShelf = null;
+
+  await loadShelves(layout.id);
+  renderCanvas();
 }
 
-async function handleShelfDrop(e, canvasEl) {
-  e.preventDefault();
+function showEmptyState() {
+  const canvas = document.getElementById('layout-canvas');
+  if (canvas) canvas.innerHTML = '<div class="muted center-message">배치도를 선택하거나 새로 만드세요.</div>';
+  const delBtn = document.getElementById('layout-delete-btn');
+  if (delBtn) delBtn.style.display = 'none';
+}
+
+async function createLayout(name, note) {
+  const payload = { name, note, width: 800, height: 600, walls: [] };
+  const newLayout = await apiRequest('/serials/layouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  await loadLayouts();
+  renderLayoutSelect();
+  selectLayout(newLayout.id, true);
+}
+
+async function updateCurrentLayout() {
   if (!currentLayout) return;
-  const typeId = e.dataTransfer.getData('text/plain');
-  const type = shelfTypes.find(t => t.id === typeId);
-  if (!type) return;
+  const payload = { name: currentLayout.name, note: currentLayout.note, walls: currentLayout.walls };
+  await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  alert('배치도가 저장되었습니다.');
+}
 
-  const pt = getCanvasCoordinates(e, canvasEl);
-  const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
-  const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
+async function deleteCurrentLayout() {
+  if (!currentLayout || !confirm(`'${currentLayout.name}' 삭제하시겠습니까?`)) return;
+  await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'DELETE' });
+  currentLayout = null;
+  await loadLayouts();
+  renderLayoutSelect();
 
-  const code = prompt('서가 번호:', `S-${shelves.length + 1}`);
-  if (!code) return;
-
-  const payload = { layout_id: currentLayout.id, shelf_type_id: type.id, code, x, y, rotation: 0 };
-  const newShelf = await apiRequest('/serials/shelves', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  shelves.push(newShelf);
-  renderCanvas();
-  selectElement('shelf', newShelf);
+  if (layouts.length > 0) selectLayout(layouts[0].id, true);
+  else showEmptyState();
 }
 
 
@@ -566,10 +599,15 @@ function bindToolbarEvents() {
   document.getElementById('zoom-in')?.addEventListener('click', () => setZoom(editorScale + 0.1));
   document.getElementById('zoom-out')?.addEventListener('click', () => setZoom(editorScale - 0.1));
   document.getElementById('zoom-reset')?.addEventListener('click', () => setZoom(1.0));
-  document.getElementById('layout-create-btn')?.addEventListener('click', () => document.getElementById('layout-meta-dialog').showModal());
+  document.getElementById('layout-create-btn')?.addEventListener('click', () => {
+    const d = document.getElementById('layout-meta-dialog');
+    d.style.display = 'block'; // Ensure visible 
+    d.showModal();
+  });
   document.getElementById('layout-delete-btn')?.addEventListener('click', deleteCurrentLayout);
   document.getElementById('manage-types-btn')?.addEventListener('click', () => {
     const d = document.getElementById('shelf-type-dialog');
+    d.style.display = 'block';
     d.showModal();
     renderShelfTypeList();
   });
@@ -586,14 +624,13 @@ function updateToolbarUI() {
 }
 
 function bindDialogEvents() {
-  // Explicit close handler for All Dialogs
   const closeBtns = document.querySelectorAll('[data-action="close"]');
   closeBtns.forEach(btn => {
-    // Clone init to remove old listeners if any (though init runs once)
-    // Just add listener.
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      e.target.closest('dialog').close();
+      const d = e.target.closest('dialog');
+      d.close();
+      d.style.display = 'none'; // Force hide
     });
   });
 
@@ -602,7 +639,8 @@ function bindDialogEvents() {
     e.preventDefault();
     const data = new FormData(e.target);
     await createLayout(data.get('name'), data.get('note'));
-    document.getElementById('layout-meta-dialog').close();
+    const d = document.getElementById('layout-meta-dialog');
+    d.close(); d.style.display = 'none';
     e.target.reset();
   });
 
@@ -628,7 +666,6 @@ function bindDialogEvents() {
     renderShelfTypeList();
     form.reset();
     form.querySelector('[name="id"]').value = '';
-    // Don't close? User might want to edit more. User logic implies close button is used to close.
   });
 }
 
@@ -712,6 +749,63 @@ function renderPropertiesPanel() {
       renderCanvas();
     });
   }
+}
+
+// --- Drag Helpers ---
+function startShelfDrag(e, shelf, canvasEl) {
+  isDraggingShelf = true;
+  draggingShelf = shelf;
+  const pt = getCanvasCoordinates(e, canvasEl);
+  dragOffset.x = pt.x - shelf.x;
+  dragOffset.y = pt.y - shelf.y;
+}
+
+function updateShelfDrag(e, canvasEl) {
+  if (!draggingShelf) return;
+  const pt = getCanvasCoordinates(e, canvasEl);
+  const snapX = Math.round((pt.x - dragOffset.x) / GRID_SIZE) * GRID_SIZE;
+  const snapY = Math.round((pt.y - dragOffset.y) / GRID_SIZE) * GRID_SIZE;
+
+  const g = document.querySelector(`.shelf-group[data-id="${draggingShelf.id}"]`);
+  if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
+
+  draggingShelf._tempX = snapX;
+  draggingShelf._tempY = snapY;
+}
+
+async function finishShelfDrag() {
+  isDraggingShelf = false;
+  if (draggingShelf && draggingShelf._tempX !== undefined) {
+    const x = draggingShelf._tempX;
+    const y = draggingShelf._tempY;
+    draggingShelf.x = x; draggingShelf.y = y;
+    delete draggingShelf._tempX; delete draggingShelf._tempY;
+
+    await apiRequest(`/serials/shelves/${draggingShelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x, y }) });
+    renderCanvas();
+  }
+  draggingShelf = null;
+}
+
+async function handleShelfDrop(e, canvasEl) {
+  e.preventDefault();
+  if (!currentLayout) return;
+  const typeId = e.dataTransfer.getData('text/plain');
+  const type = shelfTypes.find(t => t.id === typeId);
+  if (!type) return;
+
+  const pt = getCanvasCoordinates(e, canvasEl);
+  const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
+  const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
+
+  const code = prompt('서가 번호:', `S-${shelves.length + 1}`);
+  if (!code) return;
+
+  const payload = { layout_id: currentLayout.id, shelf_type_id: type.id, code, x, y, rotation: 0 };
+  const newShelf = await apiRequest('/serials/shelves', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  shelves.push(newShelf);
+  renderCanvas();
+  selectElement('shelf', newShelf);
 }
 
 // --- Palette ---
