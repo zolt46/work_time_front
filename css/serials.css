@@ -112,6 +112,33 @@
   font-weight: 600;
 }
 
+.layout-tooltip {
+  position: absolute;
+  z-index: 2;
+  background: #fff;
+  border: 1px solid var(--border-color, #d8dee8);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+  min-width: 180px;
+  max-width: 280px;
+  font-size: 12px;
+}
+
+.layout-tooltip h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.layout-tooltip ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.layout-tooltip .muted {
+  color: var(--text-muted, #6f7a8a);
+}
+
 .shelf-map {
   display: grid;
   grid-template-columns: repeat(5, minmax(36px, 1fr));

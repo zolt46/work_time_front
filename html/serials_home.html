@@ -56,6 +56,7 @@
       <a class="nav-link" data-page="serials-home" href="serials_home.html">홈</a>
       <a class="nav-link" data-page="serials-list" href="serials_list.html">조회 · 검색</a>
       <a class="nav-link" data-page="serials-manage" data-min-role="OPERATOR" href="serials_manage.html">등록 · 수정</a>
+      <a class="nav-link" data-page="serials-layout" data-min-role="OPERATOR" href="serials_layout.html">배치도 · 서가 관리</a>
       <div class="nav-divider"></div>
       <a class="nav-link nav-secondary" href="dashboard.html" data-return-target="dashboard.html">근무 시스템 돌아가기</a>
     </nav>
@@ -84,7 +85,15 @@
         <div class="inline-form">
           <a class="btn" href="serials_list.html">조회 · 검색 바로가기</a>
           <a class="btn secondary" href="serials_manage.html">등록 · 수정 바로가기</a>
+          <a class="btn secondary" href="serials_layout.html">배치도 · 서가 관리</a>
         </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">전체 배치도</div>
+        <p class="muted">서가를 선택하면 배치된 간행물 정보를 확인할 수 있습니다.</p>
+        <div class="layout-canvas" id="layout-canvas"></div>
+        <div class="layout-legend" id="layout-legend"></div>
       </section>
     </main>
   </div>

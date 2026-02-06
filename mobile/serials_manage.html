@@ -68,6 +68,7 @@
       <a class="nav-link" data-page="serials-home" href="serials_home.html">홈</a>
       <a class="nav-link" data-page="serials-list" href="serials_list.html">조회 · 검색</a>
       <a class="nav-link" data-page="serials-manage" data-min-role="OPERATOR" href="serials_manage.html">등록 · 수정</a>
+      <a class="nav-link" data-page="serials-layout" data-min-role="OPERATOR" href="serials_layout.html">배치도 · 서가 관리</a>
       <div class="nav-divider"></div>
       <a class="nav-link nav-secondary" href="dashboard.html" data-return-target="dashboard.html">근무 시스템 돌아가기</a>
     </nav>
@@ -148,138 +149,6 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-title">평면도 설정</div>
-        <form class="inline-form serials-form" id="layout-form">
-          <div class="form-row">
-            <label for="layout-name">배치도 이름</label>
-            <input id="layout-name" type="text" placeholder="예: 자료실 1층" />
-          </div>
-          <div class="form-row">
-            <label for="layout-width">가로(px)</label>
-            <input id="layout-width" type="number" min="200" placeholder="800" />
-          </div>
-          <div class="form-row">
-            <label for="layout-height">세로(px)</label>
-            <input id="layout-height" type="number" min="200" placeholder="500" />
-          </div>
-          <div class="form-row">
-            <label for="layout-note">메모</label>
-            <input id="layout-note" type="text" placeholder="설명" />
-          </div>
-          <div class="form-row">
-            <label aria-hidden="true">동작</label>
-            <div class="stack tight">
-              <button class="btn" type="submit">배치도 저장</button>
-              <button class="btn secondary" id="layout-reset" type="button">새 배치도</button>
-            </div>
-          </div>
-        </form>
-        <div class="layout-toolbar">
-          <label for="layout-select" class="muted">배치도 선택</label>
-          <select id="layout-select"></select>
-        </div>
-        <div class="layout-canvas" id="layout-canvas"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-title">서가 타입 관리</div>
-        <form class="inline-form serials-form" id="shelf-type-form">
-          <div class="form-row">
-            <label for="shelf-type-name">서가 타입명</label>
-            <input id="shelf-type-name" type="text" placeholder="예: 서가-표준" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-width">가로(px)</label>
-            <input id="shelf-type-width" type="number" min="20" placeholder="80" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-height">세로(px)</label>
-            <input id="shelf-type-height" type="number" min="20" placeholder="40" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-rows">행</label>
-            <input id="shelf-type-rows" type="number" min="1" placeholder="5" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-columns">열</label>
-            <input id="shelf-type-columns" type="number" min="1" placeholder="5" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-note">메모</label>
-            <input id="shelf-type-note" type="text" placeholder="설명" />
-          </div>
-          <div class="form-row">
-            <label aria-hidden="true">동작</label>
-            <div class="stack tight">
-              <button class="btn" type="submit">서가 타입 저장</button>
-              <button class="btn secondary" id="shelf-type-reset" type="button">새 타입</button>
-            </div>
-          </div>
-        </form>
-        <div class="table-scroll">
-          <table class="table serials-table" id="shelf-type-table">
-            <thead>
-              <tr>
-                <th>타입</th>
-                <th>크기</th>
-                <th>행×열</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-title">서가 배치</div>
-        <form class="inline-form serials-form" id="shelf-form">
-          <div class="form-row">
-            <label for="shelf-code">서가 명칭</label>
-            <input id="shelf-code" type="text" placeholder="예: A-1" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-select">서가 타입</label>
-            <select id="shelf-type-select"></select>
-          </div>
-          <div class="form-row">
-            <label for="shelf-x">X 좌표</label>
-            <input id="shelf-x" type="number" placeholder="0" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-y">Y 좌표</label>
-            <input id="shelf-y" type="number" placeholder="0" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-rotation">회전(도)</label>
-            <input id="shelf-rotation" type="number" placeholder="0" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-note">메모</label>
-            <input id="shelf-note" type="text" placeholder="설명" />
-          </div>
-          <div class="form-row">
-            <label aria-hidden="true">동작</label>
-            <div class="stack tight">
-              <button class="btn" type="submit">서가 저장</button>
-              <button class="btn secondary" id="shelf-reset" type="button">새 서가</button>
-              <button class="btn danger" id="shelf-delete" type="button">서가 삭제</button>
-            </div>
-          </div>
-        </form>
-        <div class="table-scroll">
-          <table class="table serials-table" id="shelf-table">
-            <thead>
-              <tr>
-                <th>서가</th>
-                <th>타입</th>
-                <th>위치</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
     </main>
   </div>
   <script type="module">

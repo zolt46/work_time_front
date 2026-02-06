@@ -61,6 +61,41 @@ function formatShelfLabel(serial) {
   return shelf?.code || serial?.shelf_section || '-';
 }
 
+function getPublicationsForShelf(shelfId) {
+  return serials.filter((item) => item.shelf_id === shelfId);
+}
+
+function clearShelfTooltip() {
+  const tooltip = getElement('layout-tooltip');
+  if (tooltip) tooltip.remove();
+}
+
+function showShelfTooltip(shelf, shelfType, svgBounds) {
+  const container = getElement('layout-canvas');
+  if (!container || !selectedLayout) return;
+  clearShelfTooltip();
+  const tooltip = document.createElement('div');
+  tooltip.id = 'layout-tooltip';
+  tooltip.className = 'layout-tooltip';
+  const publications = getPublicationsForShelf(shelf.id);
+  const listHtml = publications.length
+    ? `<ul>${publications.map((item) => `<li>${item.title}</li>`).join('')}</ul>`
+    : '<div class="muted">배치된 간행물이 없습니다.</div>';
+  tooltip.innerHTML = `
+    <h4>${shelf.code}</h4>
+    <div class="muted">${shelfType?.name ?? '서가'}</div>
+    ${listHtml}
+  `;
+  container.appendChild(tooltip);
+
+  const scaleX = svgBounds.width / selectedLayout.width;
+  const scaleY = svgBounds.height / selectedLayout.height;
+  const offsetX = (shelf.x + (shelfType?.width ?? 80) / 2) * scaleX;
+  const offsetY = (shelf.y + (shelfType?.height ?? 40) / 2) * scaleY;
+  tooltip.style.left = `${offsetX + 16}px`;
+  tooltip.style.top = `${offsetY + 16}px`;
+}
+
 function renderShelfMap(row, column) {
   const map = getElement('shelf-map');
   if (!map) return;
@@ -227,8 +262,10 @@ function renderLayout() {
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
   container.appendChild(svg);
+  clearShelfTooltip();
 
   const layoutShelves = shelves.filter((shelf) => shelf.layout_id === selectedLayout.id);
+  let highlightedShelf = null;
   layoutShelves.forEach((shelf) => {
     const shelfType = getShelfTypeById(shelf.shelf_type_id);
     const width = shelfType?.width ?? 80;
@@ -241,7 +278,10 @@ function renderLayout() {
     rect.setAttribute('height', height);
     rect.classList.add('layout-shelf');
     if (selectedShelf?.id === shelf.id) rect.classList.add('selected');
-    if (highlightedShelfId === shelf.id) rect.classList.add('highlight');
+    if (highlightedShelfId === shelf.id) {
+      rect.classList.add('highlight');
+      highlightedShelf = shelf;
+    }
 
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', shelf.x + width / 2);
@@ -257,17 +297,25 @@ function renderLayout() {
     }
 
     rect.addEventListener('click', () => {
-      if (!getElement('shelf-form')) return;
-      selectedShelf = shelf;
-      setShelfForm(shelf);
+      highlightedShelfId = shelf.id;
+      if (getElement('shelf-form')) {
+        selectedShelf = shelf;
+        setShelfForm(shelf);
+        renderShelfTable();
+      }
       renderLayout();
-      renderShelfTable();
     });
 
     group.appendChild(rect);
     group.appendChild(label);
     svg.appendChild(group);
   });
+
+  if (highlightedShelf) {
+    const shelfType = getShelfTypeById(highlightedShelf.shelf_type_id);
+    const bounds = svg.getBoundingClientRect();
+    showShelfTooltip(highlightedShelf, shelfType, bounds);
+  }
 }
 
 function renderLayoutSelect() {
@@ -651,4 +699,5 @@ export async function initSerials() {
   bindEvents();
   await refreshLayoutData();
   await loadSerials();
+  renderLayout();
 }
