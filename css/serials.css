@@ -62,6 +62,8 @@
 /* Home page compact layouts */
 .compact-card {
   padding: 12px 16px;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
 .compact-card .card-title {
@@ -91,6 +93,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
 .layout-view-card .card-title-row {
@@ -101,8 +105,11 @@
 
 .home-canvas {
   flex: 1;
-  min-height: 400px;
-  max-height: 600px;
+  min-height: 360px;
+  max-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .layout-legend {

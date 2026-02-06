@@ -772,18 +772,10 @@ function fitLayoutToView() {
   const layoutWidth = currentLayout.width || 800;
   const layoutHeight = currentLayout.height || 600;
 
-  // Calculate scale to fit with some padding
-  const padding = 20;
-  const availableWidth = containerRect.width - padding * 2;
-  const availableHeight = containerRect.height - padding * 2;
+  // Always use 100% scale for initial view
+  editorScale = 1.0;
 
-  const scaleX = availableWidth / layoutWidth;
-  const scaleY = availableHeight / layoutHeight;
-  const fitScale = Math.min(scaleX, scaleY, 1.0); // Don't exceed 1.0
-
-  editorScale = fitScale;
-
-  // Center the layout
+  // Center the layout in the canvas
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
   editorPan.y = (containerRect.height - layoutHeight * editorScale) / 2;
 }
