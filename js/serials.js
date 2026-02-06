@@ -14,10 +14,17 @@ let currentRole = null;
 let layouts = [];
 let shelfTypes = [];
 let shelves = [];
-let selectedLayout = null;
-let selectedShelfType = null;
 let selectedShelf = null;
 let highlightedShelfId = null;
+
+// Canvas & Edit State
+const GRID_SIZE = 20;
+let editMode = 'select'; // 'select', 'wall', 'eraser'
+let isDrawing = false;
+let startPoint = null;
+let tempWall = null;
+let wallList = []; // Array of {x1, y1, x2, y2}
+let draggedShelfType = null;
 
 function getElement(id) {
   return document.getElementById(id);
@@ -257,10 +264,20 @@ function renderLayout() {
     return;
   }
   container.innerHTML = '';
+  // Force fixed size logic if not present
+  const width = 800; // Fixed canvas width/height as per request (or make it responsive but fixed ratio)
+  const height = 600;
+
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${selectedLayout.width} ${selectedLayout.height}`);
+  // Use fixed size for coordinate system
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
+  // Make SVG fill the container but keep aspect ratio 
+
+  renderGrid(svg, width, height);
+  renderWalls(svg);
+
   container.appendChild(svg);
   clearShelfTooltip();
 
@@ -268,8 +285,11 @@ function renderLayout() {
   let highlightedShelf = null;
   layoutShelves.forEach((shelf) => {
     const shelfType = getShelfTypeById(shelf.shelf_type_id);
-    const width = shelfType?.width ?? 80;
-    const height = shelfType?.height ?? 40;
+    // New Size Logic: Unit based
+    // Default 20px per unit (GRID_SIZE)
+    const unitSize = GRID_SIZE;
+    const width = (shelfType?.columns || 5) * unitSize;
+    const height = (shelfType?.rows || 5) * unitSize;
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('x', shelf.x);
@@ -296,7 +316,8 @@ function renderLayout() {
       group.setAttribute('transform', `rotate(${shelf.rotation}, ${cx}, ${cy})`);
     }
 
-    rect.addEventListener('click', () => {
+    rect.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent canvas click
       highlightedShelfId = shelf.id;
       if (getElement('shelf-form')) {
         selectedShelf = shelf;
@@ -315,6 +336,97 @@ function renderLayout() {
     const shelfType = getShelfTypeById(highlightedShelf.shelf_type_id);
     const bounds = svg.getBoundingClientRect();
     showShelfTooltip(highlightedShelf, shelfType, bounds);
+  }
+
+  // Draw Temp Wall
+  if (tempWall) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', tempWall.x1);
+    line.setAttribute('y1', tempWall.y1);
+    line.setAttribute('x2', tempWall.x2);
+    line.setAttribute('y2', tempWall.y2);
+    line.classList.add('layout-wall', 'preview');
+    svg.appendChild(line);
+  }
+}
+
+function renderGrid(svg, width, height) {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.classList.add('grid-layer');
+
+  // Vertical lines
+  for (let x = 0; x <= width; x += GRID_SIZE) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x);
+    line.setAttribute('y1', 0);
+    line.setAttribute('x2', x);
+    line.setAttribute('y2', height);
+    line.setAttribute('stroke', '#eee');
+    line.setAttribute('stroke-width', '1');
+    if (x % (GRID_SIZE * 5) === 0) line.setAttribute('stroke', '#ddd'); // Major line every 5 cells
+    group.appendChild(line);
+  }
+
+  // Horizontal lines
+  for (let y = 0; y <= height; y += GRID_SIZE) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('y1', y);
+    line.setAttribute('x2', width);
+    line.setAttribute('y2', y);
+    line.setAttribute('stroke', '#eee');
+    line.setAttribute('stroke-width', '1');
+    if (y % (GRID_SIZE * 5) === 0) line.setAttribute('stroke', '#ddd');
+    group.appendChild(line);
+  }
+  svg.appendChild(group);
+}
+
+function renderWalls(svg) {
+  if (!selectedLayout?.config?.walls) return;
+  selectedLayout.config.walls.forEach(wall => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', wall.x1);
+    line.setAttribute('y1', wall.y1);
+    line.setAttribute('x2', wall.x2);
+    line.setAttribute('y2', wall.y2);
+    line.classList.add('layout-wall');
+
+    // Eraser interaction
+    line.addEventListener('click', async (e) => {
+      if (editMode === 'eraser') {
+        e.stopPropagation();
+        if (confirm('이 벽을 삭제하시겠습니까?')) {
+          const idx = selectedLayout.config.walls.indexOf(wall);
+          if (idx > -1) {
+            selectedLayout.config.walls.splice(idx, 1);
+            await saveLayoutConfig();
+          }
+        }
+      }
+    });
+
+    svg.appendChild(line);
+  });
+}
+
+function snapToGrid(val) {
+  return Math.round(val / GRID_SIZE) * GRID_SIZE;
+}
+
+async function saveLayoutConfig() {
+  if (!selectedLayout) return;
+  try {
+    await apiRequest(`/serials/layouts/${selectedLayout.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        config: selectedLayout.config
+      })
+    });
+    renderLayout();
+  } catch (e) {
+    console.error("Config save failed", e);
   }
 }
 
@@ -365,9 +477,17 @@ function renderShelfTypeTable() {
     if (selectedShelfType?.id === type.id) tr.classList.add('selected');
     tr.innerHTML = `
       <td>${type.name}</td>
-      <td>${type.width}×${type.height}</td>
       <td>${type.rows}×${type.columns}</td>
+      <td>
+        <div class="draggable-handle" draggable="true" data-id="${type.id}">✋ 드래그</div>
+      </td>
     `;
+    const handle = tr.querySelector('.draggable-handle');
+    handle.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', type.id);
+      e.dataTransfer.effectAllowed = 'copy';
+      draggedShelfType = type;
+    });
     tr.addEventListener('click', () => {
       selectedShelfType = type;
       setShelfTypeForm(type);
@@ -472,9 +592,8 @@ async function saveLayout(event) {
   if (!form) return;
   const payload = {
     name: getElement('layout-name').value.trim(),
-    width: parseInt(getElement('layout-width').value, 10) || 800,
-    height: parseInt(getElement('layout-height').value, 10) || 500,
-    note: getElement('layout-note').value.trim() || null
+    note: getElement('layout-note').value.trim() || null,
+    config: selectedLayout?.config || {}
   };
   if (!payload.name) {
     alert('배치도 이름을 입력하세요.');
@@ -494,6 +613,21 @@ async function saveLayout(event) {
     });
   }
   await refreshLayoutData();
+}
+
+async function deleteLayout() {
+  if (!selectedLayout) return;
+  if (!confirm('현재 배치도를 삭제하시겠습니까?\n포함된 모든 서가 배치가 함께 삭제됩니다.')) return;
+
+  try {
+    await apiRequest(`/serials/layouts/${selectedLayout.id}`, { method: 'DELETE' });
+    alert('배치도가 삭제되었습니다.');
+    selectedLayout = null;
+    await refreshLayoutData();
+  } catch (error) {
+    console.error(error);
+    alert('배치도 삭제 중 오류가 발생했습니다.');
+  }
 }
 
 async function saveShelfType(event) {
@@ -690,6 +824,121 @@ function bindEvents() {
     renderShelfTable();
   });
   getElement('shelf-delete')?.addEventListener('click', deleteShelf);
+
+  // Tool Switching
+  document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      editMode = btn.dataset.mode;
+    });
+  });
+
+  // Init Canvas Interactions
+  initCanvasEvents();
+}
+
+function initCanvasEvents() {
+  const container = getElement('layout-canvas');
+  if (!container) return;
+
+  container.addEventListener('mousedown', (e) => {
+    if (!selectedLayout) return;
+    if (editMode === 'wall') {
+      const svg = container.querySelector('svg');
+      const pt = getCanvasCoordinates(e, svg);
+      isDrawing = true;
+      startPoint = pt;
+    }
+  });
+
+  container.addEventListener('mousemove', (e) => {
+    if (!selectedLayout) return;
+    if (editMode === 'wall' && isDrawing && startPoint) {
+      const svg = container.querySelector('svg');
+      const pt = getCanvasCoordinates(e, svg);
+      // Snap to grid for end point
+      const x2 = snapToGrid(pt.x);
+      const y2 = snapToGrid(pt.y);
+      const x1 = snapToGrid(startPoint.x);
+      const y1 = snapToGrid(startPoint.y);
+
+      // Constrain to straight lines?
+      // Let's allow free lines for now or snap to axis
+      // Optional: Snap to axis
+      // if (Math.abs(x2 - x1) < Math.abs(y2 - y1)) { x2 = x1; } else { y2 = y1; }
+
+      tempWall = { x1, y1, x2, y2 };
+      renderLayout();
+    }
+  });
+
+  container.addEventListener('mouseup', async (e) => {
+    if (!selectedLayout) return;
+    if (editMode === 'wall' && isDrawing && tempWall) {
+      if (!selectedLayout.config) selectedLayout.config = {};
+      if (!selectedLayout.config.walls) selectedLayout.config.walls = [];
+
+      // Only add if length > 0
+      if (tempWall.x1 !== tempWall.x2 || tempWall.y1 !== tempWall.y2) {
+        selectedLayout.config.walls.push({ ...tempWall });
+        await saveLayoutConfig();
+      }
+    }
+    isDrawing = false;
+    startPoint = null;
+    tempWall = null;
+    renderLayout();
+  });
+
+  // Drag & Drop
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  container.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const shelfTypeId = e.dataTransfer.getData('text/plain');
+    if (!shelfTypeId || !selectedLayout) return;
+
+    const svg = container.querySelector('svg');
+    const pt = getCanvasCoordinates(e, svg);
+    const x = snapToGrid(pt.x);
+    const y = snapToGrid(pt.y);
+
+    const shelfType = getShelfTypeById(shelfTypeId);
+    if (!shelfType) return;
+
+    // Auto-generate code
+    const code = `S-${shelves.length + 1}`; // Simple auto-naming
+
+    try {
+      await apiRequest('/serials/shelves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          layout_id: selectedLayout.id,
+          shelf_type_id: shelfTypeId,
+          code: code,
+          x, y,
+          rotation: 0,
+          note: null
+        })
+      });
+      await refreshLayoutData();
+    } catch (err) {
+      console.error(err);
+      alert('서가 배치에 실패했습니다.');
+    }
+  });
+}
+
+function getCanvasCoordinates(event, svg) {
+  const pt = svg.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
 }
 
 export async function initSerials() {

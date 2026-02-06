@@ -21,10 +21,10 @@
   <header class="header">
     <div class="header-left">
       <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <button class="logo serials-logo-button" id="serials-logo" type="button">
         <img src="../assets/logo.png" width="32" alt="logo" /> 연속 간행물 센터
       </button>
     </div>
+
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
         <div class="status-label">연결 상태</div>
@@ -70,14 +70,6 @@
             <input id="layout-name" type="text" placeholder="예: 자료실 1층" />
           </div>
           <div class="form-row">
-            <label for="layout-width">가로(px)</label>
-            <input id="layout-width" type="number" min="200" placeholder="800" />
-          </div>
-          <div class="form-row">
-            <label for="layout-height">세로(px)</label>
-            <input id="layout-height" type="number" min="200" placeholder="500" />
-          </div>
-          <div class="form-row">
             <label for="layout-note">메모</label>
             <input id="layout-note" type="text" placeholder="설명" />
           </div>
@@ -86,13 +78,23 @@
             <div class="stack tight">
               <button class="btn" type="submit">배치도 저장</button>
               <button class="btn secondary" id="layout-reset" type="button">새 배치도</button>
+              <button class="btn danger" id="layout-delete" type="button" style="display: none;">삭제</button>
             </div>
           </div>
         </form>
+
         <div class="layout-toolbar">
-          <label for="layout-select" class="muted">배치도 선택</label>
-          <select id="layout-select"></select>
+          <div class="toolbar-group">
+            <label for="layout-select" class="muted">배치도 선택</label>
+            <select id="layout-select"></select>
+          </div>
+          <div class="toolbar-group editor-tools">
+            <button class="icon-btn tool-btn active" data-mode="select" title="선택/이동">👆</button>
+            <button class="icon-btn tool-btn" data-mode="wall" title="벽 그리기">✏️</button>
+            <button class="icon-btn tool-btn" data-mode="eraser" title="지우개">🧽</button>
+          </div>
         </div>
+
         <div class="layout-canvas" id="layout-canvas"></div>
         <div class="layout-legend" id="layout-legend"></div>
       </section>
@@ -104,14 +106,7 @@
             <label for="shelf-type-name">서가 타입명</label>
             <input id="shelf-type-name" type="text" placeholder="예: 서가-표준" />
           </div>
-          <div class="form-row">
-            <label for="shelf-type-width">가로(px)</label>
-            <input id="shelf-type-width" type="number" min="20" placeholder="80" />
-          </div>
-          <div class="form-row">
-            <label for="shelf-type-height">세로(px)</label>
-            <input id="shelf-type-height" type="number" min="20" placeholder="40" />
-          </div>
+
           <div class="form-row">
             <label for="shelf-type-rows">행</label>
             <input id="shelf-type-rows" type="number" min="1" placeholder="5" />
@@ -137,8 +132,9 @@
             <thead>
               <tr>
                 <th>타입</th>
-                <th>크기</th>
                 <th>행×열</th>
+                <th>배치</th>
+
               </tr>
             </thead>
             <tbody></tbody>
