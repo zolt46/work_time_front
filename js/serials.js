@@ -479,6 +479,11 @@ function bindCanvasEvents(editorMode) {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
 
+  // Prevent browser context menu on canvas
+  canvasEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
   // Wheel Zoom
   canvasEl.addEventListener('wheel', (e) => {
     if (!editorMode) return;
@@ -772,8 +777,8 @@ function fitLayoutToView() {
   const layoutWidth = currentLayout.width || 800;
   const layoutHeight = currentLayout.height || 600;
 
-  // Always use 100% scale for initial view
-  editorScale = 1.0;
+  // Use 0.9 scale as "100%" to ensure the boundary area fits nicely
+  editorScale = 0.9;
 
   // Center the layout in the canvas
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
@@ -828,7 +833,8 @@ function bindToolbarEvents() {
     fitLayoutToView();
     renderCanvas();
     const el = document.getElementById('canvas-status-text');
-    if (el) el.textContent = `${Math.round(editorScale * 100)}%`;
+    // Display 0.9 scale as 100%
+    if (el) el.textContent = `${Math.round((editorScale / 0.9) * 100)}%`;
   });
 
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
