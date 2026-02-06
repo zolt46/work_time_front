@@ -10,13 +10,14 @@ let shelfTypes = [];
 let shelves = [];
 
 // Editor State
-let currentLayout = null; // { id, name, width, height, walls: [], ... }
+let currentLayout = null;
 let currentMode = 'view'; // 'view' | 'select' | 'wall'
 let editorScale = 1.0;
-const UNIT_SIZE = 20; // 1 Cell = 20px (Grid system)
+const UNIT_SIZE = 20; // Shelf scaling unit
+const GRID_SIZE = 10; // Drawing/Snapping grid
 
 // Selection & Interaction
-let selectedElement = null; // { type: 'shelf'|'wall', id: ..., data: ... }
+let selectedElement = null;
 let selectedSerial = null;
 
 // Helper / constants
@@ -41,35 +42,37 @@ export async function initSerials() {
 
   if (isHomeOrList) {
     await loadSerials();
-    // Load shelves for all layouts or default layout?
-    // Home page shows layout canvas. We should load shelves for the default (first) layout.
     if (layouts.length > 0) {
-      await selectLayout(layouts[0].id, false); // false = no editor UI updates
+      await selectLayout(layouts[0].id, false);
     }
     bindListEvents();
+    // Restore list logic
+    renderStats();
+    renderList();
+    renderLayoutLegend();
   }
 
   if (isEditor) {
-    currentMode = 'select'; // Default to select in editor
+    currentMode = 'select';
     if (layouts.length > 0) {
       await selectLayout(layouts[0].id, true);
     } else {
       showEmptyState();
     }
     bindToolbarEvents();
-    bindDialogEvents(); // Editor dialogs
+    bindDialogEvents();
+
+    // Force Close Dialogs on Init to prevent "Floating" issue
+    document.querySelectorAll('dialog').forEach(d => {
+      if (d.open) d.close();
+      // Explicitly hide in case of polyfill issues
+      d.style.display = 'none';
+      d.style.display = ''; // Reset after closing
+    });
   }
 
-  // Canvas events are needed for both (Editor: drag/draw, Home: tooltip/select)
   bindCanvasEvents(isEditor);
-  bindSidebarEvents(); // Layout select is present in both? Home has no layout select, but Layout Editor does.
-
-  // Render initial state
-  if (isHomeOrList) {
-    renderStats();
-    renderList();
-    renderLayoutLegend();
-  }
+  bindSidebarEvents();
 }
 
 function applyRoleGuard() {
@@ -121,7 +124,6 @@ async function selectLayout(layoutId, isEditor) {
 
   currentLayout = layout;
 
-  // Updates specific to Editor
   if (isEditor) {
     const select = document.getElementById('layout-select');
     if (select) select.value = layout.id;
@@ -132,9 +134,6 @@ async function selectLayout(layoutId, isEditor) {
     currentMode = 'select'; // Reset mode
     updateToolbarUI();
     renderPropertiesPanel();
-  } else {
-    // If Home page, it might have a select? Home page code (viewed earlier) had no select, just a hardcoded canvas area.
-    // Actually, serials_layout.html (editor) has #layout-select. serials_home.html doesn't.
   }
 
   await loadShelves(layout.id);
@@ -174,10 +173,9 @@ async function deleteCurrentLayout() {
   else showEmptyState();
 }
 
-// --- List & Stats View Logic (Home/List Page) ---
+// --- List & Stats ---
 function renderStats() {
   if (!document.getElementById('serials-total-count')) return;
-
   document.getElementById('serials-total-count').textContent = serials.length.toLocaleString();
   document.getElementById('serials-donation-count').textContent = serials.filter(s => s.acquisition_type === 'DONATION').length.toLocaleString();
   document.getElementById('serials-subscription-count').textContent = serials.filter(s => s.acquisition_type === 'SUBSCRIPTION').length.toLocaleString();
@@ -202,8 +200,9 @@ function renderList() {
          <td>${formatShelfLabel(s)}</td>
        `;
     tr.addEventListener('click', () => {
-      // Detail view logic if present
-      // For now, simpler list
+      showSerialDetail(s);
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('active'));
+      tr.classList.add('active');
     });
     tbody.appendChild(tr);
   });
@@ -212,27 +211,35 @@ function renderList() {
   if (status) status.textContent = `${serials.length}건 표시 중`;
 }
 
+function showSerialDetail(serial) {
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('detail-title', serial.title);
+  setText('detail-issn', serial.issn || '-');
+  setText('detail-type', acquisitionLabels[serial.acquisition_type]);
+  setText('detail-shelf', formatShelfLabel(serial));
+  setText('detail-location', serial.shelf_section || '-');
+  setText('detail-note', serial.note || '-');
+
+  if (serial.shelf_id) {
+    const shelf = shelves.find(s => s.id === serial.shelf_id);
+    if (shelf) selectElement('shelf', shelf);
+  }
+}
+
 function formatShelfLabel(serial) {
-  if (serial.shelf_code) return serial.shelf_code; // If joined
-  // If not joined in API, we might need to lookup locally
+  if (serial.shelf_code) return serial.shelf_code;
   const shelf = shelves.find(s => s.id === serial.shelf_id);
   return shelf ? shelf.code : (serial.shelf_section || '-');
 }
 
 function bindListEvents() {
   document.getElementById('search-button')?.addEventListener('click', async () => {
-    await loadSerials();
-    renderList();
+    await loadSerials(); renderList();
   });
   document.getElementById('search-reset')?.addEventListener('click', async () => {
-    ['search-keyword', 'search-issn', 'search-shelf'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    const typeEl = document.getElementById('search-type');
-    if (typeEl) typeEl.value = '';
-    await loadSerials();
-    renderList();
+    ['search-keyword', 'search-issn', 'search-shelf'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const typeEl = document.getElementById('search-type'); if (typeEl) typeEl.value = '';
+    await loadSerials(); renderList();
   });
 }
 
@@ -264,18 +271,18 @@ function renderCanvas() {
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
 
-  // Defs (Grid is only for editor usually, but ok to keep)
+  // Grid: Denser 10px grid
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
-  pattern.setAttribute('width', UNIT_SIZE * 5);
-  pattern.setAttribute('height', UNIT_SIZE * 5);
+  pattern.setAttribute('width', GRID_SIZE); // 10px
+  pattern.setAttribute('height', GRID_SIZE);
   pattern.setAttribute('patternUnits', 'userSpaceOnUse');
   const path = document.createElementNS(ns, 'path');
-  path.setAttribute('d', `M ${UNIT_SIZE * 5} 0 L 0 0 0 ${UNIT_SIZE * 5}`);
+  path.setAttribute('d', `M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', '#e2e8f0');
-  path.setAttribute('stroke-width', '1');
+  path.setAttribute('stroke-width', '0.5'); // Thinner lines for dense grid
   pattern.appendChild(path);
   defs.appendChild(pattern);
   svg.appendChild(defs);
@@ -295,6 +302,7 @@ function renderCanvas() {
   // Walls
   (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
+    // Snap drawing coords? They should be saved snapped.
     line.setAttribute('x1', wall.x1);
     line.setAttribute('y1', wall.y1);
     line.setAttribute('x2', wall.x2);
@@ -352,11 +360,15 @@ function bindCanvasEvents(isEditor) {
     const target = e.target.closest('.wall-line, .shelf-group');
 
     if (isEditor) {
-      // Editor Mode Interactions
       if (currentMode === 'wall') {
         isDrawing = true;
-        startPoint = pt;
-        activeLine = createSVGLine(pt.x, pt.y, pt.x, pt.y, ['wall-line', 'preview']);
+
+        // Snap Start Point to Grid
+        const snapX = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
+        const snapY = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
+        startPoint = { x: snapX, y: snapY };
+
+        activeLine = createSVGLine(snapX, snapY, snapX, snapY, ['wall-line', 'preview']);
         document.querySelector('#canvas-content').appendChild(activeLine);
       } else if (currentMode === 'select') {
         if (target) {
@@ -372,8 +384,6 @@ function bindCanvasEvents(isEditor) {
         }
       }
     } else {
-      // Read-Only Mode (Home Page)
-      // Only Click to view info
       if (target && target.classList.contains('shelf-group')) {
         const shelf = shelves.find(s => s.id === target.dataset.id);
         showShelfTooltip(shelf, e.clientX, e.clientY);
@@ -387,12 +397,16 @@ function bindCanvasEvents(isEditor) {
   canvasEl.addEventListener('mousemove', (e) => {
     if (!isEditor) return;
     const pt = getCanvasCoordinates(e, canvasEl);
-    const storedPt = { x: Math.round(pt.x / 10) * 10, y: Math.round(pt.y / 10) * 10 };
+    const storedPt = {
+      x: Math.round(pt.x / GRID_SIZE) * GRID_SIZE,
+      y: Math.round(pt.y / GRID_SIZE) * GRID_SIZE
+    };
 
     const coordEl = document.getElementById('cursor-coords');
     if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
 
     if (isDrawing && activeLine) {
+      // Snap End Point to Grid (already snapped by storedPt)
       activeLine.setAttribute('x2', storedPt.x);
       activeLine.setAttribute('y2', storedPt.y);
     }
@@ -411,8 +425,10 @@ function bindCanvasEvents(isEditor) {
       const x2 = parseFloat(activeLine.getAttribute('x2'));
       const y2 = parseFloat(activeLine.getAttribute('y2'));
 
-      if (Math.abs(x1 - x2) > 5 || Math.abs(y1 - y2) > 5) {
+      // Should be integers now, but float parse just in case
+      if (Math.abs(x1 - x2) > 0 || Math.abs(y1 - y2) > 0) { // Allow 0 length? No.
         currentLayout.walls = currentLayout.walls || [];
+        // Push snapped coords
         currentLayout.walls.push({ x1, y1, x2, y2 });
       }
       activeLine.remove();
@@ -434,7 +450,7 @@ function bindCanvasEvents(isEditor) {
   }
 }
 
-// --- Tooltips for Home Page ---
+// --- Home Tooltips ---
 function showShelfTooltip(shelf, clientX, clientY) {
   let tooltip = document.getElementById('layout-tooltip');
   if (!tooltip) {
@@ -443,21 +459,11 @@ function showShelfTooltip(shelf, clientX, clientY) {
     tooltip.className = 'layout-tooltip';
     document.body.appendChild(tooltip);
   }
-
-  // Find publication count
   const count = serials.filter(s => s.shelf_id === shelf.id).length;
-
-  tooltip.innerHTML = `
-      <h4>${shelf.code}</h4>
-      <div class="muted">보관 중: ${count}권</div>
-      <div class="small text-muted">${shelf.note || ''}</div>
-    `;
-
+  tooltip.innerHTML = `<h4>${shelf.code}</h4><div class="muted">보관 중: ${count}권</div><div class="small text-muted">${shelf.note || ''}</div>`;
   tooltip.style.left = `${clientX + 10}px`;
   tooltip.style.top = `${clientY + 10}px`;
   tooltip.style.display = 'block';
-
-  // Close on click outside? or just another click closes it elsewhere
 }
 
 function hideShelfTooltip() {
@@ -496,8 +502,8 @@ function startShelfDrag(e, shelf, canvasEl) {
 function updateShelfDrag(e, canvasEl) {
   if (!draggingShelf) return;
   const pt = getCanvasCoordinates(e, canvasEl);
-  const snapX = Math.round((pt.x - dragOffset.x) / 10) * 10;
-  const snapY = Math.round((pt.y - dragOffset.y) / 10) * 10;
+  const snapX = Math.round((pt.x - dragOffset.x) / GRID_SIZE) * GRID_SIZE;
+  const snapY = Math.round((pt.y - dragOffset.y) / GRID_SIZE) * GRID_SIZE;
 
   const g = document.querySelector(`.shelf-group[data-id="${draggingShelf.id}"]`);
   if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
@@ -528,8 +534,8 @@ async function handleShelfDrop(e, canvasEl) {
   if (!type) return;
 
   const pt = getCanvasCoordinates(e, canvasEl);
-  const x = Math.round(pt.x / UNIT_SIZE) * UNIT_SIZE;
-  const y = Math.round(pt.y / UNIT_SIZE) * UNIT_SIZE;
+  const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
+  const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
 
   const code = prompt('서가 번호:', `S-${shelves.length + 1}`);
   if (!code) return;
@@ -542,7 +548,7 @@ async function handleShelfDrop(e, canvasEl) {
 }
 
 
-// --- Event Bindings (Guarded) ---
+// --- Event Bindings ---
 function bindToolbarEvents() {
   const toolbar = document.getElementById('editor-toolbar');
   if (!toolbar) return;
@@ -563,7 +569,8 @@ function bindToolbarEvents() {
   document.getElementById('layout-create-btn')?.addEventListener('click', () => document.getElementById('layout-meta-dialog').showModal());
   document.getElementById('layout-delete-btn')?.addEventListener('click', deleteCurrentLayout);
   document.getElementById('manage-types-btn')?.addEventListener('click', () => {
-    document.getElementById('shelf-type-dialog').showModal();
+    const d = document.getElementById('shelf-type-dialog');
+    d.showModal();
     renderShelfTypeList();
   });
 }
@@ -579,8 +586,16 @@ function updateToolbarUI() {
 }
 
 function bindDialogEvents() {
+  // Explicit close handler for All Dialogs
   const closeBtns = document.querySelectorAll('[data-action="close"]');
-  closeBtns.forEach(btn => btn.addEventListener('click', (e) => e.target.closest('dialog').close()));
+  closeBtns.forEach(btn => {
+    // Clone init to remove old listeners if any (though init runs once)
+    // Just add listener.
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.target.closest('dialog').close();
+    });
+  });
 
   const metaForm = document.getElementById('layout-meta-form');
   if (metaForm) metaForm.addEventListener('submit', async (e) => {
@@ -613,6 +628,7 @@ function bindDialogEvents() {
     renderShelfTypeList();
     form.reset();
     form.querySelector('[name="id"]').value = '';
+    // Don't close? User might want to edit more. User logic implies close button is used to close.
   });
 }
 
