@@ -450,7 +450,7 @@ dialog:not([open]) {
 /* SVG Elements */
 .wall-line {
   stroke: #334155;
-  stroke-width: 6;
+  stroke-width: 3;
   stroke-linecap: round;
   cursor: pointer;
 }

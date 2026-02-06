@@ -14,13 +14,13 @@ let editingSerialId = null;
 
 // Editor State (Layout Page)
 let currentLayout = null;
-let currentMode = 'view'; // 'view'|'select'|'wall'
+let currentMode = 'select'; // 'select'|'wall'
 let editorScale = 1.0;
 let editorPan = { x: 0, y: 0 };
-const UNIT_SIZE = 20;
+const UNIT_SIZE = 10; // Reduced from 20 for smaller shelves
 const GRID_SIZE = 10;
 
-let selectedElement = null; // { type: 'shelf'|'wall', ... }
+let selectedElement = null; // { type: 'shelf'|'wall'|'multi', ... }
 let dragOffset = { x: 0, y: 0 };
 let panStart = { x: 0, y: 0 };
 
@@ -44,7 +44,6 @@ export async function initSerials() {
     const isManage = !!document.getElementById('serial-form');
     const isHomeOrList = !isEditor && !isManage && (!!document.getElementById('serials-total-count') || !!document.getElementById('serials-table'));
 
-    // Use Promise.allSettled to prevent failures blocking UI
     await Promise.allSettled([loadLayouts(), loadShelfTypes()]);
 
     if (isHomeOrList || isManage) {
@@ -106,7 +105,8 @@ function applyRoleGuard() {
   const form = document.getElementById('serial-form');
   if (form && !isOperator) {
     form.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
-    document.getElementById('serials-permission').style.display = 'block';
+    const permEl = document.getElementById('serials-permission');
+    if (permEl) permEl.style.display = 'block';
   }
 }
 
@@ -126,6 +126,7 @@ async function loadShelves(layoutId) {
 
 async function loadSerials() {
   const query = buildQuery();
+  // NOTE: The endpoint is /serials (for list), not /serials/publications
   const url = query ? `/serials?${query}` : '/serials';
   serials = await apiRequest(url);
 }
@@ -147,10 +148,8 @@ function buildQuery() {
 function renderShelfOptions() {
   const select = document.getElementById('serial-shelf-id');
   if (!select) return;
-  // For specific requirement: Separate Type vs Instance
-  // This dropdown is for selecting an EXISTING shelf instance (location).
   select.innerHTML = '<option value="">배치도에서 선택 (또는 직접 입력)</option>' +
-    shelves.map(s => `<option value="${s.id}">${s.code} (Layout ${s.layout_id})</option>`).join('');
+    shelves.map(s => `<option value="${s.id}">${s.code}</option>`).join('');
 }
 
 function bindManageEvents() {
@@ -167,11 +166,12 @@ function bindManageEvents() {
       shelf_id: document.getElementById('serial-shelf-id').value || null,
       shelf_row: parseInt(document.getElementById('serial-row').value) || null,
       shelf_column: parseInt(document.getElementById('serial-column').value) || null,
-      note: document.getElementById('serial-note').value,
+      shelf_note: document.getElementById('serial-note').value,
       remark: document.getElementById('serial-remark').value
     };
 
-    const url = editingSerialId ? `/serials/${editingSerialId}` : '/serials';
+    // FIX: Endpoint is /serials/publications/{id}, not /serials/{id}
+    const url = editingSerialId ? `/serials/publications/${editingSerialId}` : '/serials/publications';
     const method = editingSerialId ? 'PUT' : 'POST';
 
     try {
@@ -182,13 +182,7 @@ function bindManageEvents() {
       resetManageForm();
     } catch (err) {
       console.error(err);
-      // If 404, suggest refresh
-      if (err.message && err.message.includes('404')) {
-        alert('오류: 해당 항목을 찾을 수 없습니다. (이미 삭제되었거나 ID 오류)');
-        await loadSerials(); // Refresh list to sync
-      } else {
-        alert('저장 오류: ' + err.message);
-      }
+      alert('저장 오류: ' + err.message);
     }
   });
 
@@ -197,18 +191,14 @@ function bindManageEvents() {
     if (!editingSerialId) return;
     if (confirm('삭제하시겠습니까?')) {
       try {
-        await apiRequest(`/serials/${editingSerialId}`, { method: 'DELETE' });
+        // FIX: Correct endpoint path
+        await apiRequest(`/serials/publications/${editingSerialId}`, { method: 'DELETE' });
         await loadSerials();
         renderList();
         resetManageForm();
       } catch (err) {
         console.error(err);
-        if (err.message && err.message.includes('404')) {
-          alert('오류: 이미 삭제된 항목입니다.');
-          await loadSerials();
-        } else {
-          alert('삭제 오류: ' + err.message);
-        }
+        alert('삭제 오류: ' + err.message);
       }
     }
   });
@@ -217,7 +207,8 @@ function bindManageEvents() {
 function resetManageForm() {
   editingSerialId = null;
   document.getElementById('serial-form').reset();
-  document.getElementById('serial-delete').style.display = 'none';
+  const delBtn = document.getElementById('serial-delete');
+  if (delBtn) delBtn.style.display = 'none';
   document.querySelectorAll('#serials-table tbody tr').forEach(r => r.classList.remove('active', 'selected'));
 }
 
@@ -232,10 +223,11 @@ function populateManageForm(serial) {
   setVal('serial-shelf-id', serial.shelf_id);
   setVal('serial-row', serial.shelf_row);
   setVal('serial-column', serial.shelf_column);
-  setVal('serial-note', serial.note);
+  setVal('serial-note', serial.shelf_note);
   setVal('serial-remark', serial.remark);
 
-  document.getElementById('serial-delete').style.display = 'inline-block';
+  const delBtn = document.getElementById('serial-delete');
+  if (delBtn) delBtn.style.display = 'inline-block';
 }
 
 
@@ -264,7 +256,7 @@ function renderList() {
     tr.innerHTML = `
          <td>${s.title}</td>
          <td>${s.issn || '-'}</td>
-         <td>${acquisitionLabels[s.acquisition_type]}</td>
+         <td>${acquisitionLabels[s.acquisition_type] || s.acquisition_type}</td>
          <td>${formatShelfLabel(s)}</td>
        `;
     tr.addEventListener('click', () => {
@@ -291,10 +283,10 @@ function showSerialDetail(serial) {
   const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setText('detail-title', serial.title);
   setText('detail-issn', serial.issn || '-');
-  setText('detail-type', acquisitionLabels[serial.acquisition_type]);
+  setText('detail-type', acquisitionLabels[serial.acquisition_type] || serial.acquisition_type);
   setText('detail-shelf', formatShelfLabel(serial));
   setText('detail-location', serial.shelf_section || '-');
-  setText('detail-note', serial.note || '-');
+  setText('detail-note', serial.shelf_note || '-');
 
   if (serial.shelf_id) {
     const shelf = shelves.find(s => s.id === serial.shelf_id);
@@ -335,17 +327,14 @@ function renderCanvas() {
     return;
   }
 
-  // Clear previous content but try to preserve SVG root if possible? 
-  // No, full re-render is safer for state sync initiated from multiple places.
   canvasEl.innerHTML = '';
 
-  const width = currentLayout.width || 800; // Use layout bounds
+  const width = currentLayout.width || 800;
   const height = currentLayout.height || 600;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  // Disabling context menu
   svg.addEventListener('contextmenu', e => e.preventDefault());
 
   // Root Group for Pan/Zoom
@@ -353,7 +342,7 @@ function renderCanvas() {
   rootGroup.setAttribute('transform', `translate(${editorPan.x}, ${editorPan.y}) scale(${editorScale})`);
   rootGroup.id = 'canvas-root';
 
-  // --- Grid Pattern ---
+  // Grid Pattern
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
@@ -369,31 +358,27 @@ function renderCanvas() {
   defs.appendChild(pattern);
   svg.appendChild(defs);
 
-  // --- Boundary & Background ---
-  // Draw "infinite" background as transparent/empty to catch mouse events
+  // Background (Outside Layout - Distinct Color)
   const bgRect = document.createElementNS(ns, 'rect');
   bgRect.setAttribute('x', -5000); bgRect.setAttribute('y', -5000);
   bgRect.setAttribute('width', 10000); bgRect.setAttribute('height', 10000);
-  bgRect.setAttribute('fill', 'transparent');
-  // bgRect.setAttribute('pointer-events', 'all'); // Ensure pan works everywhere
+  bgRect.setAttribute('fill', '#f1f5f9'); // Light gray for outside
   rootGroup.appendChild(bgRect);
 
-  // Draw Layout Area (White background + Grid)
+  // Layout Area (White with Grid)
   const layoutRect = document.createElementNS(ns, 'rect');
   layoutRect.setAttribute('x', 0);
   layoutRect.setAttribute('y', 0);
   layoutRect.setAttribute('width', width);
   layoutRect.setAttribute('height', height);
   layoutRect.setAttribute('fill', 'white');
-  layoutRect.classList.add('layout-area-bg');
   rootGroup.appendChild(layoutRect);
 
-  // Grid on top of layout area
   const layoutGrid = document.createElementNS(ns, 'rect');
   layoutGrid.setAttribute('x', 0); layoutGrid.setAttribute('y', 0);
   layoutGrid.setAttribute('width', width); layoutGrid.setAttribute('height', height);
   layoutGrid.setAttribute('fill', 'url(#grid)');
-  layoutGrid.setAttribute('pointer-events', 'none'); // Let clicks pass through
+  layoutGrid.setAttribute('pointer-events', 'none');
   rootGroup.appendChild(layoutGrid);
 
   // Dotted Boundary
@@ -402,8 +387,8 @@ function renderCanvas() {
   border.setAttribute('width', width);
   border.setAttribute('height', height);
   border.setAttribute('fill', 'none');
-  border.setAttribute('stroke', '#cbd5e1');
-  border.setAttribute('stroke-width', '2');
+  border.setAttribute('stroke', '#94a3b8');
+  border.setAttribute('stroke-width', '1');
   border.setAttribute('stroke-dasharray', '5,5');
   border.setAttribute('pointer-events', 'none');
   rootGroup.appendChild(border);
@@ -411,7 +396,7 @@ function renderCanvas() {
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
 
-  // Walls
+  // Walls (Thinner lines)
   (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
     line.setAttribute('x1', wall.x1);
@@ -419,8 +404,10 @@ function renderCanvas() {
     line.setAttribute('x2', wall.x2);
     line.setAttribute('y2', wall.y2);
     line.classList.add('wall-line');
-    if (selectedElement?.type === 'wall' && selectedElement.index === idx) line.classList.add('selected');
-    if (isElementInSelection(wall, 'wall')) line.classList.add('selected');
+    // Highlight if selected (single or multi)
+    if ((selectedElement?.type === 'wall' && selectedElement.index === idx) || isElementInSelection({ x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2, index: idx }, 'wall')) {
+      line.classList.add('selected');
+    }
     line.dataset.index = idx;
     contentGroup.appendChild(line);
   });
@@ -428,20 +415,28 @@ function renderCanvas() {
   // Shelves
   shelves.forEach(shelf => {
     const g = document.createElementNS(ns, 'g');
-    g.setAttribute('transform', `translate(${shelf.x}, ${shelf.y}) rotate(${shelf.rotation || 0})`);
+    const rotation = shelf.rotation || 0;
+    g.setAttribute('transform', `translate(${shelf.x}, ${shelf.y}) rotate(${rotation})`);
     g.classList.add('shelf-group');
-    if (selectedElement?.type === 'shelf' && selectedElement.id === shelf.id) g.classList.add('selected');
-    if (isElementInSelection(shelf, 'shelf')) g.classList.add('selected');
+    // Highlight if selected
+    if ((selectedElement?.type === 'shelf' && selectedElement.id === shelf.id) || isElementInSelection(shelf, 'shelf')) {
+      g.classList.add('selected');
+    }
     g.dataset.id = shelf.id;
 
-    const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { width: 80, height: 40 };
+    const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
+    // Smaller shelf sizing
+    const shelfWidth = (type.columns || 4) * UNIT_SIZE;
+    const shelfHeight = (type.rows || 4) * UNIT_SIZE * 0.6; // 60% ratio
+
     const rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('width', type.width);
-    rect.setAttribute('height', type.height);
+    rect.setAttribute('width', shelfWidth);
+    rect.setAttribute('height', shelfHeight);
     const text = document.createElementNS(ns, 'text');
-    text.setAttribute('x', type.width / 2);
-    text.setAttribute('y', type.height / 2 + 4);
+    text.setAttribute('x', shelfWidth / 2);
+    text.setAttribute('y', shelfHeight / 2 + 3);
     text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '9');
     text.textContent = shelf.code;
 
     g.appendChild(rect);
@@ -451,7 +446,6 @@ function renderCanvas() {
 
   // Active Drawing Line
   if (isDrawing && activeLine) {
-    // Append temporarily to root or content? Content is better.
     contentGroup.appendChild(activeLine);
   }
 
@@ -462,8 +456,9 @@ function renderCanvas() {
     r.setAttribute('y', selectionRect.y);
     r.setAttribute('width', selectionRect.width);
     r.setAttribute('height', selectionRect.height);
-    r.setAttribute('fill', 'rgba(59, 130, 246, 0.2)');
+    r.setAttribute('fill', 'rgba(59, 130, 246, 0.15)');
     r.setAttribute('stroke', '#3b82f6');
+    r.setAttribute('stroke-width', '1');
     contentGroup.appendChild(r);
   }
 
@@ -481,15 +476,16 @@ let startPoint = null;
 let activeLine = null;
 let isDraggingShelf = false;
 let draggingShelf = null;
-let selectionRect = null; // { x, y, width, height }
+let selectionRect = null;
+const isEditor = () => !!document.getElementById('editor-toolbar');
 
-function bindCanvasEvents(isEditor) {
+function bindCanvasEvents(editorMode) {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
 
   // Wheel Zoom
   canvasEl.addEventListener('wheel', (e) => {
-    if (!isEditor) return;
+    if (!editorMode) return;
     e.preventDefault();
     const delta = e.deltaY;
     const zoomStep = 0.1;
@@ -501,7 +497,7 @@ function bindCanvasEvents(isEditor) {
     if (!currentLayout) return;
 
     // Right click (2) for Area Selection
-    if (e.button === 2 && isEditor) {
+    if (e.button === 2 && editorMode) {
       isSelectingArea = true;
       const pt = getWorldCoordinates(e, canvasEl);
       startPoint = pt;
@@ -509,12 +505,9 @@ function bindCanvasEvents(isEditor) {
       return;
     }
 
-    // Middle Click (1) for Pan
-    // Or Left Click (0) if holding Space (optional, not implemented) or clicking empty space in Select Mode
-    const pt = getCanvasCoordinates(e, canvasEl);
     const target = e.target.closest('.wall-line, .shelf-group');
 
-    // Pan condition: Middle Click OR (Select Mode AND Clicked Empty Background)
+    // Pan: Middle Click OR (Select Mode AND Empty Background)
     if (e.button === 1 || (currentMode === 'select' && !target && e.button === 0)) {
       isPanning = true;
       panStart = { x: e.clientX, y: e.clientY };
@@ -522,11 +515,11 @@ function bindCanvasEvents(isEditor) {
       return;
     }
 
-    if (isEditor && e.button === 0) {
+    if (editorMode && e.button === 0) {
       const worldPt = getWorldCoordinates(e, canvasEl);
 
       if (currentMode === 'wall') {
-        // Check bounds: Don't start drawing outside layout area
+        // Bounds check
         if (worldPt.x < 0 || worldPt.y < 0 || worldPt.x > currentLayout.width || worldPt.y > currentLayout.height) {
           return;
         }
@@ -535,9 +528,8 @@ function bindCanvasEvents(isEditor) {
         const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
         const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
         startPoint = { x: snapX, y: snapY };
-        // Create line immediately so it's visible while dragging
         activeLine = createSVGLine(snapX, snapY, snapX, snapY, ['wall-line', 'preview']);
-        renderCanvas(); // Re-render to show line
+        renderCanvas();
       } else if (currentMode === 'select') {
         if (target) {
           if (target.classList.contains('wall-line')) {
@@ -555,7 +547,7 @@ function bindCanvasEvents(isEditor) {
   });
 
   canvasEl.addEventListener('mousemove', (e) => {
-    // Palette Drag Follow (Global)
+    // Palette Drag Follow
     if (paletteDragItem) {
       paletteDragItem.el.style.left = `${e.clientX + 10}px`;
       paletteDragItem.el.style.top = `${e.clientY + 10}px`;
@@ -582,7 +574,7 @@ function bindCanvasEvents(isEditor) {
       return;
     }
 
-    if (!isEditor) return;
+    if (!editorMode) return;
     const worldPt = getWorldCoordinates(e, canvasEl);
     const storedPt = {
       x: Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE,
@@ -597,26 +589,9 @@ function bindCanvasEvents(isEditor) {
       storedPt.x = Math.max(0, Math.min(currentLayout.width, storedPt.x));
       storedPt.y = Math.max(0, Math.min(currentLayout.height, storedPt.y));
 
-      // Orthogonal Draw Logic
+      // Orthogonal
       const dx = Math.abs(storedPt.x - startPoint.x);
       const dy = Math.abs(storedPt.y - startPoint.y);
-
-      // NOTE: We update the OBJECT 'activeLine' here for rendering.
-      // But renderCanvas handles the actual appending.
-      // Wait, we need to update activeLine attributes if it exists in DOM?
-      // Since we re-render on mousemove (expensive but clean), we should rely on state.
-      // But 'activeLine' is a DOM node in my previous logic. Let's make it data-driven for cleaner React-like logic?
-      // For now, update attributes to avoid full re-render lag.
-
-      // Only re-render if we really need to (e.g. pan).
-      // For drawing, direct DOM manipulation is faster.
-      // Let's re-fetch activeLine from DOM or keep ref?
-      if (!activeLine.parentElement) {
-        // Was cleared by renderCanvas, need to re-append?
-        // renderCanvas appends it if isDrawing is true.
-        // It's safer to just set attrs on the one inside SVG.
-        // Let's assume renderCanvas runs fast enough?
-      }
 
       if (dx > dy) {
         activeLine.setAttribute('x2', storedPt.x);
@@ -632,7 +607,6 @@ function bindCanvasEvents(isEditor) {
     }
   });
 
-  // Global MouseUp to catch release outside canvas
   window.addEventListener('mouseup', (e) => {
     if (paletteDragItem) {
       handlePaletteDrop(e, canvasEl);
@@ -646,25 +620,21 @@ function bindCanvasEvents(isEditor) {
   canvasEl.addEventListener('mouseup', () => {
     if (isSelectingArea) {
       isSelectingArea = false;
-      // Apply Selection (Multi-select)
-      const walls = (currentLayout.walls || []).map((w, i) => ({ type: 'wall', index: i, ...w }));
+      // Multi-select logic
+      const walls = (currentLayout.walls || []).map((w, i) => ({ type: 'wall', index: i, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
       const sList = shelves.map(s => ({ type: 'shelf', ...s }));
       const all = [...walls, ...sList];
 
-      // Find intersection
       const selected = all.filter(el => {
         if (el.type === 'wall') {
-          // Start or End point inside? Or line intersects rect? Simple: Start OR End inside.
           return isPointInRect(el.x1, el.y1, selectionRect) || isPointInRect(el.x2, el.y2, selectionRect);
         } else {
-          return isPointInRect(el.x, el.y, selectionRect); // Center/TopLeft
+          // Shelf: check if origin is in rect
+          return isPointInRect(el.x, el.y, selectionRect);
         }
       });
 
       if (selected.length > 0) {
-        // If single, select single. If multiple, select special 'multi' type?
-        // The prompt asked "Select elements inside... and delete them together".
-        // I'll implement a fast "multi" deletion in Properties Panel.
         selectedElement = { type: 'multi', items: selected };
       } else {
         selectedElement = null;
@@ -676,7 +646,7 @@ function bindCanvasEvents(isEditor) {
       return;
     }
 
-    if (!isEditor) return;
+    if (!editorMode) return;
     if (isDrawing && activeLine) {
       const x1 = parseFloat(activeLine.getAttribute('x1'));
       const y1 = parseFloat(activeLine.getAttribute('y1'));
@@ -687,7 +657,6 @@ function bindCanvasEvents(isEditor) {
         currentLayout.walls = currentLayout.walls || [];
         currentLayout.walls.push({ x1, y1, x2, y2 });
       }
-      // Cleanup
       activeLine = null;
       isDrawing = false;
       renderCanvas();
@@ -700,19 +669,19 @@ function bindCanvasEvents(isEditor) {
 
 function isPointInRect(x, y, rect) {
   if (!rect) return false;
-  // Normalize rect (width/height can be negative? No, Math.abs used)
   return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
 }
 
 function isElementInSelection(el, type) {
   if (!selectedElement || selectedElement.type !== 'multi') return false;
-  // Check if valid item in list
   return selectedElement.items.some(item => {
-    if (type === 'wall') return item.type === 'wall' && item.index === el.index; // Wait, el is raw wall data, we need index?
-    // My render loop helper for walls passes 'idx' in loop, but here 'el' is wall object.
-    // Wall object reference equality?
-    if (type === 'wall') return item.x1 === el.x1 && item.y1 === el.y1 && item.x2 === el.x2; // Naive check
-    return item.id === el.id;
+    if (type === 'wall' && item.type === 'wall') {
+      return item.x1 === el.x1 && item.y1 === el.y1 && item.x2 === el.x2 && item.y2 === el.y2;
+    }
+    if (type === 'shelf' && item.type === 'shelf') {
+      return item.id === el.id;
+    }
+    return false;
   });
 }
 
@@ -727,7 +696,9 @@ function createSVGLine(x1, y1, x2, y2, classes) {
 }
 
 function getCanvasCoordinates(e, canvasEl) {
-  const rect = canvasEl.querySelector('svg').getBoundingClientRect();
+  const svgEl = canvasEl.querySelector('svg');
+  if (!svgEl) return { x: 0, y: 0 };
+  const rect = svgEl.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
@@ -740,10 +711,10 @@ function getWorldCoordinates(e, canvasEl) {
 }
 
 function setZoom(scale) {
-  editorScale = Math.max(0.1, Math.min(5.0, scale));
+  editorScale = Math.max(0.2, Math.min(5.0, scale));
   renderCanvas();
   const el = document.getElementById('canvas-status-text');
-  if (el) el.textContent = `Zoom: ${Math.round(editorScale * 100)}%`;
+  if (el) el.textContent = `${Math.round(editorScale * 100)}%`;
 }
 
 function selectElement(type, data) {
@@ -758,13 +729,13 @@ function selectElement(type, data) {
 
 
 // --- Layout Management & Dialogs ---
-async function selectLayout(layoutId, isEditor) {
+async function selectLayout(layoutId, editorMode) {
   const layout = layouts.find(l => l.id === layoutId);
   if (!layout) return;
 
   currentLayout = layout;
 
-  if (isEditor) {
+  if (editorMode) {
     const select = document.getElementById('layout-select');
     if (select) select.value = layout.id;
     const delBtn = document.getElementById('layout-delete-btn');
@@ -814,9 +785,6 @@ async function deleteCurrentLayout() {
 
 // --- Event Bindings ---
 function bindToolbarEvents() {
-  const toolbar = document.getElementById('editor-toolbar');
-  if (!toolbar) return;
-
   document.querySelectorAll('.tool-btn[data-mode]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
@@ -827,30 +795,24 @@ function bindToolbarEvents() {
   });
 
   document.getElementById('save-layout-btn')?.addEventListener('click', updateCurrentLayout);
-  // document.getElementById('zoom-in')?.addEventListener('click', () => setZoom(editorScale + 0.1));
-  // document.getElementById('zoom-out')?.addEventListener('click', () => setZoom(editorScale - 0.1));
   document.getElementById('zoom-reset')?.addEventListener('click', () => { editorPan = { x: 0, y: 0 }; setZoom(1.0); });
 
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
     const d = document.getElementById('layout-meta-dialog');
-    d.style.display = 'block';
-    d.showModal();
+    if (d) { d.style.display = 'block'; d.showModal(); }
   });
   document.getElementById('layout-delete-btn')?.addEventListener('click', deleteCurrentLayout);
   document.getElementById('manage-types-btn')?.addEventListener('click', () => {
     const d = document.getElementById('shelf-type-dialog');
-    d.style.display = 'block';
-    d.showModal();
-    renderShelfTypeList();
+    if (d) { d.style.display = 'block'; d.showModal(); renderShelfTypeList(); }
   });
 }
 
 function updateToolbarUI() {
-  // const statusText = document.getElementById('canvas-status-text');
+  // Status text update if needed
 }
 
 function bindDialogEvents() {
-  // ... Same as before ...
   const closeBtns = document.querySelectorAll('[data-action="close"]');
   closeBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -875,13 +837,13 @@ function bindDialogEvents() {
   if (typeForm) typeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const id = form.querySelector('[name="id"]').value;
+    const id = form.querySelector('[name="id"]')?.value;
     const payload = {
       name: form.querySelector('[name="name"]').value,
       rows: parseInt(form.querySelector('[name="rows"]').value),
       columns: parseInt(form.querySelector('[name="columns"]').value),
       width: parseInt(form.querySelector('[name="columns"]').value) * UNIT_SIZE,
-      height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.8
+      height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.6
     };
 
     const url = id ? `/serials/shelf-types/${id}` : '/serials/shelf-types';
@@ -892,7 +854,7 @@ function bindDialogEvents() {
     renderShelfPalette();
     renderShelfTypeList();
     form.reset();
-    form.querySelector('[name="id"]').value = '';
+    if (form.querySelector('[name="id"]')) form.querySelector('[name="id"]').value = '';
   });
 }
 
@@ -946,16 +908,13 @@ function renderPropertiesPanel() {
     document.getElementById('prop-multi-delete').addEventListener('click', async () => {
       if (!confirm('선택한 요소를 모두 삭제하시겠습니까?')) return;
 
-      // Separate items
       const wallIndices = selectedElement.items.filter(i => i.type === 'wall').map(i => i.index).sort((a, b) => b - a);
       const shelfIds = selectedElement.items.filter(i => i.type === 'shelf').map(i => i.id);
 
-      // Delete shelves
       for (const sid of shelfIds) {
         await apiRequest(`/serials/shelves/${sid}`, { method: 'DELETE' });
       }
 
-      // Remove walls (reverse order to keep indices valid)
       wallIndices.forEach(idx => {
         currentLayout.walls.splice(idx, 1);
       });
@@ -968,45 +927,45 @@ function renderPropertiesPanel() {
     return;
   }
 
-  // ... Single Element Props (Same as before) ...
   if (selectedElement.type === 'shelf') {
     const shelf = selectedElement;
     panel.innerHTML = `
           <div class="form-row"><label>명칭</label><input id="prop-code" value="${shelf.code}"></div>
           <div class="form-row"><label>X</label><input id="prop-x" type="number" value="${shelf.x}"></div>
           <div class="form-row"><label>Y</label><input id="prop-y" type="number" value="${shelf.y}"></div>
-          <div class="form-row"><label>회전</label><input id="prop-rot" type="number" value="${shelf.rotation}"></div>
+          <div class="form-row"><label>회전°</label><input id="prop-rot" type="number" value="${shelf.rotation || 0}"></div>
           <div class="stack tight" style="margin-top:10px">
             <button class="btn primary small" id="prop-update">수정</button>
             <button class="btn danger small" id="prop-delete">삭제</button>
           </div>
         `;
-    document.getElementById('prop-update').addEventListener('click', async () => {
+    document.getElementById('prop-update')?.addEventListener('click', async () => {
       const updates = {
         code: document.getElementById('prop-code').value,
         x: parseInt(document.getElementById('prop-x').value),
         y: parseInt(document.getElementById('prop-y').value),
-        rotation: parseInt(document.getElementById('prop-rot').value)
+        rotation: parseInt(document.getElementById('prop-rot').value) || 0
       };
       await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
       Object.assign(shelf, updates);
+      // Also update in shelves array
+      const idx = shelves.findIndex(s => s.id === shelf.id);
+      if (idx >= 0) Object.assign(shelves[idx], updates);
       renderCanvas();
     });
-    document.getElementById('prop-delete').addEventListener('click', async () => {
+    document.getElementById('prop-delete')?.addEventListener('click', async () => {
       if (confirm('삭제?')) {
         await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'DELETE' });
         shelves = shelves.filter(s => s.id !== shelf.id);
         selectElement(null);
-        renderCanvas();
       }
     });
   } else if (selectedElement.type === 'wall') {
     const idx = selectedElement.index;
     panel.innerHTML = `<div class="stack tight"><button class="btn danger small" id="prop-wall-delete">벽 삭제</button></div>`;
-    document.getElementById('prop-wall-delete').addEventListener('click', () => {
+    document.getElementById('prop-wall-delete')?.addEventListener('click', () => {
       currentLayout.walls.splice(idx, 1);
       selectElement(null);
-      renderCanvas();
     });
   }
 }
@@ -1026,11 +985,8 @@ function updateShelfDrag(e, canvasEl) {
   const snapX = Math.round((pt.x - dragOffset.x) / GRID_SIZE) * GRID_SIZE;
   const snapY = Math.round((pt.y - dragOffset.y) / GRID_SIZE) * GRID_SIZE;
 
-  // Optional: Constrain to layout bounds?
-  // snapX = Math.max(0, Math.min(currentLayout.width - 20, snapX));
-
   const g = document.querySelector(`.shelf-group[data-id="${draggingShelf.id}"]`);
-  if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
+  if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation || 0})`);
 
   draggingShelf._tempX = snapX;
   draggingShelf._tempY = snapY;
@@ -1051,13 +1007,11 @@ async function finishShelfDrag() {
 }
 
 async function handlePaletteDrop(e, canvasEl) {
-  // Called from Global MouseUp if paletteDragItem exists
   if (!paletteDragItem || !currentLayout) {
     if (paletteDragItem) { paletteDragItem.el.remove(); paletteDragItem = null; }
     return;
   }
 
-  // Check if dropped ON canvas
   const rect = canvasEl.getBoundingClientRect();
   const isOverCanvas = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
@@ -1066,8 +1020,6 @@ async function handlePaletteDrop(e, canvasEl) {
     const x = Math.round(pt.x / GRID_SIZE) * GRID_SIZE;
     const y = Math.round(pt.y / GRID_SIZE) * GRID_SIZE;
 
-    // New User Requirement: Separate Type Name vs Instance Code
-    // Palette is "Types". Instance needs name.
     const code = prompt(`'${paletteDragItem.name}' 배치:\n서가 관리번호/명칭을 입력하세요:`, `S-${shelves.length + 1}`);
 
     if (code) {
@@ -1095,7 +1047,7 @@ async function handlePaletteDrop(e, canvasEl) {
 }
 
 
-// --- Palette (Manual Drag Implementation) ---
+// --- Palette ---
 function renderShelfPalette() {
   const container = document.getElementById('shelf-palette');
   if (!container) return;
@@ -1106,30 +1058,30 @@ function renderShelfPalette() {
     el.className = 'palette-item';
     el.innerHTML = `<div class="palette-label">${t.name}</div>`;
 
-    // Manual Drag Start
     el.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // Prevent text select
-      // specific logic only for Left Click
+      e.preventDefault();
       if (e.button !== 0) return;
 
-      // Create Ghost
       const ghost = document.createElement('div');
       ghost.className = 'palette-ghost';
-      ghost.style.position = 'fixed';
-      ghost.style.left = `${e.clientX}px`;
-      ghost.style.top = `${e.clientY}px`;
-      ghost.style.width = '60px'; // Approx visual size
-      ghost.style.height = '30px';
-      ghost.style.background = 'rgba(59, 130, 246, 0.5)';
-      ghost.style.border = '1px solid #3b82f6';
-      ghost.style.pointerEvents = 'none'; // Click through
-      ghost.style.zIndex = '9999';
+      ghost.style.cssText = `
+                 position: fixed;
+                 left: ${e.clientX}px;
+                 top: ${e.clientY}px;
+                 width: 50px;
+                 height: 25px;
+                 background: rgba(59, 130, 246, 0.5);
+                 border: 1px solid #3b82f6;
+                 pointer-events: none;
+                 z-index: 9999;
+                 font-size: 9px;
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 color: white;
+                 border-radius: 2px;
+             `;
       ghost.textContent = t.name;
-      ghost.style.fontSize = '10px';
-      ghost.style.display = 'flex';
-      ghost.style.alignItems = 'center';
-      ghost.style.justifyContent = 'center';
-      ghost.style.color = 'white';
 
       document.body.appendChild(ghost);
 
