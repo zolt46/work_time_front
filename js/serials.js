@@ -4,68 +4,80 @@ import { loadUser } from './auth.js';
 
 // --- Global State ---
 let currentRole = null;
+let serials = []; // Publications
 let layouts = [];
 let shelfTypes = [];
 let shelves = [];
 
 // Editor State
 let currentLayout = null; // { id, name, width, height, walls: [], ... }
-let currentMode = 'select'; // 'select' | 'wall'
+let currentMode = 'view'; // 'view' | 'select' | 'wall'
 let editorScale = 1.0;
 const UNIT_SIZE = 20; // 1 Cell = 20px (Grid system)
 
-// Selection
+// Selection & Interaction
 let selectedElement = null; // { type: 'shelf'|'wall', id: ..., data: ... }
+let selectedSerial = null;
 
-// --- DOM Elements ---
-const canvasEl = document.getElementById('layout-canvas');
-const propertiesContent = document.getElementById('properties-content');
-const statusText = document.getElementById('canvas-status-text');
+// Helper / constants
+const acquisitionLabels = {
+  UNCLASSIFIED: '미분류',
+  DONATION: '수증',
+  SUBSCRIPTION: '구독'
+};
 
 // --- Initialization ---
 export async function initSerials() {
   const user = await loadUser();
   currentRole = user?.role || null;
+  applyRoleGuard();
 
-  // Initial Load
+  // Determine Page Context
+  const isEditor = !!document.getElementById('editor-toolbar');
+  const isHomeOrList = !!document.getElementById('serials-total-count') || !!document.getElementById('serials-table');
+
+  // Load Common Data
   await Promise.all([loadLayouts(), loadShelfTypes()]);
 
-  // Bind Events
-  bindToolbarEvents();
-  bindCanvasEvents();
-  bindDialogEvents();
-  bindSidebarEvents();
-
-  // Initial Render
-  renderLayoutSelect();
-  renderShelfPalette();
-
-  // Select first layout if exists
-  if (layouts.length > 0) {
-    selectLayout(layouts[0].id);
-  } else {
-    // Show empty state or create new
-    canvasEl.innerHTML = '<div class="muted center-message">배치도를 선택하거나 새로 만드세요.</div>';
-    document.getElementById('layout-delete-btn').style.display = 'none';
+  if (isHomeOrList) {
+    await loadSerials();
+    // Load shelves for all layouts or default layout?
+    // Home page shows layout canvas. We should load shelves for the default (first) layout.
+    if (layouts.length > 0) {
+      await selectLayout(layouts[0].id, false); // false = no editor UI updates
+    }
+    bindListEvents();
   }
 
-  // Check role
-  applyRoleGuard();
+  if (isEditor) {
+    currentMode = 'select'; // Default to select in editor
+    if (layouts.length > 0) {
+      await selectLayout(layouts[0].id, true);
+    } else {
+      showEmptyState();
+    }
+    bindToolbarEvents();
+    bindDialogEvents(); // Editor dialogs
+  }
+
+  // Canvas events are needed for both (Editor: drag/draw, Home: tooltip/select)
+  bindCanvasEvents(isEditor);
+  bindSidebarEvents(); // Layout select is present in both? Home has no layout select, but Layout Editor does.
+
+  // Render initial state
+  if (isHomeOrList) {
+    renderStats();
+    renderList();
+    renderLayoutLegend();
+  }
 }
 
 function applyRoleGuard() {
   const isOperator = currentRole === 'OPERATOR' || currentRole === 'MASTER';
   document.body.classList.toggle('role-operator', isOperator);
 
-  const protectedBtns = document.querySelectorAll('#layout-create-btn, #layout-delete-btn, #save-layout-btn, #manage-types-btn');
+  const protectedBtns = document.querySelectorAll('#layout-create-btn, #layout-delete-btn, #save-layout-btn, #manage-types-btn, .action-btn');
   protectedBtns.forEach(btn => btn.disabled = !isOperator);
-}
-
-// --- Zoom Logic ---
-function setZoom(scale) {
-  editorScale = Math.max(0.5, Math.min(3.0, scale));
-  renderCanvas();
-  statusText.textContent = `Zoom: ${Math.round(editorScale * 100)}%`;
 }
 
 // --- Data Loading ---
@@ -82,112 +94,181 @@ async function loadShelves(layoutId) {
   shelves = await apiRequest(`/serials/shelves?layout_id=${layoutId}`);
 }
 
+async function loadSerials() {
+  const query = buildQuery();
+  const url = query ? `/serials?${query}` : '/serials';
+  serials = await apiRequest(url);
+}
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  const keyword = document.getElementById('search-keyword')?.value?.trim() ?? '';
+  const issn = document.getElementById('search-issn')?.value?.trim() ?? '';
+  const shelf = document.getElementById('search-shelf')?.value?.trim() ?? '';
+  const type = document.getElementById('search-type')?.value ?? '';
+  if (keyword) params.set('q', keyword);
+  if (issn) params.set('issn', issn);
+  if (shelf) params.set('shelf_section', shelf);
+  if (type) params.set('acquisition_type', type);
+  return params.toString();
+}
+
+
 // --- Layout Management ---
-async function selectLayout(layoutId) {
+async function selectLayout(layoutId, isEditor) {
   const layout = layouts.find(l => l.id === layoutId);
   if (!layout) return;
 
   currentLayout = layout;
-  document.getElementById('layout-select').value = layout.id;
-  document.getElementById('layout-delete-btn').style.display = 'inline-block';
 
-  // Load shelves for this layout
+  // Updates specific to Editor
+  if (isEditor) {
+    const select = document.getElementById('layout-select');
+    if (select) select.value = layout.id;
+    const delBtn = document.getElementById('layout-delete-btn');
+    if (delBtn) delBtn.style.display = 'inline-block';
+
+    selectedElement = null;
+    currentMode = 'select'; // Reset mode
+    updateToolbarUI();
+    renderPropertiesPanel();
+  } else {
+    // If Home page, it might have a select? Home page code (viewed earlier) had no select, just a hardcoded canvas area.
+    // Actually, serials_layout.html (editor) has #layout-select. serials_home.html doesn't.
+  }
+
   await loadShelves(layout.id);
-
-  // Reset Selection & Mode
-  selectedElement = null;
-  currentMode = 'select';
-  updateToolbarUI();
-
   renderCanvas();
-  renderPropertiesPanel();
+}
+
+function showEmptyState() {
+  const canvas = document.getElementById('layout-canvas');
+  if (canvas) canvas.innerHTML = '<div class="muted center-message">배치도를 선택하거나 새로 만드세요.</div>';
+  const delBtn = document.getElementById('layout-delete-btn');
+  if (delBtn) delBtn.style.display = 'none';
 }
 
 async function createLayout(name, note) {
-  const payload = {
-    name,
-    note,
-    width: 800,
-    height: 600,
-    walls: [] // Initial empty walls
-  };
-  const newLayout = await apiRequest('/serials/layouts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  const payload = { name, note, width: 800, height: 600, walls: [] };
+  const newLayout = await apiRequest('/serials/layouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   await loadLayouts();
-  selectLayout(newLayout.id);
   renderLayoutSelect();
+  selectLayout(newLayout.id, true);
 }
 
 async function updateCurrentLayout() {
   if (!currentLayout) return;
-
-  const payload = {
-    name: currentLayout.name,
-    note: currentLayout.note,
-    walls: currentLayout.walls
-  };
-
-  await apiRequest(`/serials/layouts/${currentLayout.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
+  const payload = { name: currentLayout.name, note: currentLayout.note, walls: currentLayout.walls };
+  await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   alert('배치도가 저장되었습니다.');
 }
 
 async function deleteCurrentLayout() {
-  if (!currentLayout) return;
-  if (!confirm(`'${currentLayout.name}' 배치도를 정말 삭제하시겠습니까?\n배치된 서가도 모두 삭제됩니다.`)) return;
-
+  if (!currentLayout || !confirm(`'${currentLayout.name}' 삭제하시겠습니까?`)) return;
   await apiRequest(`/serials/layouts/${currentLayout.id}`, { method: 'DELETE' });
   currentLayout = null;
   await loadLayouts();
-
-  if (layouts.length > 0) {
-    selectLayout(layouts[0].id);
-  } else {
-    canvasEl.innerHTML = '';
-    document.getElementById('layout-delete-btn').style.display = 'none';
-  }
   renderLayoutSelect();
+
+  if (layouts.length > 0) selectLayout(layouts[0].id, true);
+  else showEmptyState();
 }
 
-// --- Canvas Rendering ---
+// --- List & Stats View Logic (Home/List Page) ---
+function renderStats() {
+  if (!document.getElementById('serials-total-count')) return;
+
+  document.getElementById('serials-total-count').textContent = serials.length.toLocaleString();
+  document.getElementById('serials-donation-count').textContent = serials.filter(s => s.acquisition_type === 'DONATION').length.toLocaleString();
+  document.getElementById('serials-subscription-count').textContent = serials.filter(s => s.acquisition_type === 'SUBSCRIPTION').length.toLocaleString();
+}
+
+function renderList() {
+  const tbody = document.getElementById('serials-table')?.querySelector('tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (serials.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted center">데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  serials.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+         <td>${s.title}</td>
+         <td>${s.issn || '-'}</td>
+         <td>${acquisitionLabels[s.acquisition_type]}</td>
+         <td>${formatShelfLabel(s)}</td>
+       `;
+    tr.addEventListener('click', () => {
+      // Detail view logic if present
+      // For now, simpler list
+    });
+    tbody.appendChild(tr);
+  });
+
+  const status = document.getElementById('serials-status');
+  if (status) status.textContent = `${serials.length}건 표시 중`;
+}
+
+function formatShelfLabel(serial) {
+  if (serial.shelf_code) return serial.shelf_code; // If joined
+  // If not joined in API, we might need to lookup locally
+  const shelf = shelves.find(s => s.id === serial.shelf_id);
+  return shelf ? shelf.code : (serial.shelf_section || '-');
+}
+
+function bindListEvents() {
+  document.getElementById('search-button')?.addEventListener('click', async () => {
+    await loadSerials();
+    renderList();
+  });
+  document.getElementById('search-reset')?.addEventListener('click', async () => {
+    ['search-keyword', 'search-issn', 'search-shelf'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const typeEl = document.getElementById('search-type');
+    if (typeEl) typeEl.value = '';
+    await loadSerials();
+    renderList();
+  });
+}
+
+function renderLayoutLegend() {
+  const legend = document.getElementById('layout-legend');
+  if (!legend) return;
+  legend.innerHTML = shelfTypes.map(t => `<div class="legend-item"><span class="legend-swatch"></span>${t.name}</div>`).join('');
+}
+
+
+// --- Canvas Rendering (Shared) ---
 function renderCanvas() {
-  if (!currentLayout) return;
+  const canvasEl = document.getElementById('layout-canvas');
+  if (!canvasEl) return;
+  if (!currentLayout) {
+    canvasEl.innerHTML = '<div class="muted center-message">배치도가 없습니다.</div>';
+    return;
+  }
 
-  // Use fixed size for now or layout specific size
-  const width = 800;
-  const height = 600;
-
-  // Clear canvas
   canvasEl.innerHTML = '';
 
-  // Create SVG
+  const width = 800;
+  const height = 600;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  // Use Fixed ViewBox and content zoom via Group
-  // But wait, if we want "Fixed Canvas", the SVG element itself should be 800x600?
-  // User asked for "fixed-size canvas area (e.g., 800x600)".
-  // If we zoom, do we zoom INSIDE the 800x600 box? Yes.
-
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  // We use viewBox to define the coordinate system, but we don't want the viewbox to shrink/grow.
-  // We want the content to shrink/grow inside.
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.classList.add('layout-svg');
 
-  // Defines
+  // Defs (Grid is only for editor usually, but ok to keep)
   const defs = document.createElementNS(ns, 'defs');
   const pattern = document.createElementNS(ns, 'pattern');
   pattern.id = 'grid';
-  pattern.setAttribute('width', UNIT_SIZE * 5); // 100px major grid
+  pattern.setAttribute('width', UNIT_SIZE * 5);
   pattern.setAttribute('height', UNIT_SIZE * 5);
   pattern.setAttribute('patternUnits', 'userSpaceOnUse');
   const path = document.createElementNS(ns, 'path');
@@ -199,58 +280,46 @@ function renderCanvas() {
   defs.appendChild(pattern);
   svg.appendChild(defs);
 
-  // Zoom Group
   const zoomGroup = document.createElementNS(ns, 'g');
   zoomGroup.setAttribute('transform', `scale(${editorScale})`);
 
-  // Grid Rect (inside zoom group so it scales too? or fixed?)
-  // Usually grid scales with content.
   const gridRect = document.createElementNS(ns, 'rect');
   gridRect.setAttribute('width', width);
   gridRect.setAttribute('height', height);
   gridRect.setAttribute('fill', 'url(#grid)');
   zoomGroup.appendChild(gridRect);
 
-  // Group for content (Walls & Shelves)
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
 
-  // Render Walls
-  const walls = currentLayout.walls || [];
-  walls.forEach((wall, index) => {
+  // Walls
+  (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
     line.setAttribute('x1', wall.x1);
     line.setAttribute('y1', wall.y1);
     line.setAttribute('x2', wall.x2);
     line.setAttribute('y2', wall.y2);
     line.classList.add('wall-line');
-    if (selectedElement?.type === 'wall' && selectedElement.index === index) {
-      line.classList.add('selected');
-    }
-    line.dataset.index = index;
+    if (selectedElement?.type === 'wall' && selectedElement.index === idx) line.classList.add('selected');
+    line.dataset.index = idx;
     contentGroup.appendChild(line);
   });
 
-  // Render Shelves
+  // Shelves
   shelves.forEach(shelf => {
-    const shelfType = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { width: 80, height: 40 };
-    // For visual, we use shelf.x, shelf.y
     const g = document.createElementNS(ns, 'g');
     g.setAttribute('transform', `translate(${shelf.x}, ${shelf.y}) rotate(${shelf.rotation || 0})`);
     g.classList.add('shelf-group');
-    if (selectedElement?.type === 'shelf' && selectedElement.id === shelf.id) {
-      g.classList.add('selected');
-    }
+    if (selectedElement?.type === 'shelf' && selectedElement.id === shelf.id) g.classList.add('selected');
     g.dataset.id = shelf.id;
 
-    // Scale rect size? No, coords are in world space. Zoom group handles scaling.
+    const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { width: 80, height: 40 };
     const rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('width', shelfType.width);
-    rect.setAttribute('height', shelfType.height);
-
+    rect.setAttribute('width', type.width);
+    rect.setAttribute('height', type.height);
     const text = document.createElementNS(ns, 'text');
-    text.setAttribute('x', shelfType.width / 2);
-    text.setAttribute('y', shelfType.height / 2 + 4);
+    text.setAttribute('x', type.width / 2);
+    text.setAttribute('y', type.height / 2 + 4);
     text.setAttribute('text-anchor', 'middle');
     text.textContent = shelf.code;
 
@@ -268,50 +337,60 @@ function renderCanvas() {
 let isDrawing = false;
 let startPoint = null;
 let activeLine = null;
+let isDraggingShelf = false;
+let draggingShelf = null;
+let dragOffset = { x: 0, y: 0 };
 
-function bindCanvasEvents() {
+function bindCanvasEvents(isEditor) {
+  const canvasEl = document.getElementById('layout-canvas');
+  if (!canvasEl) return;
+
   // Mouse Down
   canvasEl.addEventListener('mousedown', (e) => {
     if (!currentLayout) return;
-    const pt = getCanvasCoordinates(e);
+    const pt = getCanvasCoordinates(e, canvasEl);
+    const target = e.target.closest('.wall-line, .shelf-group');
 
-    if (currentMode === 'wall') {
-      isDrawing = true;
-      startPoint = pt;
-      // Start Preview Line
-      activeLine = createSVGLine(pt.x, pt.y, pt.x, pt.y, ['wall-line', 'preview']);
-      document.querySelector('#canvas-content').appendChild(activeLine);
-    } else if (currentMode === 'select') {
-      // Hit testing is handled by element click events bubbling up or checking target
-      const target = e.target.closest('.wall-line, .shelf-group');
-      if (target) {
-        if (target.classList.contains('wall-line')) {
-          const index = parseInt(target.dataset.index);
-          selectElement('wall', { index, data: currentLayout.walls[index] });
-        } else if (target.classList.contains('shelf-group')) {
-          const id = target.dataset.id;
-          const shelf = shelves.find(s => s.id === id);
-          selectElement('shelf', shelf);
-          // Start Dragging Shelf
-          startShelfDrag(e, shelf);
+    if (isEditor) {
+      // Editor Mode Interactions
+      if (currentMode === 'wall') {
+        isDrawing = true;
+        startPoint = pt;
+        activeLine = createSVGLine(pt.x, pt.y, pt.x, pt.y, ['wall-line', 'preview']);
+        document.querySelector('#canvas-content').appendChild(activeLine);
+      } else if (currentMode === 'select') {
+        if (target) {
+          if (target.classList.contains('wall-line')) {
+            selectElement('wall', { index: parseInt(target.dataset.index), data: currentLayout.walls[parseInt(target.dataset.index)] });
+          } else if (target.classList.contains('shelf-group')) {
+            const shelf = shelves.find(s => s.id === target.dataset.id);
+            selectElement('shelf', shelf);
+            startShelfDrag(e, shelf, canvasEl);
+          }
+        } else {
+          selectElement(null);
         }
+      }
+    } else {
+      // Read-Only Mode (Home Page)
+      // Only Click to view info
+      if (target && target.classList.contains('shelf-group')) {
+        const shelf = shelves.find(s => s.id === target.dataset.id);
+        showShelfTooltip(shelf, e.clientX, e.clientY);
       } else {
-        // Deselect
-        selectElement(null);
+        hideShelfTooltip();
       }
     }
   });
 
   // Mouse Move
   canvasEl.addEventListener('mousemove', (e) => {
-    const pt = getCanvasCoordinates(e);
-    // Snap to grid
-    const storedPt = {
-      x: Math.round(pt.x / 10) * 10,
-      y: Math.round(pt.y / 10) * 10
-    };
+    if (!isEditor) return;
+    const pt = getCanvasCoordinates(e, canvasEl);
+    const storedPt = { x: Math.round(pt.x / 10) * 10, y: Math.round(pt.y / 10) * 10 };
 
-    document.getElementById('cursor-coords').textContent = `${storedPt.x}, ${storedPt.y}`;
+    const coordEl = document.getElementById('cursor-coords');
+    if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
 
     if (isDrawing && activeLine) {
       activeLine.setAttribute('x2', storedPt.x);
@@ -319,135 +398,109 @@ function bindCanvasEvents() {
     }
 
     if (isDraggingShelf && draggingShelf) {
-      updateShelfDrag(e);
+      updateShelfDrag(e, canvasEl);
     }
   });
 
   // Mouse Up
   canvasEl.addEventListener('mouseup', () => {
+    if (!isEditor) return;
     if (isDrawing && activeLine) {
-      // Finish Wall
       const x1 = parseFloat(activeLine.getAttribute('x1'));
       const y1 = parseFloat(activeLine.getAttribute('y1'));
       const x2 = parseFloat(activeLine.getAttribute('x2'));
       const y2 = parseFloat(activeLine.getAttribute('y2'));
 
-      // Only add if length > 0
       if (Math.abs(x1 - x2) > 5 || Math.abs(y1 - y2) > 5) {
         currentLayout.walls = currentLayout.walls || [];
         currentLayout.walls.push({ x1, y1, x2, y2 });
       }
-
       activeLine.remove();
       isDrawing = false;
       activeLine = null;
       renderCanvas();
     }
 
-    if (isDraggingShelf) {
-      finishShelfDrag();
-    }
+    if (isDraggingShelf) finishShelfDrag();
   });
 
-  // Drag Over (Drop Target)
-  canvasEl.addEventListener('dragover', (e) => {
-    e.preventDefault(); // Allow Drop
-    e.dataTransfer.dropEffect = 'copy';
-  });
-
-  canvasEl.addEventListener('drop', handleShelfDrop);
+  // Drag Over/Drop (Editor only)
+  if (isEditor) {
+    canvasEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    canvasEl.addEventListener('drop', (e) => handleShelfDrop(e, canvasEl));
+  }
 }
 
+// --- Tooltips for Home Page ---
+function showShelfTooltip(shelf, clientX, clientY) {
+  let tooltip = document.getElementById('layout-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'layout-tooltip';
+    tooltip.className = 'layout-tooltip';
+    document.body.appendChild(tooltip);
+  }
+
+  // Find publication count
+  const count = serials.filter(s => s.shelf_id === shelf.id).length;
+
+  tooltip.innerHTML = `
+      <h4>${shelf.code}</h4>
+      <div class="muted">보관 중: ${count}권</div>
+      <div class="small text-muted">${shelf.note || ''}</div>
+    `;
+
+  tooltip.style.left = `${clientX + 10}px`;
+  tooltip.style.top = `${clientY + 10}px`;
+  tooltip.style.display = 'block';
+
+  // Close on click outside? or just another click closes it elsewhere
+}
+
+function hideShelfTooltip() {
+  const tooltip = document.getElementById('layout-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
+}
+
+
+// --- Editor Helpers ---
 function createSVGLine(x1, y1, x2, y2, classes) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line.setAttribute('x1', x1);
-  line.setAttribute('y1', y1);
-  line.setAttribute('x2', x2);
-  line.setAttribute('y2', y2);
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
   classes.forEach(c => line.classList.add(c));
   return line;
 }
 
-// --- Drag & Drop (Shelf Creation) ---
-async function handleShelfDrop(e) {
-  e.preventDefault();
-  if (!currentLayout) return;
-
-  const typeId = e.dataTransfer.getData('text/plain');
-  if (!typeId) return;
-
-  const type = shelfTypes.find(t => t.id === typeId);
-  if (!type) return;
-
-  const pt = getCanvasCoordinates(e);
-  // Grid Snap
-  const x = Math.round(pt.x / UNIT_SIZE) * UNIT_SIZE;
-  const y = Math.round(pt.y / UNIT_SIZE) * UNIT_SIZE;
-
-  // Create new Shelf
-  // Generate Code automatically? A-1, A-2...
-  // Only simple prompt for now
-  const code = prompt('서가 번호/명칭을 입력하세요:', generateNextShelfCode());
-  if (!code) return;
-
-  const payload = {
-    layout_id: currentLayout.id,
-    shelf_type_id: type.id,
-    code: code,
-    x, y, rotation: 0
-  };
-
-  try {
-    const newShelf = await apiRequest('/serials/shelves', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    shelves.push(newShelf);
-    renderCanvas();
-    selectElement('shelf', newShelf);
-  } catch (err) {
-    console.error(err);
-    alert('서가 생성 실패');
-  }
+function getCanvasCoordinates(e, canvasEl) {
+  const rect = canvasEl.querySelector('svg').getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const scaleX = 800 / rect.width;
+  const scaleY = 600 / rect.height;
+  return { x: (x * scaleX) / editorScale, y: (y * scaleY) / editorScale };
 }
 
-function generateNextShelfCode() {
-  const count = shelves.length + 1;
-  return `S-${count}`;
-}
-
-// --- Dragging Existing Shelf ---
-let isDraggingShelf = false;
-let draggingShelf = null;
-let dragOffset = { x: 0, y: 0 };
-
-function startShelfDrag(e, shelf) {
-  if (currentMode !== 'select') return;
+// --- Drag & Drop ---
+function startShelfDrag(e, shelf, canvasEl) {
   isDraggingShelf = true;
   draggingShelf = shelf;
-
-  const pt = getCanvasCoordinates(e);
+  const pt = getCanvasCoordinates(e, canvasEl);
   dragOffset.x = pt.x - shelf.x;
   dragOffset.y = pt.y - shelf.y;
 }
 
-function updateShelfDrag(e) {
+function updateShelfDrag(e, canvasEl) {
   if (!draggingShelf) return;
-  const pt = getCanvasCoordinates(e);
+  const pt = getCanvasCoordinates(e, canvasEl);
+  const snapX = Math.round((pt.x - dragOffset.x) / 10) * 10;
+  const snapY = Math.round((pt.y - dragOffset.y) / 10) * 10;
 
-  // Snap
-  const rawX = pt.x - dragOffset.x;
-  const rawY = pt.y - dragOffset.y;
-
-  const snapX = Math.round(rawX / 10) * 10;
-  const snapY = Math.round(rawY / 10) * 10;
-
-  // Visual Update only (Optimization)
   const g = document.querySelector(`.shelf-group[data-id="${draggingShelf.id}"]`);
-  if (g) {
-    g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
-  }
+  if (g) g.setAttribute('transform', `translate(${snapX}, ${snapY}) rotate(${draggingShelf.rotation})`);
 
   draggingShelf._tempX = snapX;
   draggingShelf._tempY = snapY;
@@ -455,177 +508,70 @@ function updateShelfDrag(e) {
 
 async function finishShelfDrag() {
   isDraggingShelf = false;
-  if (draggingShelf && (draggingShelf._tempX !== undefined)) {
-    // Save Position
-    const updatedX = draggingShelf._tempX;
-    const updatedY = draggingShelf._tempY;
+  if (draggingShelf && draggingShelf._tempX !== undefined) {
+    const x = draggingShelf._tempX;
+    const y = draggingShelf._tempY;
+    draggingShelf.x = x; draggingShelf.y = y;
+    delete draggingShelf._tempX; delete draggingShelf._tempY;
 
-    // Update Local
-    draggingShelf.x = updatedX;
-    draggingShelf.y = updatedY;
-    delete draggingShelf._tempX;
-    delete draggingShelf._tempY;
-
-    // Update Server
-    await apiRequest(`/serials/shelves/${draggingShelf.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ x: updatedX, y: updatedY })
-    });
-
-    // Re-render to ensure clean state
+    await apiRequest(`/serials/shelves/${draggingShelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x, y }) });
     renderCanvas();
   }
   draggingShelf = null;
 }
 
+async function handleShelfDrop(e, canvasEl) {
+  e.preventDefault();
+  if (!currentLayout) return;
+  const typeId = e.dataTransfer.getData('text/plain');
+  const type = shelfTypes.find(t => t.id === typeId);
+  if (!type) return;
 
-function getCanvasCoordinates(e) {
-  const rect = canvasEl.querySelector('svg').getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  // Map to SVG coordinate space (800x600)
-  // viewbox is 800x600, rect is actual pixel size
-  const scaleX = 800 / rect.width;
-  const scaleY = 600 / rect.height;
+  const pt = getCanvasCoordinates(e, canvasEl);
+  const x = Math.round(pt.x / UNIT_SIZE) * UNIT_SIZE;
+  const y = Math.round(pt.y / UNIT_SIZE) * UNIT_SIZE;
 
-  // Account for Zoom
-  return {
-    x: (x * scaleX) / editorScale,
-    y: (y * scaleY) / editorScale
-  };
+  const code = prompt('서가 번호:', `S-${shelves.length + 1}`);
+  if (!code) return;
+
+  const payload = { layout_id: currentLayout.id, shelf_type_id: type.id, code, x, y, rotation: 0 };
+  const newShelf = await apiRequest('/serials/shelves', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  shelves.push(newShelf);
+  renderCanvas();
+  selectElement('shelf', newShelf);
 }
 
 
-// --- Palette ---
-function renderShelfPalette() {
-  const container = document.getElementById('shelf-palette');
-  container.innerHTML = '';
-
-  shelfTypes.forEach(type => {
-    const el = document.createElement('div');
-    el.className = 'palette-item';
-    el.draggable = true;
-    el.innerHTML = `
-        <div class="palette-preview" style="width:40px; height:20px;"></div>
-        <div class="palette-label">${type.name}</div>
-        <div class="palette-meta">${type.rows}단 ${type.columns}열</div>
-      `;
-
-    el.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', type.id);
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-
-    container.appendChild(el);
-  });
-}
-
-// --- Properties Panel ---
-async function renderPropertiesPanel() {
-  if (!selectedElement) {
-    propertiesContent.innerHTML = '<div class="muted center-message">선택된 요소가 없습니다.</div>';
-    return;
-  }
-
-  if (selectedElement.type === 'shelf') {
-    const shelf = selectedElement;
-    propertiesContent.innerHTML = `
-      <div class="form-row"><label>명칭</label><input id="prop-code" value="${shelf.code}"></div>
-      <div class="form-row"><label>X</label><input id="prop-x" type="number" value="${shelf.x}"></div>
-      <div class="form-row"><label>Y</label><input id="prop-y" type="number" value="${shelf.y}"></div>
-      <div class="form-row"><label>회전</label><input id="prop-rot" type="number" value="${shelf.rotation}"></div>
-      <div class="form-row"><label>메모</label><input id="prop-note" value="${shelf.note || ''}"></div>
-      <div class="stack tight" style="margin-top:10px">
-        <button class="btn primary small" id="prop-update">수정</button>
-        <button class="btn danger small" id="prop-delete">삭제</button>
-      </div>
-    `;
-
-    document.getElementById('prop-update').addEventListener('click', async () => {
-      const updates = {
-        code: document.getElementById('prop-code').value,
-        x: parseInt(document.getElementById('prop-x').value) || 0,
-        y: parseInt(document.getElementById('prop-y').value) || 0,
-        rotation: parseInt(document.getElementById('prop-rot').value) || 0,
-        note: document.getElementById('prop-note').value
-      };
-      await apiRequest(`/serials/shelves/${shelf.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      Object.assign(shelf, updates);
-      renderCanvas();
-    });
-
-    document.getElementById('prop-delete').addEventListener('click', async () => {
-      if (confirm('삭제하시겠습니까?')) {
-        await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'DELETE' });
-        shelves = shelves.filter(s => s.id !== shelf.id);
-        selectElement(null);
-        renderCanvas();
-      }
-    });
-  } else if (selectedElement.type === 'wall') {
-    const idx = selectedElement.index;
-    propertiesContent.innerHTML = `
-        <div class="form-row"><label>벽 요소 #${idx + 1}</label></div>
-        <div class="stack tight" style="margin-top:10px">
-          <button class="btn danger small" id="prop-wall-delete">벽 삭제</button>
-        </div>
-      `;
-    document.getElementById('prop-wall-delete').addEventListener('click', () => {
-      currentLayout.walls.splice(idx, 1);
-      selectElement(null);
-      renderCanvas();
-    });
-  }
-}
-
-function selectElement(type, data) {
-  if (!type) {
-    selectedElement = null;
-  } else {
-    selectedElement = { type, ...data };
-  }
-  renderCanvas(); // to toggle selection classes
-  renderPropertiesPanel();
-}
-
-
-// --- Event Bindings ---
+// --- Event Bindings (Guarded) ---
 function bindToolbarEvents() {
+  const toolbar = document.getElementById('editor-toolbar');
+  if (!toolbar) return;
+
   document.querySelectorAll('.tool-btn[data-mode]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tool-btn[data-mode]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentMode = btn.dataset.mode;
-      statusText.textContent = currentMode === 'wall' ? '드래그하여 벽 그리기' : '요소 선택 및 이동';
       updateToolbarUI();
     });
   });
 
-  document.getElementById('save-layout-btn').addEventListener('click', updateCurrentLayout);
-
-  // Zoom Controls
-  document.getElementById('zoom-in').addEventListener('click', () => setZoom(editorScale + 0.1));
-  document.getElementById('zoom-out').addEventListener('click', () => setZoom(editorScale - 0.1));
-  document.getElementById('zoom-reset').addEventListener('click', () => setZoom(1.0));
-
-  document.getElementById('layout-create-btn').addEventListener('click', () => {
-    document.getElementById('layout-meta-dialog').showModal();
-  });
-
-  document.getElementById('layout-delete-btn').addEventListener('click', deleteCurrentLayout);
-
-  document.getElementById('manage-types-btn').addEventListener('click', () => {
+  document.getElementById('save-layout-btn')?.addEventListener('click', updateCurrentLayout);
+  document.getElementById('zoom-in')?.addEventListener('click', () => setZoom(editorScale + 0.1));
+  document.getElementById('zoom-out')?.addEventListener('click', () => setZoom(editorScale - 0.1));
+  document.getElementById('zoom-reset')?.addEventListener('click', () => setZoom(1.0));
+  document.getElementById('layout-create-btn')?.addEventListener('click', () => document.getElementById('layout-meta-dialog').showModal());
+  document.getElementById('layout-delete-btn')?.addEventListener('click', deleteCurrentLayout);
+  document.getElementById('manage-types-btn')?.addEventListener('click', () => {
     document.getElementById('shelf-type-dialog').showModal();
     renderShelfTypeList();
   });
 }
 
 function updateToolbarUI() {
+  const statusText = document.getElementById('canvas-status-text');
+  if (statusText) statusText.textContent = currentMode === 'wall' ? '드래그하여 벽 그리기' : '요소 선택 및 이동';
+
   document.querySelectorAll('.tool-btn[data-mode]').forEach(btn => {
     if (btn.dataset.mode === currentMode) btn.classList.add('active');
     else btn.classList.remove('active');
@@ -633,8 +579,11 @@ function updateToolbarUI() {
 }
 
 function bindDialogEvents() {
-  // Layout Meta
-  document.getElementById('layout-meta-form').addEventListener('submit', async (e) => {
+  const closeBtns = document.querySelectorAll('[data-action="close"]');
+  closeBtns.forEach(btn => btn.addEventListener('click', (e) => e.target.closest('dialog').close()));
+
+  const metaForm = document.getElementById('layout-meta-form');
+  if (metaForm) metaForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = new FormData(e.target);
     await createLayout(data.get('name'), data.get('note'));
@@ -642,13 +591,8 @@ function bindDialogEvents() {
     e.target.reset();
   });
 
-  // Close Btns
-  document.querySelectorAll('[data-action="close"]').forEach(btn => {
-    btn.addEventListener('click', (e) => e.target.closest('dialog').close());
-  });
-
-  // Shelf Types
-  document.getElementById('shelf-type-form').addEventListener('submit', async (e) => {
+  const typeForm = document.getElementById('shelf-type-form');
+  if (typeForm) typeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const id = form.querySelector('[name="id"]').value;
@@ -656,23 +600,13 @@ function bindDialogEvents() {
       name: form.querySelector('[name="name"]').value,
       rows: parseInt(form.querySelector('[name="rows"]').value),
       columns: parseInt(form.querySelector('[name="columns"]').value),
-      // Auto calculate sizes
       width: parseInt(form.querySelector('[name="columns"]').value) * UNIT_SIZE,
-      height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.8 // Depth ratio?
+      height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.8
     };
 
-    let method = 'POST';
-    let url = '/serials/shelf-types';
-    if (id) {
-      method = 'PUT';
-      url += `/${id}`;
-    }
-
-    await apiRequest(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const url = id ? `/serials/shelf-types/${id}` : '/serials/shelf-types';
+    const method = id ? 'PUT' : 'POST';
+    await apiRequest(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
     await loadShelfTypes();
     renderShelfPalette();
@@ -684,16 +618,16 @@ function bindDialogEvents() {
 
 function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
+  if (!list) return;
   list.innerHTML = shelfTypes.map(t => `
       <div class="list-item">
-        <span>${t.name} (${t.rows}x${t.columns})</span>
+        <span>${t.name}</span>
         <button class="btn-icon delete-type" data-id="${t.id}">🗑️</button>
-      </div>
-    `).join('');
+      </div>`).join('');
 
   list.querySelectorAll('.delete-type').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      e.stopPropagation(); // prevent edit
+      e.stopPropagation();
       if (confirm('삭제하시겠습니까?')) {
         await apiRequest(`/serials/shelf-types/${btn.dataset.id}`, { method: 'DELETE' });
         await loadShelfTypes();
@@ -702,28 +636,79 @@ function renderShelfTypeList() {
       }
     });
   });
-
-  // Edit on click item? Maybe too complex for now, user just wanted better initial setup
-  list.querySelectorAll('.list-item').forEach((item, idx) => {
-    item.addEventListener('click', () => {
-      const type = shelfTypes[idx];
-      const form = document.getElementById('shelf-type-form');
-      form.querySelector('[name="id"]').value = type.id;
-      form.querySelector('[name="name"]').value = type.name;
-      form.querySelector('[name="rows"]').value = type.rows;
-      form.querySelector('[name="columns"]').value = type.columns;
-    });
-  });
 }
 
 function bindSidebarEvents() {
-  document.getElementById('layout-select').addEventListener('change', (e) => {
-    selectLayout(e.target.value);
-  });
+  document.getElementById('layout-select')?.addEventListener('change', (e) => selectLayout(e.target.value, true));
 }
 
 function renderLayoutSelect() {
   const select = document.getElementById('layout-select');
-  select.innerHTML = layouts.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-  if (currentLayout) select.value = currentLayout.id;
+  if (select) select.innerHTML = layouts.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+}
+
+function renderPropertiesPanel() {
+  const panel = document.getElementById('properties-content');
+  if (!panel) return;
+
+  if (!selectedElement) {
+    panel.innerHTML = '<div class="muted center-message">선택된 요소가 없습니다.</div>';
+    return;
+  }
+
+  if (selectedElement.type === 'shelf') {
+    const shelf = selectedElement;
+    panel.innerHTML = `
+          <div class="form-row"><label>명칭</label><input id="prop-code" value="${shelf.code}"></div>
+          <div class="form-row"><label>X</label><input id="prop-x" type="number" value="${shelf.x}"></div>
+          <div class="form-row"><label>Y</label><input id="prop-y" type="number" value="${shelf.y}"></div>
+          <div class="form-row"><label>회전</label><input id="prop-rot" type="number" value="${shelf.rotation}"></div>
+          <div class="stack tight" style="margin-top:10px">
+            <button class="btn primary small" id="prop-update">수정</button>
+            <button class="btn danger small" id="prop-delete">삭제</button>
+          </div>
+        `;
+    document.getElementById('prop-update').addEventListener('click', async () => {
+      const updates = {
+        code: document.getElementById('prop-code').value,
+        x: parseInt(document.getElementById('prop-x').value),
+        y: parseInt(document.getElementById('prop-y').value),
+        rotation: parseInt(document.getElementById('prop-rot').value)
+      };
+      await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
+      Object.assign(shelf, updates);
+      renderCanvas();
+    });
+    document.getElementById('prop-delete').addEventListener('click', async () => {
+      if (confirm('삭제?')) {
+        await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'DELETE' });
+        shelves = shelves.filter(s => s.id !== shelf.id);
+        selectElement(null);
+        renderCanvas();
+      }
+    });
+  } else if (selectedElement.type === 'wall') {
+    const idx = selectedElement.index;
+    panel.innerHTML = `<div class="stack tight"><button class="btn danger small" id="prop-wall-delete">벽 삭제</button></div>`;
+    document.getElementById('prop-wall-delete').addEventListener('click', () => {
+      currentLayout.walls.splice(idx, 1);
+      selectElement(null);
+      renderCanvas();
+    });
+  }
+}
+
+// --- Palette ---
+function renderShelfPalette() {
+  const container = document.getElementById('shelf-palette');
+  if (!container) return;
+  container.innerHTML = '';
+  shelfTypes.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'palette-item';
+    el.draggable = true;
+    el.innerHTML = `<div class="palette-label">${t.name}</div>`;
+    el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'copy'; });
+    container.appendChild(el);
+  });
 }
