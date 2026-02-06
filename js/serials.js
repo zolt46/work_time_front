@@ -17,15 +17,15 @@ let currentLayout = null;
 let currentMode = 'select'; // 'select'|'wall'
 let editorScale = 1.0;
 let editorPan = { x: 0, y: 0 };
-const UNIT_SIZE = 10; // Reduced from 20 for smaller shelves
+const UNIT_SIZE = 10;
 const GRID_SIZE = 10;
 
-let selectedElement = null; // { type: 'shelf'|'wall'|'multi', ... }
+let selectedElement = null;
 let dragOffset = { x: 0, y: 0 };
 let panStart = { x: 0, y: 0 };
 
-// Palette Drag State (Manual Drag)
-let paletteDragItem = null; // { typeId, name, width, height, el: GhostElement }
+// Palette Drag State
+let paletteDragItem = null;
 
 const acquisitionLabels = {
   UNCLASSIFIED: '미분류',
@@ -59,6 +59,7 @@ export async function initSerials() {
       renderStats();
       renderList();
       renderLayoutLegend();
+      bindHomeCanvasEvents(); // Home page zoom
     }
 
     if (isManage) {
@@ -126,7 +127,6 @@ async function loadShelves(layoutId) {
 
 async function loadSerials() {
   const query = buildQuery();
-  // NOTE: The endpoint is /serials (for list), not /serials/publications
   const url = query ? `/serials?${query}` : '/serials';
   serials = await apiRequest(url);
 }
@@ -170,8 +170,9 @@ function bindManageEvents() {
       remark: document.getElementById('serial-remark').value
     };
 
-    // FIX: Endpoint is /serials/publications/{id}, not /serials/{id}
-    const url = editingSerialId ? `/serials/publications/${editingSerialId}` : '/serials/publications';
+    // POST: /serials (without /publications)
+    // PUT: /serials/publications/{id}
+    const url = editingSerialId ? `/serials/publications/${editingSerialId}` : '/serials';
     const method = editingSerialId ? 'PUT' : 'POST';
 
     try {
@@ -191,7 +192,6 @@ function bindManageEvents() {
     if (!editingSerialId) return;
     if (confirm('삭제하시겠습니까?')) {
       try {
-        // FIX: Correct endpoint path
         await apiRequest(`/serials/publications/${editingSerialId}`, { method: 'DELETE' });
         await loadSerials();
         renderList();
@@ -318,7 +318,7 @@ function renderLayoutLegend() {
 }
 
 
-// --- Canvas Rendering (Shared) ---
+// --- Canvas Rendering ---
 function renderCanvas() {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
@@ -358,11 +358,11 @@ function renderCanvas() {
   defs.appendChild(pattern);
   svg.appendChild(defs);
 
-  // Background (Outside Layout - Distinct Color)
+  // Background (Outside Layout)
   const bgRect = document.createElementNS(ns, 'rect');
   bgRect.setAttribute('x', -5000); bgRect.setAttribute('y', -5000);
   bgRect.setAttribute('width', 10000); bgRect.setAttribute('height', 10000);
-  bgRect.setAttribute('fill', '#f1f5f9'); // Light gray for outside
+  bgRect.setAttribute('fill', '#f1f5f9');
   rootGroup.appendChild(bgRect);
 
   // Layout Area (White with Grid)
@@ -396,7 +396,7 @@ function renderCanvas() {
   const contentGroup = document.createElementNS(ns, 'g');
   contentGroup.id = 'canvas-content';
 
-  // Walls (Thinner lines)
+  // Walls
   (currentLayout.walls || []).forEach((wall, idx) => {
     const line = document.createElementNS(ns, 'line');
     line.setAttribute('x1', wall.x1);
@@ -404,7 +404,6 @@ function renderCanvas() {
     line.setAttribute('x2', wall.x2);
     line.setAttribute('y2', wall.y2);
     line.classList.add('wall-line');
-    // Highlight if selected (single or multi)
     if ((selectedElement?.type === 'wall' && selectedElement.index === idx) || isElementInSelection({ x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2, index: idx }, 'wall')) {
       line.classList.add('selected');
     }
@@ -418,16 +417,14 @@ function renderCanvas() {
     const rotation = shelf.rotation || 0;
     g.setAttribute('transform', `translate(${shelf.x}, ${shelf.y}) rotate(${rotation})`);
     g.classList.add('shelf-group');
-    // Highlight if selected
     if ((selectedElement?.type === 'shelf' && selectedElement.id === shelf.id) || isElementInSelection(shelf, 'shelf')) {
       g.classList.add('selected');
     }
     g.dataset.id = shelf.id;
 
     const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
-    // Smaller shelf sizing
     const shelfWidth = (type.columns || 4) * UNIT_SIZE;
-    const shelfHeight = (type.rows || 4) * UNIT_SIZE * 0.6; // 60% ratio
+    const shelfHeight = (type.rows || 4) * UNIT_SIZE * 0.6;
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -444,7 +441,7 @@ function renderCanvas() {
     contentGroup.appendChild(g);
   });
 
-  // Active Drawing Line
+  // Active Drawing Line (SOLID, not dashed)
   if (isDrawing && activeLine) {
     contentGroup.appendChild(activeLine);
   }
@@ -477,7 +474,6 @@ let activeLine = null;
 let isDraggingShelf = false;
 let draggingShelf = null;
 let selectionRect = null;
-const isEditor = () => !!document.getElementById('editor-toolbar');
 
 function bindCanvasEvents(editorMode) {
   const canvasEl = document.getElementById('layout-canvas');
@@ -496,7 +492,7 @@ function bindCanvasEvents(editorMode) {
   canvasEl.addEventListener('mousedown', (e) => {
     if (!currentLayout) return;
 
-    // Right click (2) for Area Selection
+    // Right click for Area Selection
     if (e.button === 2 && editorMode) {
       isSelectingArea = true;
       const pt = getWorldCoordinates(e, canvasEl);
@@ -528,6 +524,7 @@ function bindCanvasEvents(editorMode) {
         const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
         const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
         startPoint = { x: snapX, y: snapY };
+        // SOLID preview line (no stroke-dasharray)
         activeLine = createSVGLine(snapX, snapY, snapX, snapY, ['wall-line', 'preview']);
         renderCanvas();
       } else if (currentMode === 'select') {
@@ -576,29 +573,28 @@ function bindCanvasEvents(editorMode) {
 
     if (!editorMode) return;
     const worldPt = getWorldCoordinates(e, canvasEl);
-    const storedPt = {
-      x: Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE,
-      y: Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE
-    };
+    // Snap to grid
+    const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
+    const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
 
     const coordEl = document.getElementById('cursor-coords');
-    if (coordEl) coordEl.textContent = `${storedPt.x}, ${storedPt.y}`;
+    if (coordEl) coordEl.textContent = `${snapX}, ${snapY}`;
 
     if (isDrawing && activeLine) {
       // Constrain to bounds
-      storedPt.x = Math.max(0, Math.min(currentLayout.width, storedPt.x));
-      storedPt.y = Math.max(0, Math.min(currentLayout.height, storedPt.y));
+      const clampedX = Math.max(0, Math.min(currentLayout.width, snapX));
+      const clampedY = Math.max(0, Math.min(currentLayout.height, snapY));
 
-      // Orthogonal
-      const dx = Math.abs(storedPt.x - startPoint.x);
-      const dy = Math.abs(storedPt.y - startPoint.y);
+      // Orthogonal: pick dominant axis
+      const dx = Math.abs(clampedX - startPoint.x);
+      const dy = Math.abs(clampedY - startPoint.y);
 
       if (dx > dy) {
-        activeLine.setAttribute('x2', storedPt.x);
+        activeLine.setAttribute('x2', clampedX);
         activeLine.setAttribute('y2', startPoint.y);
       } else {
         activeLine.setAttribute('x2', startPoint.x);
-        activeLine.setAttribute('y2', storedPt.y);
+        activeLine.setAttribute('y2', clampedY);
       }
     }
 
@@ -620,7 +616,6 @@ function bindCanvasEvents(editorMode) {
   canvasEl.addEventListener('mouseup', () => {
     if (isSelectingArea) {
       isSelectingArea = false;
-      // Multi-select logic
       const walls = (currentLayout.walls || []).map((w, i) => ({ type: 'wall', index: i, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
       const sList = shelves.map(s => ({ type: 'shelf', ...s }));
       const all = [...walls, ...sList];
@@ -629,7 +624,6 @@ function bindCanvasEvents(editorMode) {
         if (el.type === 'wall') {
           return isPointInRect(el.x1, el.y1, selectionRect) || isPointInRect(el.x2, el.y2, selectionRect);
         } else {
-          // Shelf: check if origin is in rect
           return isPointInRect(el.x, el.y, selectionRect);
         }
       });
@@ -646,7 +640,7 @@ function bindCanvasEvents(editorMode) {
       return;
     }
 
-    if (!editorMode) return;
+    if (!document.getElementById('editor-toolbar')) return;
     if (isDrawing && activeLine) {
       const x1 = parseFloat(activeLine.getAttribute('x1'));
       const y1 = parseFloat(activeLine.getAttribute('y1'));
@@ -665,6 +659,20 @@ function bindCanvasEvents(editorMode) {
   });
 
   canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+// Home page zoom binding
+function bindHomeCanvasEvents() {
+  const canvasEl = document.getElementById('layout-canvas');
+  if (!canvasEl || document.getElementById('editor-toolbar')) return;
+
+  canvasEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY;
+    const zoomStep = 0.1;
+    const newScale = editorScale + (delta > 0 ? -zoomStep : zoomStep);
+    setZoom(newScale);
+  });
 }
 
 function isPointInRect(x, y, rect) {
@@ -691,6 +699,7 @@ function createSVGLine(x1, y1, x2, y2, classes) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('x1', x1); line.setAttribute('y1', y1);
   line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  // SOLID line, no stroke-dasharray
   classes.forEach(c => line.classList.add(c));
   return line;
 }
@@ -748,7 +757,35 @@ async function selectLayout(layoutId, editorMode) {
   }
 
   await loadShelves(layout.id);
+
+  // Fit layout to canvas at 100%
+  fitLayoutToView();
+
   renderCanvas();
+}
+
+function fitLayoutToView() {
+  const canvasEl = document.getElementById('layout-canvas');
+  if (!canvasEl || !currentLayout) return;
+
+  const containerRect = canvasEl.getBoundingClientRect();
+  const layoutWidth = currentLayout.width || 800;
+  const layoutHeight = currentLayout.height || 600;
+
+  // Calculate scale to fit with some padding
+  const padding = 20;
+  const availableWidth = containerRect.width - padding * 2;
+  const availableHeight = containerRect.height - padding * 2;
+
+  const scaleX = availableWidth / layoutWidth;
+  const scaleY = availableHeight / layoutHeight;
+  const fitScale = Math.min(scaleX, scaleY, 1.0); // Don't exceed 1.0
+
+  editorScale = fitScale;
+
+  // Center the layout
+  editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
+  editorPan.y = (containerRect.height - layoutHeight * editorScale) / 2;
 }
 
 function showEmptyState() {
@@ -795,7 +832,12 @@ function bindToolbarEvents() {
   });
 
   document.getElementById('save-layout-btn')?.addEventListener('click', updateCurrentLayout);
-  document.getElementById('zoom-reset')?.addEventListener('click', () => { editorPan = { x: 0, y: 0 }; setZoom(1.0); });
+  document.getElementById('zoom-reset')?.addEventListener('click', () => {
+    fitLayoutToView();
+    renderCanvas();
+    const el = document.getElementById('canvas-status-text');
+    if (el) el.textContent = `${Math.round(editorScale * 100)}%`;
+  });
 
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
     const d = document.getElementById('layout-meta-dialog');
@@ -808,9 +850,7 @@ function bindToolbarEvents() {
   });
 }
 
-function updateToolbarUI() {
-  // Status text update if needed
-}
+function updateToolbarUI() { }
 
 function bindDialogEvents() {
   const closeBtns = document.querySelectorAll('[data-action="close"]');
@@ -870,12 +910,30 @@ function renderShelfTypeList() {
   list.querySelectorAll('.delete-type').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (confirm('삭제하시겠습니까?')) {
-        await apiRequest(`/serials/shelf-types/${btn.dataset.id}`, { method: 'DELETE' });
-        await loadShelfTypes();
-        renderShelfPalette();
-        renderShelfTypeList();
+      const typeId = btn.dataset.id;
+
+      // Cascade delete: find and delete all shelves of this type
+      const shelvesToDelete = shelves.filter(s => s.shelf_type_id === typeId);
+
+      if (shelvesToDelete.length > 0) {
+        if (!confirm(`이 서가 타입을 삭제하면 배치된 서가 ${shelvesToDelete.length}개도 함께 삭제됩니다. 계속하시겠습니까?`)) {
+          return;
+        }
+
+        // Delete all shelves of this type
+        for (const shelf of shelvesToDelete) {
+          await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'DELETE' });
+        }
+        shelves = shelves.filter(s => s.shelf_type_id !== typeId);
+      } else {
+        if (!confirm('삭제하시겠습니까?')) return;
       }
+
+      await apiRequest(`/serials/shelf-types/${typeId}`, { method: 'DELETE' });
+      await loadShelfTypes();
+      renderShelfPalette();
+      renderShelfTypeList();
+      renderCanvas();
     });
   });
 }
@@ -948,7 +1006,6 @@ function renderPropertiesPanel() {
       };
       await apiRequest(`/serials/shelves/${shelf.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
       Object.assign(shelf, updates);
-      // Also update in shelves array
       const idx = shelves.findIndex(s => s.id === shelf.id);
       if (idx >= 0) Object.assign(shelves[idx], updates);
       renderCanvas();

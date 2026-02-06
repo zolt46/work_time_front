@@ -1,9 +1,11 @@
 <!-- File: /ui/html/dashboard.html -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <title>대시보드 - 다산 근무 관리자</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,6 +14,7 @@
     redirectToMobileIfNeeded('../mobile/dashboard.html');
   </script>
 </head>
+
 <body class="app-loading">
   <div id="app-shell-loader" class="app-shell-loader">
     <div class="spinner" aria-label="로딩 중"></div>
@@ -80,7 +83,7 @@
           </div>
         </div>
       </div>
-        <div class="card timetable-card" id="card-weekly">
+      <div class="card timetable-card" id="card-weekly">
         <div class="card-title">주간 근무 시간표</div>
         <div id="schedule-summary" class="loader">일정을 불러오는 중...</div>
       </div>
@@ -200,4 +203,5 @@
     renderCompactSchedule(assignments, 'schedule-summary', { hourHeight: 70 });
   </script>
 </body>
+
 </html>

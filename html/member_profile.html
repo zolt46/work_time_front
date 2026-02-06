@@ -1,9 +1,11 @@
 <!-- File: /ui/html/member_profile.html -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <title>내 프로필</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,6 +14,7 @@
     redirectToMobileIfNeeded('../mobile/member_profile.html');
   </script>
 </head>
+
 <body class="app-loading">
   <div id="app-shell-loader" class="app-shell-loader">
     <div class="spinner" aria-label="로딩 중"></div>
@@ -72,12 +75,30 @@
             <div class="card-title">프로필 정보</div>
             <table class="table compact">
               <tbody>
-                <tr><th>이름</th><td id="profile-name"></td></tr>
-                <tr><th>권한</th><td id="profile-role"></td></tr>
-                <tr><th>개인 ID</th><td id="profile-identifier"></td></tr>
-                <tr><th>로그인 ID</th><td id="profile-login"></td></tr>
-                <tr><th>상태</th><td id="profile-active"></td></tr>
-                <tr><th>최근 로그인</th><td id="profile-last-login"></td></tr>
+                <tr>
+                  <th>이름</th>
+                  <td id="profile-name"></td>
+                </tr>
+                <tr>
+                  <th>권한</th>
+                  <td id="profile-role"></td>
+                </tr>
+                <tr>
+                  <th>개인 ID</th>
+                  <td id="profile-identifier"></td>
+                </tr>
+                <tr>
+                  <th>로그인 ID</th>
+                  <td id="profile-login"></td>
+                </tr>
+                <tr>
+                  <th>상태</th>
+                  <td id="profile-active"></td>
+                </tr>
+                <tr>
+                  <th>최근 로그인</th>
+                  <td id="profile-last-login"></td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -85,7 +106,15 @@
             <div class="card-title">접근 가능한 계정 현황</div>
             <div class="table-wrap">
               <table class="table table-compact table-wide" id="visible-users">
-                <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>권한</th>
+                    <th>개인 ID</th>
+                    <th>로그인 ID</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
                 <tbody id="visible-users-body"></tbody>
               </table>
             </div>
@@ -143,4 +172,5 @@
     }
   </script>
 </body>
+
 </html>

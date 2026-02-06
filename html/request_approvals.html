@@ -1,9 +1,11 @@
 <!-- File: /ui/html/request_approvals.html -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <title>변경 승인함</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,6 +14,7 @@
     redirectToMobileIfNeeded('../mobile/request_approvals.html');
   </script>
 </head>
+
 <body class="app-loading">
   <div id="app-shell-loader" class="app-shell-loader">
     <div class="spinner" aria-label="로딩 중"></div>
@@ -72,7 +75,15 @@
           <div class="table-wrap table-scroll">
             <table class="table table-compact table-wider" id="pending-requests">
               <thead>
-                <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>사유</th><th>상태</th><th>작업</th></tr>
+                <tr>
+                  <th>신청자</th>
+                  <th>유형</th>
+                  <th>날짜</th>
+                  <th>근무</th>
+                  <th>사유</th>
+                  <th>상태</th>
+                  <th>작업</th>
+                </tr>
               </thead>
               <tbody id="pending-requests-body"></tbody>
             </table>
@@ -83,7 +94,15 @@
           <div class="table-wrap table-scroll">
             <table class="table table-compact table-wider">
               <thead>
-                <tr><th>신청자</th><th>유형</th><th>날짜</th><th>근무</th><th>상태</th><th>사유</th><th>발생 시각</th></tr>
+                <tr>
+                  <th>신청자</th>
+                  <th>유형</th>
+                  <th>날짜</th>
+                  <th>근무</th>
+                  <th>상태</th>
+                  <th>사유</th>
+                  <th>발생 시각</th>
+                </tr>
               </thead>
               <tbody id="request-feed-body"></tbody>
             </table>
@@ -101,4 +120,5 @@
     await renderRequestFeed();
   </script>
 </body>
+
 </html>

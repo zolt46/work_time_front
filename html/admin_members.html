@@ -1,9 +1,11 @@
 <!-- File: /ui/html/admin_members.html -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <title>구성원 관리</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -12,6 +14,7 @@
     redirectToMobileIfNeeded('../mobile/admin_members.html');
   </script>
 </head>
+
 <body class="app-loading">
   <div id="app-shell-loader" class="app-shell-loader">
     <div class="spinner" aria-label="로딩 중"></div>
@@ -87,7 +90,16 @@
           </div>
           <div class="table-wrap table-tall">
             <table class="table table-compact table-wider" id="member-table">
-              <thead><tr><th>이름</th><th>권한</th><th>개인 ID</th><th>로그인 ID</th><th>상태</th><th>최근 로그인</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>권한</th>
+                  <th>개인 ID</th>
+                  <th>로그인 ID</th>
+                  <th>상태</th>
+                  <th>최근 로그인</th>
+                </tr>
+              </thead>
               <tbody id="member-table-body"></tbody>
             </table>
           </div>
@@ -153,4 +165,5 @@
     await initMemberManagement(currentUser);
   </script>
 </body>
+
 </html>
