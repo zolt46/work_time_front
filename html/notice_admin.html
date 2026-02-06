@@ -4,8 +4,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>공지 관리 - 다산 근무 관리자</title>
-  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <title>공�? 관�?- ?�산 근무 관리자</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
@@ -17,109 +17,109 @@
 
 <body class="app-loading">
   <div id="app-shell-loader" class="app-shell-loader">
-    <div class="spinner" aria-label="로딩 중"></div>
-    <div class="muted">필요한 정보를 불러오는 중...</div>
+    <div class="spinner" aria-label="로딩 �?></div>
+    <div class="muted">?�요???�보�?불러?�는 �?..</div>
   </div>
   <header class="header">
     <div class="header-left">
-      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 열기">☰</button>
-      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 공지 관리</div>
+      <button class="icon-btn" id="sidebar-toggle" aria-label="메뉴 ?�기">??/button>
+      <div class="logo"><img src="../assets/logo.png" width="32" alt="logo" /> 공�? 관�?/div>
     </div>
     <div class="header-right">
       <div class="system-status-badge inline" id="status-card">
-        <div class="status-label">연결 상태</div>
+        <div class="status-label">?�결 ?�태</div>
         <div class="system-status">
-          <span id="server-status" class="status-chip status-pending" title="서버 상태 확인 중">
+          <span id="server-status" class="status-chip status-pending" title="?�버 ?�태 ?�인 �?>
             <span class="status-dot"></span>
-            <span class="status-text">서버 확인 중</span>
+            <span class="status-text">?�버 ?�인 �?/span>
           </span>
-          <span id="db-status" class="status-chip status-pending" title="DB 상태 확인 중">
+          <span id="db-status" class="status-chip status-pending" title="DB ?�태 ?�인 �?>
             <span class="status-dot"></span>
-            <span class="status-text">DB 확인 중</span>
+            <span class="status-text">DB ?�인 �?/span>
           </span>
         </div>
-        <div class="status-meta" id="status-meta">상태 체크 중...</div>
+        <div class="status-meta" id="status-meta">?�태 체크 �?..</div>
       </div>
       <button class="btn tiny muted theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
-        <span class="theme-icon">☀️</span>
-        <span id="theme-label">라이트 모드</span>
+        <span class="theme-icon">?��?/span>
+        <span id="theme-label">?�이??모드</span>
       </button>
       <span id="session-countdown" class="status-chip session-timer"></span>
-      <button class="btn tiny secondary" id="extend-session" style="display:none;">세션 연장</button>
-      <div class="muted">안녕하세요, <span id="user-name"></span> (<span id="user-role"></span>)</div>
-      <button class="btn muted" id="logout-btn">로그아웃</button>
+      <button class="btn tiny secondary" id="extend-session" style="display:none;">?�션 ?�장</button>
+      <div class="muted">?�녕?�세?? <span id="user-name"></span> (<span id="user-role"></span>)</div>
+      <button class="btn muted" id="logout-btn">로그?�웃</button>
     </div>
   </header>
   <div class="page">
     <nav class="sidebar" id="sidebar">
-      <div class="sidebar-title">탐색</div>
-      <a class="nav-link" data-page="dashboard" href="dashboard.html">대시보드</a>
-      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 배정표</a>
-      <a class="nav-link" data-page="profile" href="member_profile.html">내 프로필</a>
-      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변경 신청</a>
-      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변경 승인함</a>
-      <a class="nav-link" data-page="notices" href="notice_board.html">공지사항</a>
-      <a class="nav-link" data-page="notice_admin" data-min-role="OPERATOR" href="notice_admin.html">공지 관리</a>
-      <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성원 관리</a>
-      <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관리</a>
-      <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변동 이력</a>
+      <div class="sidebar-title">?�색</div>
+      <a class="nav-link" data-page="dashboard" href="dashboard.html">?�?�보??/a>
+      <a class="nav-link" data-page="overview" href="schedule_overview.html">근무 배정??/a>
+      <a class="nav-link" data-page="profile" href="member_profile.html">???�로??/a>
+      <a class="nav-link" data-page="requests" data-roles="MASTER,MEMBER" href="request_center.html">근무 변�??�청</a>
+      <a class="nav-link" data-page="approvals" data-roles="MASTER,OPERATOR" href="request_approvals.html">변�??�인??/a>
+      <a class="nav-link" data-page="notices" href="notice_board.html">공�??�항</a>
+      <a class="nav-link" data-page="notice_admin" data-min-role="OPERATOR" href="notice_admin.html">공�? 관�?/a>
+      <a class="nav-link" data-page="members" data-min-role="OPERATOR" href="admin_members.html">구성??관�?/a>
+      <a class="nav-link" data-page="shifts" data-min-role="OPERATOR" href="admin_shifts.html">근무 관�?/a>
+      <a class="nav-link" data-page="history" data-min-role="MASTER" href="history.html">변???�력</a>
       <div class="nav-divider"></div>
-      <div class="nav-section-label">통계 센터</div>
-      <a class="nav-link" data-page="visitor-portal" href="visitor_dashboard.html">출입자 통계 바로가기</a>
+      <div class="nav-section-label">?�계 ?�터</div>
+      <a class="nav-link" data-page="visitor-portal" href="visitor_dashboard.html">출입???�계 바로가�?/a>
     </nav>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <main class="content">
       <div class="grid two">
         <div class="card">
-          <div class="card-title">공지 등록/수정</div>
+          <div class="card-title">공�? ?�록/?�정</div>
           <form id="notice-form" class="form notice-form">
             <div class="form-section">
               <div class="section-header">
-                <h4>기본 정보</h4>
-                <p class="muted small">공지 제목과 내용을 작성하고, 공지 유형을 선택하세요.</p>
+                <h4>기본 ?�보</h4>
+                <p class="muted small">공�? ?�목�??�용???�성?�고, 공�? ?�형???�택?�세??</p>
               </div>
-              <label>제목
-                <input type="text" name="title" required placeholder="예: DB 교체 안내" />
+              <label>?�목
+                <input type="text" name="title" required placeholder="?? DB 교체 ?�내" />
               </label>
-              <label>내용
-                <textarea name="body" rows="5" required placeholder="공지 내용을 입력하세요."></textarea>
+              <label>?�용
+                <textarea name="body" rows="5" required placeholder="공�? ?�용???�력?�세??"></textarea>
               </label>
               <div class="grid two">
-                <label>공지 유형
+                <label>공�? ?�형
                   <select name="type" required>
-                    <option value="DB_MAINTENANCE">DB 점검</option>
-                    <option value="SYSTEM_MAINTENANCE">시스템 점검</option>
-                    <option value="WORK_SPECIAL">근무 특별 공지</option>
-                    <option value="GENERAL">일반 공지</option>
+                    <option value="DB_MAINTENANCE">DB ?��?</option>
+                    <option value="SYSTEM_MAINTENANCE">?�스???��?</option>
+                    <option value="WORK_SPECIAL">근무 ?�별 공�?</option>
+                    <option value="GENERAL">?�반 공�?</option>
                   </select>
-                  <span class="field-help">권한에 따라 선택 가능한 유형이 제한됩니다.</span>
+                  <span class="field-help">권한???�라 ?�택 가?�한 ?�형???�한?�니??</span>
                 </label>
-                <label>노출 채널
+                <label>?�출 채널
                   <div class="channel-toggle">
-                    <label class="inline"><input type="checkbox" name="channels" value="popup" /> 팝업</label>
+                    <label class="inline"><input type="checkbox" name="channels" value="popup" /> ?�업</label>
                     <label class="inline"><input type="checkbox" name="channels" value="banner" /> 배너</label>
                   </div>
-                  <span class="field-help">게시판에는 항상 등록됩니다. 팝업/배너를 선택하면 추가 노출됩니다.</span>
+                  <span class="field-help">게시?�에????�� ?�록?�니?? ?�업/배너�??�택?�면 추�? ?�출?�니??</span>
                 </label>
               </div>
             </div>
             <div class="form-section">
               <div class="section-header">
-                <h4>대상 설정</h4>
-                <p class="muted small">공지 대상과 우선순위를 선택하세요.</p>
+                <h4>?�???�정</h4>
+                <p class="muted small">공�? ?�?�과 ?�선?�위�??�택?�세??</p>
               </div>
               <div class="grid two">
-                <label>대상 범위
+                <label>?�??범위
                   <select name="scope" id="notice-scope">
-                    <option value="ALL">전체</option>
-                    <option value="ROLE">역할별</option>
-                    <option value="USER">개별 사용자</option>
+                    <option value="ALL">?�체</option>
+                    <option value="ROLE">??���?/option>
+                    <option value="USER">개별 ?�용??/option>
                   </select>
-                  <span class="field-help">역할별/개별 사용자 선택 시 아래 목록이 활성화됩니다.</span>
+                  <span class="field-help">??���?개별 ?�용???�택 ???�래 목록???�성?�됩?�다.</span>
                 </label>
-                <label>우선순위
+                <label>?�선?�위
                   <input type="number" name="priority" value="0" min="0" />
-                  <span class="field-help">숫자가 높을수록 먼저 노출됩니다.</span>
+                  <span class="field-help">?�자가 ?�을?�록 먼�? ?�출?�니??</span>
                 </label>
               </div>
               <div id="notice-role-targets" class="notice-targets notice-targets--roles"></div>
@@ -127,31 +127,31 @@
             </div>
             <div class="form-section">
               <div class="section-header">
-                <h4>노출 기간</h4>
-                <p class="muted small">시작/종료 시간을 지정하지 않으면 즉시 노출됩니다.</p>
+                <h4>?�출 기간</h4>
+                <p class="muted small">?�작/종료 ?�간??지?�하지 ?�으�?즉시 ?�출?�니??</p>
               </div>
               <div class="grid two">
-                <label>시작 시각
+                <label>?�작 ?�각
                   <input type="datetime-local" name="start_at" />
                 </label>
-                <label>종료 시각
+                <label>종료 ?�각
                   <input type="datetime-local" name="end_at" />
                 </label>
               </div>
               <label class="inline">
-                <input type="checkbox" name="is_active" checked /> 활성화
-                <span class="field-help">비활성화하면 노출되지 않습니다.</span>
+                <input type="checkbox" name="is_active" checked /> ?�성??
+                <span class="field-help">비활?�화?�면 ?�출?��? ?�습?�다.</span>
               </label>
             </div>
             <div class="form-actions">
-              <button class="btn" id="notice-submit" type="submit">공지 등록</button>
-              <button class="btn secondary" id="notice-cancel-edit" type="button" style="display:none;">편집 취소</button>
+              <button class="btn" id="notice-submit" type="submit">공�? ?�록</button>
+              <button class="btn secondary" id="notice-cancel-edit" type="button" style="display:none;">?�집 취소</button>
             </div>
           </form>
         </div>
         <div class="card">
-          <div class="card-title">공지 목록</div>
-          <div id="notice-admin-empty" class="muted" style="display:none;">등록된 공지가 없습니다.</div>
+          <div class="card-title">공�? 목록</div>
+          <div id="notice-admin-empty" class="muted" style="display:none;">?�록??공�?가 ?�습?�다.</div>
           <div id="notice-admin-list" class="notice-admin-list"></div>
         </div>
       </div>

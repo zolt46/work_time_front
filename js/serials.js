@@ -423,8 +423,9 @@ function renderCanvas() {
     g.dataset.id = shelf.id;
 
     const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
-    const shelfWidth = (type.columns || 4) * UNIT_SIZE;
-    const shelfHeight = (type.rows || 4) * UNIT_SIZE * 0.6;
+    // Width based on columns only, height fixed at 2 grid units
+    const shelfWidth = (type.columns || 4) * GRID_SIZE;
+    const shelfHeight = 2 * GRID_SIZE;
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -435,6 +436,11 @@ function renderCanvas() {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('font-size', '9');
     text.textContent = shelf.code;
+
+    // Tooltip showing shelf info
+    const titleEl = document.createElementNS(ns, 'title');
+    titleEl.textContent = `${shelf.code}\n타입: ${type.name || '미지정'}\n행: ${type.rows}, 열: ${type.columns}\n위치: (${shelf.x}, ${shelf.y})`;
+    g.appendChild(titleEl);
 
     g.appendChild(rect);
     g.appendChild(text);
@@ -773,15 +779,23 @@ function fitLayoutToView() {
   const layoutHeight = currentLayout.height || 600;
 
   // Calculate scale to fit with some padding
-  const padding = 20;
+  const padding = 30;
   const availableWidth = containerRect.width - padding * 2;
   const availableHeight = containerRect.height - padding * 2;
 
   const scaleX = availableWidth / layoutWidth;
   const scaleY = availableHeight / layoutHeight;
-  const fitScale = Math.min(scaleX, scaleY, 1.0); // Don't exceed 1.0
+  // Use the fit scale as 100% baseline
+  const fitScale = Math.min(scaleX, scaleY);
 
-  editorScale = fitScale;
+  editorScale = 1.0; // This is now "100%" meaning full fit
+  // Apply the actual rendering scale
+  const actualScale = fitScale;
+
+  // Store the base scale for 100%
+  canvasEl.dataset.baseScale = fitScale;
+
+  editorScale = actualScale;
 
   // Center the layout
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
@@ -836,7 +850,7 @@ function bindToolbarEvents() {
     fitLayoutToView();
     renderCanvas();
     const el = document.getElementById('canvas-status-text');
-    if (el) el.textContent = `${Math.round(editorScale * 100)}%`;
+    if (el) el.textContent = '100%';
   });
 
   document.getElementById('layout-create-btn')?.addEventListener('click', () => {
@@ -902,8 +916,8 @@ function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
   list.innerHTML = shelfTypes.map(t => `
-      <div class="list-item">
-        <span>${t.name}</span>
+      <div class="list-item" title="행: ${t.rows}, 열: ${t.columns}">
+        <span>${t.name} <small class="muted">(${t.rows}행 × ${t.columns}열)</small></span>
         <button class="btn-icon delete-type" data-id="${t.id}">🗑️</button>
       </div>`).join('');
 
