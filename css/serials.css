@@ -62,7 +62,6 @@
 /* Home page compact layouts */
 .compact-card {
   padding: 12px 16px;
-  max-width: 920px;
   margin: 0 auto;
 }
 
@@ -93,7 +92,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 920px;
   margin: 0 auto;
 }
 
@@ -369,7 +367,7 @@
 
 .fixed-canvas {
   width: 800px;
-  height: 600px;
+  height: 400px;
   background: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   position: relative;
@@ -399,6 +397,7 @@
   gap: 8px;
   padding: 4px;
   align-content: start;
+  max-height: 200px;
 }
 
 .palette-item {
