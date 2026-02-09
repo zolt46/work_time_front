@@ -384,11 +384,9 @@ function renderShelfVisual(serial) {
   const rows = shelfType.rows || 5;
   const cols = shelfType.columns || 3;
 
-  // 시작/종료 위치 (기본값: 동일한 셀)
-  const startRow = serial.shelf_row || 0;
-  const startCol = serial.shelf_column || 0;
-  const endRow = serial.shelf_row_end || startRow;
-  const endCol = serial.shelf_column_end || startCol;
+  // 색상 배정
+  const typeIndex = shelfTypes.findIndex(t => String(t.id).toLowerCase().trim() === String(shelfType.id).toLowerCase().trim());
+  const color = getShelfTypeColor(typeIndex);
 
   let html = `<div class="shelf-visual-header">${shelf.code} (${rows}행 × ${cols}칸)</div>`;
   html += `<div class="shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr);">`;
@@ -396,7 +394,14 @@ function renderShelfVisual(serial) {
   for (let r = 1; r <= rows; r++) {
     for (let c = 1; c <= cols; c++) {
       const isHighlighted = r >= startRow && r <= endRow && c >= startCol && c <= endCol && startRow > 0;
+      // 하이라이트된 셀에 동적 색상 적용
+      let style = '';
+      if (isHighlighted) {
+        style = `background-color: ${color}; border-color: ${color}; color: white; font-weight: 600;`;
+      }
+
       html += `<div class="shelf-cell${isHighlighted ? ' highlighted' : ''}" 
+                    style="${style}"
                     data-row="${r}" data-col="${c}" 
                     ${isHighlighted ? `data-label="${r}-${c}"` : ''}>${r}-${c}</div>`;
     }
