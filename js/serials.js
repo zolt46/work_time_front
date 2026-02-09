@@ -797,6 +797,19 @@ function bindCanvasEvents(editorMode) {
         }
       }
     }
+    // 홈/조회 페이지: 서가 클릭 시 말풍선 표시
+    if (!editorMode && e.button === 0 && target && target.classList.contains('shelf-group')) {
+      const shelf = shelves.find(s => s.id === target.dataset.id);
+      if (shelf) {
+        const rect = target.getBoundingClientRect();
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const x = rect.left - canvasRect.left + rect.width / 2;
+        const y = rect.bottom - canvasRect.top + 8;
+        showShelfTooltip(shelf, x, y, canvasEl);
+      }
+    } else if (!editorMode && e.button === 0 && !target) {
+      hideShelfTooltip();
+    }
   });
 
   // --- Touch Support for Mobile (Pan & Zoom) ---
@@ -894,137 +907,124 @@ function bindCanvasEvents(editorMode) {
     lastTouchDistance = 0;
   });
 
-  // 홈/조회 페이지: 서가 클릭 시 말풍선 표시
-  if (!editorMode && e.button === 0 && target && target.classList.contains('shelf-group')) {
-    const shelf = shelves.find(s => s.id === target.dataset.id);
-    if (shelf) {
-      const rect = target.getBoundingClientRect();
-      const canvasRect = canvasEl.getBoundingClientRect();
-      const x = rect.left - canvasRect.left + rect.width / 2;
-      const y = rect.bottom - canvasRect.top + 8;
-      showShelfTooltip(shelf, x, y, canvasEl);
+
+
+  canvasEl.addEventListener('mousemove', (e) => {
+    // Palette Drag Follow
+    if (paletteDragItem) {
+      paletteDragItem.el.style.left = `${e.clientX + 10}px`;
+      paletteDragItem.el.style.top = `${e.clientY + 10}px`;
     }
-  } else if (!editorMode && e.button === 0 && !target) {
-    hideShelfTooltip();
-  }
-});
 
-canvasEl.addEventListener('mousemove', (e) => {
-  // Palette Drag Follow
-  if (paletteDragItem) {
-    paletteDragItem.el.style.left = `${e.clientX + 10}px`;
-    paletteDragItem.el.style.top = `${e.clientY + 10}px`;
-  }
-
-  if (isPanning) {
-    const dx = e.clientX - panStart.x;
-    const dy = e.clientY - panStart.y;
-    editorPan.x += dx;
-    editorPan.y += dy;
-    panStart = { x: e.clientX, y: e.clientY };
-    renderCanvas();
-    return;
-  }
-
-  if (isSelectingArea) {
-    const pt = getWorldCoordinates(e, canvasEl);
-    const x = Math.min(startPoint.x, pt.x);
-    const y = Math.min(startPoint.y, pt.y);
-    let w = Math.abs(pt.x - startPoint.x);
-    let h = Math.abs(pt.y - startPoint.y);
-    selectionRect = { x, y, width: w, height: h };
-    renderCanvas();
-    return;
-  }
-
-  if (!editorMode) return;
-  const worldPt = getWorldCoordinates(e, canvasEl);
-  // Snap to grid
-  const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
-  const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
-
-  const coordEl = document.getElementById('cursor-coords');
-  if (coordEl) coordEl.textContent = `${snapX}, ${snapY}`;
-
-  if (isDrawing && activeLine) {
-    // Constrain to bounds
-    const clampedX = Math.max(0, Math.min(currentLayout.width, snapX));
-    const clampedY = Math.max(0, Math.min(currentLayout.height, snapY));
-
-    // Orthogonal: pick dominant axis
-    const dx = Math.abs(clampedX - startPoint.x);
-    const dy = Math.abs(clampedY - startPoint.y);
-
-    if (dx > dy) {
-      activeLine.setAttribute('x2', clampedX);
-      activeLine.setAttribute('y2', startPoint.y);
-    } else {
-      activeLine.setAttribute('x2', startPoint.x);
-      activeLine.setAttribute('y2', clampedY);
+    if (isPanning) {
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
+      editorPan.x += dx;
+      editorPan.y += dy;
+      panStart = { x: e.clientX, y: e.clientY };
+      renderCanvas();
+      return;
     }
-  }
 
-  if (isDraggingShelf && draggingShelf) {
-    updateShelfDrag(e, canvasEl);
-  }
-});
+    if (isSelectingArea) {
+      const pt = getWorldCoordinates(e, canvasEl);
+      const x = Math.min(startPoint.x, pt.x);
+      const y = Math.min(startPoint.y, pt.y);
+      let w = Math.abs(pt.x - startPoint.x);
+      let h = Math.abs(pt.y - startPoint.y);
+      selectionRect = { x, y, width: w, height: h };
+      renderCanvas();
+      return;
+    }
 
-window.addEventListener('mouseup', (e) => {
-  if (paletteDragItem) {
-    handlePaletteDrop(e, canvasEl);
-  }
-  if (isPanning) {
-    isPanning = false;
-    canvasEl.style.cursor = '';
-  }
-});
+    if (!editorMode) return;
+    const worldPt = getWorldCoordinates(e, canvasEl);
+    // Snap to grid
+    const snapX = Math.round(worldPt.x / GRID_SIZE) * GRID_SIZE;
+    const snapY = Math.round(worldPt.y / GRID_SIZE) * GRID_SIZE;
 
-canvasEl.addEventListener('mouseup', () => {
-  if (isSelectingArea) {
-    isSelectingArea = false;
-    const walls = (currentLayout.walls || []).map((w, i) => ({ type: 'wall', index: i, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
-    const sList = shelves.map(s => ({ type: 'shelf', ...s }));
-    const all = [...walls, ...sList];
+    const coordEl = document.getElementById('cursor-coords');
+    if (coordEl) coordEl.textContent = `${snapX}, ${snapY}`;
 
-    const selected = all.filter(el => {
-      if (el.type === 'wall') {
-        return isPointInRect(el.x1, el.y1, selectionRect) || isPointInRect(el.x2, el.y2, selectionRect);
+    if (isDrawing && activeLine) {
+      // Constrain to bounds
+      const clampedX = Math.max(0, Math.min(currentLayout.width, snapX));
+      const clampedY = Math.max(0, Math.min(currentLayout.height, snapY));
+
+      // Orthogonal: pick dominant axis
+      const dx = Math.abs(clampedX - startPoint.x);
+      const dy = Math.abs(clampedY - startPoint.y);
+
+      if (dx > dy) {
+        activeLine.setAttribute('x2', clampedX);
+        activeLine.setAttribute('y2', startPoint.y);
       } else {
-        return isPointInRect(el.x, el.y, selectionRect);
+        activeLine.setAttribute('x2', startPoint.x);
+        activeLine.setAttribute('y2', clampedY);
       }
-    });
-
-    if (selected.length > 0) {
-      selectedElement = { type: 'multi', items: selected };
-    } else {
-      selectedElement = null;
     }
 
-    selectionRect = null;
-    renderCanvas();
-    renderPropertiesPanel();
-    return;
-  }
-
-  if (!document.getElementById('editor-toolbar')) return;
-  if (isDrawing && activeLine) {
-    const x1 = parseFloat(activeLine.getAttribute('x1'));
-    const y1 = parseFloat(activeLine.getAttribute('y1'));
-    const x2 = parseFloat(activeLine.getAttribute('x2'));
-    const y2 = parseFloat(activeLine.getAttribute('y2'));
-
-    if (Math.abs(x1 - x2) > 0 || Math.abs(y1 - y2) > 0) {
-      currentLayout.walls = currentLayout.walls || [];
-      currentLayout.walls.push({ x1, y1, x2, y2 });
+    if (isDraggingShelf && draggingShelf) {
+      updateShelfDrag(e, canvasEl);
     }
-    activeLine = null;
-    isDrawing = false;
-    renderCanvas();
-  }
-  if (isDraggingShelf) finishShelfDrag();
-});
+  });
 
-canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('mouseup', (e) => {
+    if (paletteDragItem) {
+      handlePaletteDrop(e, canvasEl);
+    }
+    if (isPanning) {
+      isPanning = false;
+      canvasEl.style.cursor = '';
+    }
+  });
+
+  canvasEl.addEventListener('mouseup', () => {
+    if (isSelectingArea) {
+      isSelectingArea = false;
+      const walls = (currentLayout.walls || []).map((w, i) => ({ type: 'wall', index: i, x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
+      const sList = shelves.map(s => ({ type: 'shelf', ...s }));
+      const all = [...walls, ...sList];
+
+      const selected = all.filter(el => {
+        if (el.type === 'wall') {
+          return isPointInRect(el.x1, el.y1, selectionRect) || isPointInRect(el.x2, el.y2, selectionRect);
+        } else {
+          return isPointInRect(el.x, el.y, selectionRect);
+        }
+      });
+
+      if (selected.length > 0) {
+        selectedElement = { type: 'multi', items: selected };
+      } else {
+        selectedElement = null;
+      }
+
+      selectionRect = null;
+      renderCanvas();
+      renderPropertiesPanel();
+      return;
+    }
+
+    if (!document.getElementById('editor-toolbar')) return;
+    if (isDrawing && activeLine) {
+      const x1 = parseFloat(activeLine.getAttribute('x1'));
+      const y1 = parseFloat(activeLine.getAttribute('y1'));
+      const x2 = parseFloat(activeLine.getAttribute('x2'));
+      const y2 = parseFloat(activeLine.getAttribute('y2'));
+
+      if (Math.abs(x1 - x2) > 0 || Math.abs(y1 - y2) > 0) {
+        currentLayout.walls = currentLayout.walls || [];
+        currentLayout.walls.push({ x1, y1, x2, y2 });
+      }
+      activeLine = null;
+      isDrawing = false;
+      renderCanvas();
+    }
+    if (isDraggingShelf) finishShelfDrag();
+  });
+
+  canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
 // Home page zoom binding
