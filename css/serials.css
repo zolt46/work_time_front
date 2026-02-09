@@ -724,10 +724,6 @@ dialog:not([open]) {
   font-weight: 600;
 }
 
-.shelf-cell.highlighted::after {
-  content: attr(data-label);
-}
-
 /* 홈 배치도 말풍선 */
 .shelf-tooltip {
   position: absolute;
@@ -808,4 +804,71 @@ dialog:not([open]) {
 
 .shelf-tooltip-close:hover {
   background: #f1f5f9;
+}
+
+/* 색상 피커 */
+.color-picker-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.color-input {
+  width: 48px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-text {
+  flex: 1;
+  max-width: 100px;
+  font-family: monospace;
+}
+
+/* 서가 타입 색상 표시 */
+.shelf-type-color {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.shelf-type-item {
+  display: flex;
+  align-items: center;
+}
+
+/* 말풍선 미니 서가 시각화 */
+.tooltip-shelf-grid {
+  display: grid;
+  gap: 2px;
+  background: #cbd5e1;
+  padding: 3px;
+  border-radius: 4px;
+  margin-top: 8px;
+  max-width: 160px;
+}
+
+.tooltip-shelf-cell {
+  background: white;
+  border: 1px solid #e2e8f0;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #94a3b8;
+  border-radius: 2px;
+}
+
+.tooltip-shelf-cell.occupied {
+  background: #3b82f6;
+  border-color: #2563eb;
+  color: white;
+  font-weight: 500;
 }

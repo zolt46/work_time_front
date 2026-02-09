@@ -448,6 +448,27 @@ function showShelfTooltip(shelf, x, y, canvasEl) {
         </div>`;
     });
     html += '</div>';
+
+    // 미니 서가 시각화
+    if (shelfType) {
+      const rows = shelfType.rows || 5;
+      const cols = shelfType.columns || 3;
+      html += `<div class="tooltip-shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+      for (let r = 1; r <= rows; r++) {
+        for (let c = 1; c <= cols; c++) {
+          // 해당 셀에 간행물이 있는지 확인
+          const isOccupied = shelfSerials.some(s => {
+            const startRow = s.shelf_row || 0;
+            const startCol = s.shelf_column || 0;
+            const endRow = s.shelf_row_end || startRow;
+            const endCol = s.shelf_column_end || startCol;
+            return r >= startRow && r <= endRow && c >= startCol && c <= endCol;
+          });
+          html += `<div class="tooltip-shelf-cell${isOccupied ? ' occupied' : ''}"></div>`;
+        }
+      }
+      html += '</div>';
+    }
   }
 
   html += '</div>';
@@ -577,6 +598,7 @@ function renderCanvas() {
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
     // 서가 타입별 색상 팔레트
+    // 서가 타입별 색상: 사용자 정의 색상 우선, 없으면 기본 팔레트
     const colorPalette = [
       { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e40af' }, // 파랑
       { fill: '#dcfce7', stroke: '#22c55e', text: '#166534' }, // 초록
@@ -587,7 +609,18 @@ function renderCanvas() {
       { fill: '#ccfbf1', stroke: '#14b8a6', text: '#0f766e' }, // 청록
       { fill: '#fee2e2', stroke: '#ef4444', text: '#991b1b' }, // 빨강
     ];
-    const color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
+
+    let color;
+    if (type.color) {
+      // 사용자 정의 색상: 더 밝은 fill, 원본 stroke, 어두운 text
+      color = {
+        fill: type.color + '30',  // 30% opacity
+        stroke: type.color,
+        text: type.color
+      };
+    } else {
+      color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
+    }
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -1081,6 +1114,7 @@ function bindDialogEvents() {
       name: form.querySelector('[name="name"]').value,
       rows: parseInt(form.querySelector('[name="rows"]').value),
       columns: parseInt(form.querySelector('[name="columns"]').value),
+      color: form.querySelector('[name="color"]')?.value || null,
       width: parseInt(form.querySelector('[name="columns"]').value) * UNIT_SIZE,
       height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.6
     };
@@ -1115,11 +1149,15 @@ function resetShelfTypeForm() {
 function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
-  list.innerHTML = shelfTypes.map(t => `
+  list.innerHTML = shelfTypes.map(t => {
+    const color = t.color || '#3b82f6';
+    return `
       <div class="list-item shelf-type-item" data-id="${t.id}">
+        <span class="shelf-type-color" style="background:${color}"></span>
         <span class="shelf-type-info">${t.name} (${t.rows}행 × ${t.columns}칸)</span>
         <button class="btn-icon delete-type" data-id="${t.id}">🗑️</button>
-      </div>`).join('');
+      </div>`;
+  }).join('');
 
   // 항목 클릭 시 폼에 정보 로드 (수정 모드)
   list.querySelectorAll('.shelf-type-item').forEach(item => {
@@ -1138,6 +1176,10 @@ function renderShelfTypeList() {
       form.querySelector('[name="name"]').value = shelfType.name;
       form.querySelector('[name="rows"]').value = shelfType.rows;
       form.querySelector('[name="columns"]').value = shelfType.columns;
+      const colorInput = form.querySelector('[name="color"]');
+      if (colorInput) colorInput.value = shelfType.color || '#3b82f6';
+      const colorText = form.querySelector('[name="colorText"]');
+      if (colorText) colorText.value = shelfType.color || '#3b82f6';
 
       // 선택 상태 표시
       list.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
