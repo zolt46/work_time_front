@@ -777,8 +777,10 @@ function fitLayoutToView() {
   const layoutWidth = currentLayout.width || 800;
   const layoutHeight = currentLayout.height || 600;
 
-  // Use 0.9 scale as "100%" to ensure the boundary area fits nicely
-  editorScale = 0.9;
+  // Calculate scale to fit the layout in the container with some padding
+  const scaleX = (containerRect.width * 0.9) / layoutWidth;
+  const scaleY = (containerRect.height * 0.9) / layoutHeight;
+  editorScale = Math.min(scaleX, scaleY, 1.0); // Don't scale up beyond 100%
 
   // Center the layout in the canvas
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;

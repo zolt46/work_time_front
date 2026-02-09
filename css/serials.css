@@ -94,7 +94,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  width: 2400px;
+  width: 960px;
   max-width: 100%;
   margin: 0 auto;
 }
@@ -366,7 +366,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-color);
-  height: 270px;
+  height: 2500px;
 }
 
 .fixed-canvas {
