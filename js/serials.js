@@ -388,6 +388,12 @@ function renderShelfVisual(serial) {
   const typeIndex = shelfTypes.findIndex(t => String(t.id).toLowerCase().trim() === String(shelfType.id).toLowerCase().trim());
   const color = getShelfTypeColor(typeIndex);
 
+  // 시작/종료 위치 (기본값: 동일한 셀)
+  const startRow = serial.shelf_row || 0;
+  const startCol = serial.shelf_column || 0;
+  const endRow = serial.shelf_row_end || startRow;
+  const endCol = serial.shelf_column_end || startCol;
+
   let html = `<div class="shelf-visual-header">${shelf.code} (${rows}행 × ${cols}칸)</div>`;
   html += `<div class="shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr);">`;
 
