@@ -654,13 +654,29 @@ function bindCanvasEvents(editorMode) {
     e.preventDefault();
   });
 
-  // Wheel Zoom (조회 페이지에서도 작동)
+  // Wheel Zoom (마우스 위치 기준 확대/축소)
   canvasEl.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = e.deltaY;
     const zoomStep = 0.1;
-    const newScale = editorScale + (delta > 0 ? -zoomStep : zoomStep);
-    setZoom(newScale);
+    const oldScale = editorScale;
+    const newScale = Math.max(0.2, Math.min(5, oldScale + (delta > 0 ? -zoomStep : zoomStep)));
+
+    // 마우스 위치 기준으로 확대/축소
+    const rect = canvasEl.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // 현재 마우스 위치의 월드 좌표
+    const worldX = (mouseX - editorPan.x) / oldScale;
+    const worldY = (mouseY - editorPan.y) / oldScale;
+
+    // 새 스케일 적용 후 동일한 월드 좌표가 마우스 위치에 오도록 pan 조정
+    editorPan.x = mouseX - worldX * newScale;
+    editorPan.y = mouseY - worldY * newScale;
+    editorScale = newScale;
+
+    renderCanvas();
   });
 
   canvasEl.addEventListener('mousedown', (e) => {
