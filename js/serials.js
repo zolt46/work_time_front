@@ -489,7 +489,7 @@ function hideShelfTooltip() {
 
 
 // --- Canvas Rendering ---
-function renderCanvas() {
+async function renderCanvas() {
   const canvasEl = document.getElementById('layout-canvas');
   if (!canvasEl) return;
   if (!currentLayout) {
@@ -581,6 +581,11 @@ function renderCanvas() {
     contentGroup.appendChild(line);
   });
 
+  // Ensure shelfTypes are loaded
+  if (shelfTypes.length === 0) {
+    await loadShelfTypes();
+  }
+
   // Shelves
   shelves.forEach(shelf => {
     const g = document.createElementNS(ns, 'g');
@@ -592,8 +597,8 @@ function renderCanvas() {
     }
     g.dataset.id = shelf.id;
 
-    const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
-    const typeIndex = shelfTypes.findIndex(t => t.id === shelf.shelf_type_id);
+    const type = shelfTypes.find(t => String(t.id) === String(shelf.shelf_type_id)) || { rows: 4, columns: 4 };
+    const typeIndex = shelfTypes.findIndex(t => String(t.id) === String(shelf.shelf_type_id));
     const shelfWidth = (type.columns || 4) * UNIT_SIZE;
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
@@ -1164,10 +1169,6 @@ function renderShelfTypeList() {
       form.querySelector('[name="name"]').value = shelfType.name;
       form.querySelector('[name="rows"]').value = shelfType.rows;
       form.querySelector('[name="columns"]').value = shelfType.columns;
-      const colorInput = form.querySelector('[name="color"]');
-      if (colorInput) colorInput.value = shelfType.color || '#3b82f6';
-      const colorText = form.querySelector('[name="colorText"]');
-      if (colorText) colorText.value = shelfType.color || '#3b82f6';
 
       // 선택 상태 표시
       list.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
