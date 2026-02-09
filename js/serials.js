@@ -782,9 +782,9 @@ function fitLayoutToView() {
   const scaleY = (containerRect.height * 0.9) / layoutHeight;
   editorScale = Math.min(scaleX, scaleY, 1.0); // Don't scale up beyond 100%
 
-  // Center the layout in the canvas
+  // Center the layout in the canvas, slightly shifted up
   editorPan.x = (containerRect.width - layoutWidth * editorScale) / 2;
-  editorPan.y = (containerRect.height - layoutHeight * editorScale) / 2;
+  editorPan.y = (containerRect.height - layoutHeight * editorScale) / 2 - 15;
 }
 
 function showEmptyState() {
