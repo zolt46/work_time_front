@@ -335,7 +335,11 @@ function bindListEvents() {
 function renderLayoutLegend() {
   const legend = document.getElementById('layout-legend');
   if (!legend) return;
-  legend.innerHTML = shelfTypes.map(t => `<div class="legend-item"><span class="legend-swatch"></span>${t.name}</div>`).join('');
+  const colorPalette = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#ef4444'];
+  legend.innerHTML = shelfTypes.map((t, idx) => {
+    const color = colorPalette[idx % colorPalette.length];
+    return `<div class="legend-item"><span class="legend-swatch" style="background:${color}"></span>${t.name}</div>`;
+  }).join('');
 }
 
 // --- 서가 시각화 ---
