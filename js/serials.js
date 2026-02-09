@@ -597,8 +597,7 @@ function renderCanvas() {
     const shelfWidth = (type.columns || 4) * UNIT_SIZE;
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
-    // 서가 타입별 색상 팔레트
-    // 서가 타입별 색상: 사용자 정의 색상 우선, 없으면 기본 팔레트
+    // 서가 타입별 자동 색상 배정 (타입 순서에 따라 팔레트에서 선택)
     const colorPalette = [
       { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e40af' }, // 파랑
       { fill: '#dcfce7', stroke: '#22c55e', text: '#166534' }, // 초록
@@ -609,18 +608,7 @@ function renderCanvas() {
       { fill: '#ccfbf1', stroke: '#14b8a6', text: '#0f766e' }, // 청록
       { fill: '#fee2e2', stroke: '#ef4444', text: '#991b1b' }, // 빨강
     ];
-
-    let color;
-    if (type.color) {
-      // 사용자 정의 색상: 더 밝은 fill, 원본 stroke, 어두운 text
-      color = {
-        fill: type.color + '30',  // 30% opacity
-        stroke: type.color,
-        text: type.color
-      };
-    } else {
-      color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
-    }
+    const color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -1114,7 +1102,6 @@ function bindDialogEvents() {
       name: form.querySelector('[name="name"]').value,
       rows: parseInt(form.querySelector('[name="rows"]').value),
       columns: parseInt(form.querySelector('[name="columns"]').value),
-      color: form.querySelector('[name="color"]')?.value || null,
       width: parseInt(form.querySelector('[name="columns"]').value) * UNIT_SIZE,
       height: parseInt(form.querySelector('[name="rows"]').value) * UNIT_SIZE * 0.6
     };
@@ -1149,8 +1136,9 @@ function resetShelfTypeForm() {
 function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
-  list.innerHTML = shelfTypes.map(t => {
-    const color = t.color || '#3b82f6';
+  const colorPalette = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#ef4444'];
+  list.innerHTML = shelfTypes.map((t, idx) => {
+    const color = colorPalette[idx % colorPalette.length];
     return `
       <div class="list-item shelf-type-item" data-id="${t.id}">
         <span class="shelf-type-color" style="background:${color}"></span>
