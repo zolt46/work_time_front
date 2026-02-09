@@ -394,25 +394,24 @@ function highlightAndZoomToShelf(shelf) {
   const shelfType = shelfTypes.find(t => t.id === shelf.shelf_type_id);
   if (!shelfType) return;
 
-  const containerRect = canvasEl.getBoundingClientRect();
-  const shelfCenterX = shelf.x + (shelfType.width * UNIT_SIZE / 2);
-  const shelfCenterY = shelf.y + (shelfType.height * UNIT_SIZE / 2);
+  // 서가 실제 크기 계산 (칸 수 기반)
+  const shelfWidth = (shelfType.columns || 4) * UNIT_SIZE;
+  const shelfHeight = 2 * UNIT_SIZE;
+  const shelfCenterX = shelf.x + shelfWidth / 2;
+  const shelfCenterY = shelf.y + shelfHeight / 2;
 
-  // 확대 스케일 설정 (1.5배)
-  editorScale = 1.5;
+  // 캔버스 크기
+  const containerRect = canvasEl.getBoundingClientRect();
+
+  // 확대 스케일 설정 (2배로 더 확대)
+  editorScale = 2.0;
 
   // 서가가 캔버스 중앙에 오도록 위치 조정
   editorPan.x = (containerRect.width / 2) - (shelfCenterX * editorScale);
   editorPan.y = (containerRect.height / 2) - (shelfCenterY * editorScale);
 
-  // SVG 변환 적용
-  const svg = canvasEl.querySelector('svg');
-  if (svg) {
-    const g = svg.querySelector('g');
-    if (g) {
-      g.setAttribute('transform', `translate(${editorPan.x}, ${editorPan.y}) scale(${editorScale})`);
-    }
-  }
+  // 캔버스 재렌더링
+  renderCanvas();
 }
 
 // --- 홈 배치도 말풍선 ---
@@ -573,17 +572,38 @@ function renderCanvas() {
     g.dataset.id = shelf.id;
 
     const type = shelfTypes.find(t => t.id === shelf.shelf_type_id) || { rows: 4, columns: 4 };
+    const typeIndex = shelfTypes.findIndex(t => t.id === shelf.shelf_type_id);
     const shelfWidth = (type.columns || 4) * UNIT_SIZE;
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
+
+    // 서가 타입별 색상 팔레트
+    const colorPalette = [
+      { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e40af' }, // 파랑
+      { fill: '#dcfce7', stroke: '#22c55e', text: '#166534' }, // 초록
+      { fill: '#fef3c7', stroke: '#f59e0b', text: '#92400e' }, // 주황
+      { fill: '#fce7f3', stroke: '#ec4899', text: '#9d174d' }, // 분홍
+      { fill: '#e0e7ff', stroke: '#6366f1', text: '#3730a3' }, // 인디고
+      { fill: '#f3e8ff', stroke: '#a855f7', text: '#6b21a8' }, // 보라
+      { fill: '#ccfbf1', stroke: '#14b8a6', text: '#0f766e' }, // 청록
+      { fill: '#fee2e2', stroke: '#ef4444', text: '#991b1b' }, // 빨강
+    ];
+    const color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
     rect.setAttribute('height', shelfHeight);
+    rect.setAttribute('fill', color.fill);
+    rect.setAttribute('stroke', color.stroke);
+    rect.setAttribute('stroke-width', '2');
+    rect.setAttribute('rx', '4');
+
     const text = document.createElementNS(ns, 'text');
     text.setAttribute('x', shelfWidth / 2);
     text.setAttribute('y', shelfHeight / 2 + 3);
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('font-size', '9');
+    text.setAttribute('fill', color.text);
+    text.setAttribute('font-weight', '600');
     text.textContent = shelf.code;
 
     g.appendChild(rect);
@@ -634,9 +654,8 @@ function bindCanvasEvents(editorMode) {
     e.preventDefault();
   });
 
-  // Wheel Zoom
+  // Wheel Zoom (조회 페이지에서도 작동)
   canvasEl.addEventListener('wheel', (e) => {
-    if (!editorMode) return;
     e.preventDefault();
     const delta = e.deltaY;
     const zoomStep = 0.1;
@@ -658,8 +677,8 @@ function bindCanvasEvents(editorMode) {
 
     const target = e.target.closest('.wall-line, .shelf-group');
 
-    // Pan: Middle Click OR (Select Mode AND Empty Background)
-    if (e.button === 1 || (currentMode === 'select' && !target && e.button === 0)) {
+    // Pan: Middle Click OR Left Click on Empty Background (조회 페이지에서도 작동)
+    if (e.button === 1 || (!target && e.button === 0)) {
       isPanning = true;
       panStart = { x: e.clientX, y: e.clientY };
       canvasEl.style.cursor = 'grabbing';
