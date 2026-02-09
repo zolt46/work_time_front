@@ -289,13 +289,30 @@ function showSerialDetail(serial) {
   setText('detail-issn', serial.issn || '-');
   setText('detail-type', acquisitionLabels[serial.acquisition_type] || serial.acquisition_type);
   setText('detail-shelf', formatShelfLabel(serial));
-  setText('detail-location', serial.shelf_section || '-');
-  setText('detail-note', serial.shelf_note || '-');
 
+  // 위치 정보 포맷팅
+  let locationText = '-';
+  if (serial.shelf_row && serial.shelf_column) {
+    if (serial.shelf_row_end && serial.shelf_column_end) {
+      locationText = `${serial.shelf_row}행 ${serial.shelf_column}칸 ~ ${serial.shelf_row_end}행 ${serial.shelf_column_end}칸`;
+    } else {
+      locationText = `${serial.shelf_row}행 ${serial.shelf_column}칸`;
+    }
+  }
+  setText('detail-location', locationText);
+  setText('detail-note', serial.shelf_note || serial.remark || '-');
+
+  // 평면도에서 서가 하이라이트 및 확대
   if (serial.shelf_id) {
     const shelf = shelves.find(s => s.id === serial.shelf_id);
-    if (shelf) selectElement('shelf', shelf);
+    if (shelf) {
+      selectElement('shelf', shelf);
+      highlightAndZoomToShelf(shelf);
+    }
   }
+
+  // 서가 시각화 렌더링
+  renderShelfVisual(serial);
 }
 
 function formatShelfLabel(serial) {
@@ -319,6 +336,135 @@ function renderLayoutLegend() {
   const legend = document.getElementById('layout-legend');
   if (!legend) return;
   legend.innerHTML = shelfTypes.map(t => `<div class="legend-item"><span class="legend-swatch"></span>${t.name}</div>`).join('');
+}
+
+// --- 서가 시각화 ---
+function renderShelfVisual(serial) {
+  const container = document.getElementById('shelf-visual');
+  if (!container) return;
+
+  if (!serial.shelf_id) {
+    container.innerHTML = '<div class="shelf-visual-empty">배치 서가가 지정되지 않았습니다</div>';
+    return;
+  }
+
+  const shelf = shelves.find(s => s.id === serial.shelf_id);
+  if (!shelf) {
+    container.innerHTML = '<div class="shelf-visual-empty">서가 정보를 찾을 수 없습니다</div>';
+    return;
+  }
+
+  const shelfType = shelfTypes.find(t => t.id === shelf.shelf_type_id);
+  if (!shelfType) {
+    container.innerHTML = '<div class="shelf-visual-empty">서가 타입 정보를 찾을 수 없습니다</div>';
+    return;
+  }
+
+  const rows = shelfType.rows || 5;
+  const cols = shelfType.columns || 3;
+
+  // 시작/종료 위치 (기본값: 동일한 셀)
+  const startRow = serial.shelf_row || 0;
+  const startCol = serial.shelf_column || 0;
+  const endRow = serial.shelf_row_end || startRow;
+  const endCol = serial.shelf_column_end || startCol;
+
+  let html = `<div class="shelf-visual-header">${shelf.code} (${rows}행 × ${cols}칸)</div>`;
+  html += `<div class="shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+
+  for (let r = 1; r <= rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const isHighlighted = r >= startRow && r <= endRow && c >= startCol && c <= endCol && startRow > 0;
+      html += `<div class="shelf-cell${isHighlighted ? ' highlighted' : ''}" 
+                    data-row="${r}" data-col="${c}" 
+                    ${isHighlighted ? `data-label="${r}-${c}"` : ''}>${r}-${c}</div>`;
+    }
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// --- 평면도 확대/하이라이트 ---
+function highlightAndZoomToShelf(shelf) {
+  const canvasEl = document.getElementById('layout-canvas');
+  if (!canvasEl || !currentLayout) return;
+
+  // 해당 서가 찾아서 확대
+  const shelfType = shelfTypes.find(t => t.id === shelf.shelf_type_id);
+  if (!shelfType) return;
+
+  const containerRect = canvasEl.getBoundingClientRect();
+  const shelfCenterX = shelf.x + (shelfType.width * UNIT_SIZE / 2);
+  const shelfCenterY = shelf.y + (shelfType.height * UNIT_SIZE / 2);
+
+  // 확대 스케일 설정 (1.5배)
+  editorScale = 1.5;
+
+  // 서가가 캔버스 중앙에 오도록 위치 조정
+  editorPan.x = (containerRect.width / 2) - (shelfCenterX * editorScale);
+  editorPan.y = (containerRect.height / 2) - (shelfCenterY * editorScale);
+
+  // SVG 변환 적용
+  const svg = canvasEl.querySelector('svg');
+  if (svg) {
+    const g = svg.querySelector('g');
+    if (g) {
+      g.setAttribute('transform', `translate(${editorPan.x}, ${editorPan.y}) scale(${editorScale})`);
+    }
+  }
+}
+
+// --- 홈 배치도 말풍선 ---
+let currentTooltip = null;
+
+function showShelfTooltip(shelf, x, y, canvasEl) {
+  hideShelfTooltip();
+
+  const shelfSerials = serials.filter(s => s.shelf_id === shelf.id);
+  const shelfType = shelfTypes.find(t => t.id === shelf.shelf_type_id);
+
+  let html = `
+    <div class="shelf-tooltip" style="left: ${x}px; top: ${y}px;">
+      <button class="shelf-tooltip-close" onclick="this.parentElement.remove()">×</button>
+      <div class="shelf-tooltip-header">${shelf.code}${shelfType ? ` (${shelfType.rows}행 × ${shelfType.columns}칸)` : ''}</div>
+  `;
+
+  if (shelfSerials.length === 0) {
+    html += '<div class="shelf-tooltip-empty">등록된 간행물이 없습니다</div>';
+  } else {
+    html += '<div class="shelf-tooltip-list">';
+    shelfSerials.forEach(s => {
+      let loc = '';
+      if (s.shelf_row && s.shelf_column) {
+        loc = `${s.shelf_row}행 ${s.shelf_column}칸`;
+        if (s.shelf_row_end && s.shelf_column_end) {
+          loc += ` ~ ${s.shelf_row_end}행 ${s.shelf_column_end}칸`;
+        }
+      }
+      html += `
+        <div class="shelf-tooltip-item">
+          <div class="title">${s.title}</div>
+          ${loc ? `<div class="location">${loc}</div>` : ''}
+        </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  const tooltip = document.createElement('div');
+  tooltip.innerHTML = html;
+  canvasEl.appendChild(tooltip.firstElementChild);
+  currentTooltip = canvasEl.querySelector('.shelf-tooltip');
+}
+
+function hideShelfTooltip() {
+  if (currentTooltip) {
+    currentTooltip.remove();
+    currentTooltip = null;
+  }
+  document.querySelectorAll('.shelf-tooltip').forEach(t => t.remove());
 }
 
 
@@ -549,6 +695,20 @@ function bindCanvasEvents(editorMode) {
           selectElement(null);
         }
       }
+    }
+
+    // 홈/조회 페이지: 서가 클릭 시 말풍선 표시
+    if (!editorMode && e.button === 0 && target && target.classList.contains('shelf-group')) {
+      const shelf = shelves.find(s => s.id === target.dataset.id);
+      if (shelf) {
+        const rect = target.getBoundingClientRect();
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const x = rect.left - canvasRect.left + rect.width / 2;
+        const y = rect.bottom - canvasRect.top + 8;
+        showShelfTooltip(shelf, x, y, canvasEl);
+      }
+    } else if (!editorMode && e.button === 0 && !target) {
+      hideShelfTooltip();
     }
   });
 
