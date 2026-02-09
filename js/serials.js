@@ -618,8 +618,9 @@ async function renderCanvas() {
     }
     g.dataset.id = shelf.id;
 
-    const type = shelfTypes.find(t => String(t.id) === String(shelf.shelf_type_id)) || { rows: 4, columns: 4 };
-    const typeIndex = shelfTypes.findIndex(t => String(t.id) === String(shelf.shelf_type_id));
+    const normalizeId = (id) => String(id || '').toLowerCase().trim();
+    const typeIndex = shelfTypes.findIndex(t => normalizeId(t.id) === normalizeId(shelf.shelf_type_id));
+    const type = shelfTypes[typeIndex] || { rows: 4, columns: 4 }; // Use index directly if found
     const shelfWidth = (type.columns || 4) * UNIT_SIZE;
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
@@ -987,6 +988,10 @@ async function selectLayout(layoutId, editorMode) {
   if (!layout) return;
 
   currentLayout = layout;
+
+  if (shelfTypes.length === 0) {
+    await loadShelfTypes();
+  }
 
   if (editorMode) {
     const select = document.getElementById('layout-select');
