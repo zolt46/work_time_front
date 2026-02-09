@@ -166,6 +166,8 @@ function bindManageEvents() {
       shelf_id: document.getElementById('serial-shelf-id').value || null,
       shelf_row: parseInt(document.getElementById('serial-row').value) || null,
       shelf_column: parseInt(document.getElementById('serial-column').value) || null,
+      shelf_row_end: parseInt(document.getElementById('serial-row-end').value) || null,
+      shelf_column_end: parseInt(document.getElementById('serial-column-end').value) || null,
       shelf_note: document.getElementById('serial-note').value,
       remark: document.getElementById('serial-remark').value
     };
@@ -223,6 +225,8 @@ function populateManageForm(serial) {
   setVal('serial-shelf-id', serial.shelf_id);
   setVal('serial-row', serial.shelf_row);
   setVal('serial-column', serial.shelf_column);
+  setVal('serial-row-end', serial.shelf_row_end);
+  setVal('serial-column-end', serial.shelf_column_end);
   setVal('serial-note', serial.shelf_note);
   setVal('serial-remark', serial.remark);
 
@@ -893,19 +897,62 @@ function bindDialogEvents() {
     await loadShelfTypes();
     renderShelfPalette();
     renderShelfTypeList();
-    form.reset();
-    if (form.querySelector('[name="id"]')) form.querySelector('[name="id"]').value = '';
+    resetShelfTypeForm();
   });
+
+  // 새로 등록 버튼 - 폼 초기화
+  document.getElementById('shelf-type-new')?.addEventListener('click', resetShelfTypeForm);
+}
+
+function resetShelfTypeForm() {
+  const form = document.getElementById('shelf-type-form');
+  if (!form) return;
+  form.reset();
+  form.querySelector('[name="id"]').value = '';
+
+  const list = document.getElementById('shelf-type-list');
+  if (list) list.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
+
+  const title = document.getElementById('shelf-type-dialog-title');
+  if (title) title.textContent = '서가 타입 관리';
 }
 
 function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
   list.innerHTML = shelfTypes.map(t => `
-      <div class="list-item">
-        <span>${t.name}</span>
+      <div class="list-item shelf-type-item" data-id="${t.id}">
+        <span class="shelf-type-info">${t.name} (${t.rows}행 × ${t.columns}칸)</span>
         <button class="btn-icon delete-type" data-id="${t.id}">🗑️</button>
       </div>`).join('');
+
+  // 항목 클릭 시 폼에 정보 로드 (수정 모드)
+  list.querySelectorAll('.shelf-type-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.classList.contains('delete-type')) return; // 삭제 버튼 클릭 무시
+
+      const typeId = item.dataset.id;
+      const shelfType = shelfTypes.find(t => t.id === typeId);
+      if (!shelfType) return;
+
+      // 폼에 정보 채우기
+      const form = document.getElementById('shelf-type-form');
+      if (!form) return;
+
+      form.querySelector('[name="id"]').value = shelfType.id;
+      form.querySelector('[name="name"]').value = shelfType.name;
+      form.querySelector('[name="rows"]').value = shelfType.rows;
+      form.querySelector('[name="columns"]').value = shelfType.columns;
+
+      // 선택 상태 표시
+      list.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+
+      // 다이얼로그 제목 변경
+      const title = document.getElementById('shelf-type-dialog-title');
+      if (title) title.textContent = '서가 타입 수정';
+    });
+  });
 
   list.querySelectorAll('.delete-type').forEach(btn => {
     btn.addEventListener('click', async (e) => {

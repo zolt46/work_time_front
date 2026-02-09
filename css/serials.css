@@ -500,6 +500,15 @@ dialog:not([open]) {
   background: #f8fafc;
 }
 
+.list-item.selected {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.list-item.shelf-type-item {
+  cursor: pointer;
+}
+
 .btn-icon {
   background: none;
   border: none;
