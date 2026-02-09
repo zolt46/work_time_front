@@ -626,8 +626,8 @@ async function renderCanvas() {
     // 서가 타입별 자동 색상 배정 (타입 순서에 따라 팔레트에서 선택)
     const color = getShelfTypeColor(typeIndex);
     const borderColor = color;
-    const fillColor = hexToRgba(color, 0.2); // 배경색은 투명도 적용
-    const textColor = color; // 텍스트는 원색 사용
+    const fillColor = color; // Solid color to match legend
+    const textColor = '#ffffff'; // White text on solid background
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
@@ -1408,11 +1408,11 @@ function renderShelfPalette() {
     // 서가 타입 색상 적용
     const color = getShelfTypeColor(idx);
     const borderColor = color;
-    const bgColor = hexToRgba(color, 0.2);
+    const bgColor = color; // Solid color
 
     el.style.borderColor = borderColor;
     el.style.backgroundColor = bgColor;
-    el.style.color = '#1e293b'; // Text color
+    el.style.color = '#ffffff'; // White text
     el.innerHTML = `<div class="palette-label">${t.name}</div>`;
 
     el.addEventListener('mousedown', (e) => {
