@@ -34,7 +34,10 @@ body.mobile-app {
   animation: spin 0.8s linear infinite;
 }
 
-body.app-loading .app-shell-loader { display: flex; }
+body.app-loading .app-shell-loader {
+  display: flex;
+}
+
 body.app-loading .mobile-header,
 body.app-loading .mobile-content,
 body.app-loading .mobile-nav {
@@ -42,7 +45,9 @@ body.app-loading .mobile-nav {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .mobile-shell {
@@ -532,8 +537,13 @@ body.app-loading .mobile-nav {
 }
 
 @keyframes bannerScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .request-card-title {
@@ -737,10 +747,94 @@ body.app-loading .mobile-nav {
   .mobile-header {
     padding: 10px 12px 6px;
   }
+
   .mobile-content {
     padding: 6px 12px 0;
   }
+
   .mobile-nav {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+/* --- Serials Mobile Override --- */
+.mobile-app .layout-canvas {
+  overflow: hidden;
+  /* Fix overflow */
+  touch-action: none;
+  /* Prevent browser scroll interactions within canvas */
+  border-radius: 8px;
+  background: white;
+  min-height: 300px;
+}
+
+.mobile-app .layout-canvas svg {
+  touch-action: none;
+}
+
+/* Typography Adjustments */
+.mobile-app .card-title {
+  font-size: 16px;
+  /* Slightly smaller than desktop */
+}
+
+.mobile-app .stat-value {
+  font-size: 24px !important;
+  /* Reduce from desktop 32px+ */
+}
+
+.mobile-app .stat-label {
+  font-size: 13px !important;
+}
+
+/* Shelf Visual in List */
+.mobile-app .shelf-visual {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+
+/* Layout Management Forms */
+.mobile-app .inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-app .inline-form .form-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.mobile-app .serials-form .form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mobile-app .serials-form input,
+.mobile-app .serials-form select {
+  padding: 10px;
+  font-size: 14px;
+}
+
+.mobile-app .stack.tight {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mobile-app .stack.tight .btn {
+  width: 100%;
 }
