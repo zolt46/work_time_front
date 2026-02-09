@@ -474,7 +474,11 @@ function showShelfTooltip(shelf, x, y, canvasEl) {
     if (shelfType) {
       const rows = shelfType.rows || 5;
       const cols = shelfType.columns || 3;
-      html += `<div class="tooltip-shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+      // 색상 배정
+      const typeIndex = shelfTypes.findIndex(t => String(t.id).toLowerCase().trim() === String(shelfType.id).toLowerCase().trim());
+      const color = getShelfTypeColor(typeIndex);
+
+      html += `<div class="tooltip-shelf-grid" style="grid-template-columns: repeat(${cols}, 1fr); border-color: ${color}; background-color: ${hexToRgba(color, 0.1)};">`;
       for (let r = 1; r <= rows; r++) {
         for (let c = 1; c <= cols; c++) {
           // 해당 셀에 간행물이 있는지 확인
@@ -485,7 +489,13 @@ function showShelfTooltip(shelf, x, y, canvasEl) {
             const endCol = s.shelf_column_end || startCol;
             return r >= startRow && r <= endRow && c >= startCol && c <= endCol;
           });
-          html += `<div class="tooltip-shelf-cell${isOccupied ? ' occupied' : ''}"></div>`;
+
+          let cellStyle = `border-color: ${hexToRgba(color, 0.3)};`;
+          if (isOccupied) {
+            cellStyle += `background-color: ${color};`; // Occupied cells use solid color
+          }
+
+          html += `<div class="tooltip-shelf-cell${isOccupied ? ' occupied' : ''}" style="${cellStyle}"></div>`;
         }
       }
       html += '</div>';
@@ -603,8 +613,12 @@ async function renderCanvas() {
   });
 
   // Ensure shelfTypes are loaded
-  if (shelfTypes.length === 0) {
+  if (!shelfTypes || shelfTypes.length === 0) {
+    console.debug('renderCanvas: shelfTypes empty, reloading...');
     await loadShelfTypes();
+    if (!shelfTypes || shelfTypes.length === 0) {
+      console.warn('renderCanvas: Failed to load shelfTypes');
+    }
   }
 
   // Shelves
