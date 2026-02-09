@@ -143,7 +143,25 @@ function buildQuery() {
   if (type) params.set('acquisition_type', type);
   return params.toString();
 }
+const COLOR_PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#ef4444'];
 
+function getShelfTypeColor(index) {
+  return COLOR_PALETTE[index >= 0 ? index % COLOR_PALETTE.length : 0];
+}
+
+// Hex 색상에 투명도 적용
+function hexToRgba(hex, alpha) {
+  let c;
+  if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+    c = hex.substring(1).split('');
+    if (c.length === 3) {
+      c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+    }
+    c = '0x' + c.join('');
+    return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + alpha + ')';
+  }
+  return hex;
+}
 // --- Manage Page Logic ---
 function renderShelfOptions() {
   const select = document.getElementById('serial-shelf-id');
@@ -335,9 +353,8 @@ function bindListEvents() {
 function renderLayoutLegend() {
   const legend = document.getElementById('layout-legend');
   if (!legend) return;
-  const colorPalette = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#ef4444'];
   legend.innerHTML = shelfTypes.map((t, idx) => {
-    const color = colorPalette[idx % colorPalette.length];
+    const color = getShelfTypeColor(idx);
     return `<div class="legend-item"><span class="legend-swatch" style="background:${color}"></span>${t.name}</div>`;
   }).join('');
 }
@@ -607,23 +624,16 @@ async function renderCanvas() {
     const shelfHeight = 2 * UNIT_SIZE; // Fixed height: 2 grid units
 
     // 서가 타입별 자동 색상 배정 (타입 순서에 따라 팔레트에서 선택)
-    const colorPalette = [
-      { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e40af' }, // 파랑
-      { fill: '#dcfce7', stroke: '#22c55e', text: '#166534' }, // 초록
-      { fill: '#fef3c7', stroke: '#f59e0b', text: '#92400e' }, // 주황
-      { fill: '#fce7f3', stroke: '#ec4899', text: '#9d174d' }, // 분홍
-      { fill: '#e0e7ff', stroke: '#6366f1', text: '#3730a3' }, // 인디고
-      { fill: '#f3e8ff', stroke: '#a855f7', text: '#6b21a8' }, // 보라
-      { fill: '#ccfbf1', stroke: '#14b8a6', text: '#0f766e' }, // 청록
-      { fill: '#fee2e2', stroke: '#ef4444', text: '#991b1b' }, // 빨강
-    ];
-    const color = colorPalette[typeIndex >= 0 ? typeIndex % colorPalette.length : 0];
+    const color = getShelfTypeColor(typeIndex);
+    const borderColor = color;
+    const fillColor = hexToRgba(color, 0.2); // 배경색은 투명도 적용
+    const textColor = color; // 텍스트는 원색 사용
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('width', shelfWidth);
     rect.setAttribute('height', shelfHeight);
-    rect.setAttribute('fill', color.fill);
-    rect.setAttribute('stroke', color.stroke);
+    rect.setAttribute('fill', fillColor);
+    rect.setAttribute('stroke', borderColor);
     rect.setAttribute('stroke-width', '2');
     rect.setAttribute('rx', '4');
 
@@ -632,7 +642,7 @@ async function renderCanvas() {
     text.setAttribute('y', shelfHeight / 2 + 3);
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('font-size', '9');
-    text.setAttribute('fill', color.text);
+    text.setAttribute('fill', textColor);
     text.setAttribute('font-weight', '600');
     text.textContent = shelf.code;
 
@@ -1145,9 +1155,9 @@ function resetShelfTypeForm() {
 function renderShelfTypeList() {
   const list = document.getElementById('shelf-type-list');
   if (!list) return;
-  const colorPalette = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#a855f7', '#14b8a6', '#ef4444'];
+
   list.innerHTML = shelfTypes.map((t, idx) => {
-    const color = colorPalette[idx % colorPalette.length];
+    const color = getShelfTypeColor(idx);
     return `
       <div class="list-item shelf-type-item" data-id="${t.id}">
         <span class="shelf-type-color" style="background:${color}"></span>
@@ -1382,14 +1392,27 @@ async function handlePaletteDrop(e, canvasEl) {
 
 
 // --- Palette ---
+// renderShelfTypeList (기존 코드 수정)
+// ... (이 부분은 위에서 찾은 renderShelfTypeList 내부 수정)
+
+// --- Palette ---
 function renderShelfPalette() {
   const container = document.getElementById('shelf-palette');
   if (!container) return;
   container.innerHTML = '';
 
-  shelfTypes.forEach(t => {
+  shelfTypes.forEach((t, idx) => {
     const el = document.createElement('div');
     el.className = 'palette-item';
+
+    // 서가 타입 색상 적용
+    const color = getShelfTypeColor(idx);
+    const borderColor = color;
+    const bgColor = hexToRgba(color, 0.2);
+
+    el.style.borderColor = borderColor;
+    el.style.backgroundColor = bgColor;
+    el.style.color = '#1e293b'; // Text color
     el.innerHTML = `<div class="palette-label">${t.name}</div>`;
 
     el.addEventListener('mousedown', (e) => {
